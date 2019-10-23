@@ -587,13 +587,13 @@ TEST(Script, ConvertFromMiniScriptTest) {
     EXPECT_TRUE(false);
   }
 
-  try {   // fail
+  try {
     // miniscript - The BOLT #3 to_local policy
     // andor(c:pk(key_local),older(1008),c:pk(key_revocation))
     miniscript = "andor(c:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),older(1008),c:pk(036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af))";
     script = Script::ConvertFromMiniScript(miniscript);
     EXPECT_STREQ(script.ToString().c_str(),
-        "");
+        "027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_NOTIF 036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_ELSE 1008 OP_CHECKSEQUENCEVERIFY OP_ENDIF");
   } catch (const CfdException& e1) {
     EXPECT_STREQ("", e1.what());
   } catch (const std::exception& e2) {
@@ -602,13 +602,13 @@ TEST(Script, ConvertFromMiniScriptTest) {
     EXPECT_TRUE(false);
   }
 
-  try {   // fail
+  try {
     // miniscript - The BOLT #3 to_local policy
     // andor(c:pk(key_local),older(1008),c:pk(key_revocation))
     miniscript = "andor(c:pk(key_local),older(1008),c:pk(key_revocation))";
     script = Script::ConvertFromMiniScript(miniscript);
     EXPECT_STREQ(script.ToString().c_str(),
-        "");
+        "030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_NOTIF 030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_ELSE 1008 OP_CHECKSEQUENCEVERIFY OP_ENDIF");
   } catch (const CfdException& e1) {
     EXPECT_STREQ("", e1.what());
   } catch (const std::exception& e2) {
@@ -617,13 +617,13 @@ TEST(Script, ConvertFromMiniScriptTest) {
     EXPECT_TRUE(false);
   }
 
-  try {   // fail
+  try {
     // miniscript - A user and a 2FA service need to sign off, but after 90 days the user alone is enough
     // and_v(vc:pk(key_user),or_d(c:pk(key_service),older(12960)))
     miniscript = "and_v(vc:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),or_d(c:pk(036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),older(12960)))";
     script = Script::ConvertFromMiniScript(miniscript);
     EXPECT_STREQ(script.ToString().c_str(),
-        "");
+        "027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_CHECKSIGVERIFY 036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_IFDUP OP_NOTIF 12960 OP_CHECKSEQUENCEVERIFY OP_ENDIF");
   } catch (const CfdException& e1) {
     EXPECT_STREQ("", e1.what());
   } catch (const std::exception& e2) {
@@ -632,13 +632,13 @@ TEST(Script, ConvertFromMiniScriptTest) {
     EXPECT_TRUE(false);
   }
 
-  try {   // fail
+  try {
     // miniscript - A user and a 2FA service need to sign off, but after 90 days the user alone is enough
     // and_v(vc:pk(key_user),or_d(c:pk(key_service),older(12960)))
     miniscript = "and_v(vc:pk(key_user),or_d(c:pk(key_service),older(12960)))";
     script = Script::ConvertFromMiniScript(miniscript);
     EXPECT_STREQ(script.ToString().c_str(),
-        "");
+        "030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_CHECKSIGVERIFY 030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_IFDUP OP_NOTIF 12960 OP_CHECKSEQUENCEVERIFY OP_ENDIF");
   } catch (const CfdException& e1) {
     EXPECT_STREQ("", e1.what());
   } catch (const std::exception& e2) {
@@ -880,7 +880,7 @@ TEST(Script, GetMiniScriptTest) {
     builder.AppendOperator(ScriptOperator::OP_EQUALVERIFY);
     builder.AppendOperator(ScriptOperator::OP_CHECKSIGVERIFY);
     builder.AppendOperator(ScriptOperator::OP_SIZE);
-    builder.AppendData(static_cast<int64_t>(20));
+    builder.AppendData(static_cast<int64_t>(32));
     builder.AppendOperator(ScriptOperator::OP_EQUALVERIFY);
     builder.AppendOperator(ScriptOperator::OP_HASH160);
     builder.AppendData(ByteData("925d4028880bd0c9d68fbc7fc7dfee976698629c"));

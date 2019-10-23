@@ -145,7 +145,7 @@ bool Func(const std::string& str, const std::string& sp, std::string* out)
     if ((size_t)sp.size() >= str.size() + 2 && sp[str.size()] == '(' && sp[sp.size() - 1] == ')') {
       std::string sub_str = sp.substr(0, str.size());
       if (sub_str == str) {
-        *out = sp.substr(str.size() + 1, sp.size() - str.size() + 2);  // sp.end() - str.size() + 2
+        *out = sp.substr(str.size() + 1, sp.size() - str.size() - 2);  // sp.end() - str.size() + 2
         return true;
       }
     }
@@ -179,8 +179,10 @@ std::string Expr(const std::string& sp, std::string* out)
         }
         ++it;
     }
-    std::string ret = std::string(sp.begin(), it);
-    *out = std::string(it, sp.end());
+    // std::string ret = std::string(sp.begin(), it);
+    std::string ret = sp.substr(0, it - sp.begin());
+    // *out = std::string(it, sp.end());
+    *out = sp.substr(it - sp.begin(), sp.end() - it);
     return ret;
 }
 
@@ -220,7 +222,8 @@ Node Parse(std::string in, const MiniScriptConverter& ctx, int recursion_depth, 
   // Parse wrappers
   for (size_t i = 0; i < expr.size(); ++i) {
       if (expr[i] == ':') {
-          auto in2 = std::string(expr.begin() + 1, expr.end());
+          // auto in2 = std::string(expr.begin() + 1, expr.end());
+          auto in2 = expr.substr(1);
           Node sub = Parse(in2, ctx, recursion_depth + 1, &temp_out);
           if (temp_out.size()) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
           for (size_t j = i; j-- > 0; ) {
@@ -298,7 +301,7 @@ Node Parse(std::string in, const MiniScriptConverter& ctx, int recursion_depth, 
       return Node(NodeType::AFTER, num);
   } else if (Func("older", expr, &func_out)) {
       int64_t num;
-      if (!ParseInt64(std::string(expr.begin(), expr.end()), &num)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
+      if (!ParseInt64(func_out, &num)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__) + ", func_out=" + func_out);
       if (num < 1 || num >= 0x80000000L) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
       return Node(NodeType::OLDER, num);
   } else if (Func("and_n", expr, &func_out)) {
@@ -328,10 +331,10 @@ Node Parse(std::string in, const MiniScriptConverter& ctx, int recursion_depth, 
       if (!ParseInt64(arg, &count)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
       std::vector<ByteData> keys;
       while (expr.size()) {
-          if (!Const(",", expr, &temp_out)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
+          if (!Const(",", expr, &temp_out)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__) + ", expr=" + expr);
           auto keyarg = Expr(temp_out, &temp_out2);
           ByteData key;
-          if (!ctx.FromString(keyarg, key)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
+          if (!ctx.FromString(keyarg, key)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__) + ", temp_out=" + keyarg);
           keys.push_back(key);
       }
       if (keys.size() < 1 || keys.size() > 20) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
@@ -346,7 +349,7 @@ Node Parse(std::string in, const MiniScriptConverter& ctx, int recursion_depth, 
       while (expr.size()) {
           temp_out = expr;
           expr = "";
-          if (!Const(",", temp_out, &expr)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
+          if (!Const(",", temp_out, &expr)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__) + ", tmp_out=" + temp_out);
           temp_out = "";
           auto sub = Parse(expr, ctx, recursion_depth + 1, &temp_out);
           subs.push_back(sub);
@@ -564,11 +567,15 @@ Node DecodeSingle(ScriptObjectIte& in, ScriptObject last, const MiniScriptConver
 
     std::string result;
     for (ScriptObjectIte it = in; it != last; ++it) {
-      // result += it->first.ToString();
-      result += std::to_string((int)it->first.GetDataType());
-      result += "(";
-      result += std::to_string((int)it->second.size());
-      result += ")";
+      result += it->first.ToString();
+      if (it->first.ToString() == "UNKNOWN") {
+        result += ":";
+        result += std::to_string((int)it->first.GetDataType());
+        result += "(";
+        result += ByteData(it->second).GetHex();
+        result += ")";
+      }
+      // result += std::to_string((int)it->first.GetDataType());
       result += " ";
     }
     throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, std::string(__FUNCTION__) + " error. line=" + std::to_string(__LINE__) + ", in=" + result);
