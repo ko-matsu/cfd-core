@@ -182,7 +182,7 @@ std::string Expr(const std::string& sp, std::string* out)
     // std::string ret = std::string(sp.begin(), it);
     std::string ret = sp.substr(0, it - sp.begin());
     // *out = std::string(it, sp.end());
-    *out = sp.substr(it - sp.begin(), sp.end() - it);
+    *out = sp.substr(it - sp.begin());
     return ret;
 }
 
@@ -263,13 +263,13 @@ Node Parse(std::string in, const MiniScriptConverter& ctx, int recursion_depth, 
   } else if (expr == "1") {
       return Node(NodeType::JUST_1);
   } else if (Func("pk", expr, &func_out)) {
-      ByteData key;
+      ByteData key("030000000000000000000000000000000000000000000000000000000000000000");
       if (ctx.FromString(func_out, key)) {
           return Node(NodeType::PK, std::vector<ByteData>{key});
       }
       throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__) + ", func_out=" + func_out);
   } else if (Func("pk_h", expr, &func_out)) {
-      ByteData key;
+      ByteData key("0000000000000000000000000000000000000000");;
       if (ctx.FromString(func_out, key)) {
           return Node(NodeType::PK_H, std::vector<ByteData>{key});
       }
@@ -292,7 +292,7 @@ Node Parse(std::string in, const MiniScriptConverter& ctx, int recursion_depth, 
       return Node(NodeType::HASH256, hash);
   } else if (Func("hash160", expr, &func_out)) {
       auto hash = ParseHex(func_out);
-      if (hash.size() != 20) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
+      if (hash.size() != 20) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__) + ", func_out=" + func_out);
       return Node(NodeType::HASH160, hash);
   } else if (Func("after", expr, &func_out)) {
       int64_t num;
@@ -330,12 +330,18 @@ Node Parse(std::string in, const MiniScriptConverter& ctx, int recursion_depth, 
       int64_t count;
       if (!ParseInt64(arg, &count)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
       std::vector<ByteData> keys;
-      while (expr.size()) {
+      expr = temp_out2;
+      ByteData key;
+      std::string keyarg;
+      while (expr.size() != 0) {
+          temp_out = "";
           if (!Const(",", expr, &temp_out)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__) + ", expr=" + expr);
-          auto keyarg = Expr(temp_out, &temp_out2);
-          ByteData key;
+          expr = temp_out;
+          keyarg = Expr(expr, &temp_out);
+          key = ByteData("030000000000000000000000000000000000000000000000000000000000000000");
           if (!ctx.FromString(keyarg, key)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__) + ", temp_out=" + keyarg);
           keys.push_back(key);
+          expr = temp_out;
       }
       if (keys.size() < 1 || keys.size() > 20) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
       if (count < 1 || count > (int64_t)keys.size()) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
@@ -346,6 +352,7 @@ Node Parse(std::string in, const MiniScriptConverter& ctx, int recursion_depth, 
       int64_t count;
       if (!ParseInt64(arg, &count)) throw cfd::core::CfdException(CfdError::kCfdIllegalStateError, "Parse error. line=" + std::to_string(__LINE__));
       std::vector<Node> subs;
+      expr = temp_out2;
       while (expr.size()) {
           temp_out = expr;
           expr = "";
@@ -1159,15 +1166,17 @@ bool MiniScriptConverter::FromString(std::string str, ByteData& key) const {
   auto bytes = ParseHex(str);
   // key.Set(bytes.begin(), bytes.end());
   if (bytes.size() == 0) {
-    if (!str.empty()) {
-      // name text
-      // set dummy pubkey data
-      key = ByteData("030000000000000000000000000000000000000000000000000000000000000000");
-      return true;
-    }
-    return false;
+    // name text
+    // set dummy pubkey data
+    // key = ByteData("030000000000000000000000000000000000000000000000000000000000000000");
+    return true;
   }
-  Pubkey pubkey = Pubkey(ByteData(bytes));
+  Pubkey pubkey;
+  try {
+    pubkey = Pubkey(ByteData(bytes));
+  } catch (const CfdException& except) {
+    throw CfdException("FromString new Pubkey fail. str=" + str);
+  }
   key = pubkey.GetData();
   return pubkey.IsValid();
 }
@@ -1178,7 +1187,12 @@ bool MiniScriptConverter::FromPKBytes(const std::vector<uint8_t>& byte_array, By
   if (byte_array.size() == 0) {
     return false;
   }
-  Pubkey pubkey = Pubkey(ByteData(byte_array));
+  Pubkey pubkey;
+  try {
+    pubkey = Pubkey(ByteData(byte_array));
+  } catch (const CfdException& except) {
+    throw CfdException("FromPKBytes new Pubkey fail. byte_array=" + ByteData(byte_array).GetHex());
+  }
   key = pubkey.GetData();
   return pubkey.IsValid();
 }

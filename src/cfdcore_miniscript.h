@@ -337,7 +337,9 @@ struct MaxInt {
   MaxInt(I val) : valid(true), value(val) {}
 
   friend MaxInt<I> operator+(const MaxInt<I>& a, const MaxInt<I>& b) {
-    if (!a.valid) throw cfd::core::CfdException("MaxInt operator+ a error. val=" + std::to_string(a.value));
+    if (!a.valid && !b.valid)
+      throw cfd::core::CfdException("MaxInt operator+ error. a=" + std::to_string(a.value) + ", b=" + std::to_string(b.value));
+    if (!a.valid) return b.value;
     if (!b.valid) return a.value;
     return a.value + b.value;
   }
