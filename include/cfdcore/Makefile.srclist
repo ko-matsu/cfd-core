@@ -13,6 +13,7 @@ CFDCORE_PKGINCLUDE_FILES = \
   cfdcore_bytedata.h \
   cfdcore_transaction_common.h \
   cfdcore_transaction.h \
+  cfdcore_descriptor.h \
   cfdcore_util.h \
   cfdcore_address.h \
   cfdcore_coin.h \
