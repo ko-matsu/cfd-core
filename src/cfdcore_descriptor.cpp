@@ -16,11 +16,11 @@
 #include <vector>
 
 #include "cfdcore/cfdcore_address.h"
+#include "cfdcore/cfdcore_descriptor.h"
 #include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_script.h"
-#include "cfdcore/cfdcore_descriptor.h"
 
 namespace cfd {
 namespace core {
@@ -37,18 +37,18 @@ struct DescriptorNodeScriptData {
 };
 
 static const DescriptorNodeScriptData kDescriptorNodeScriptTable[] = {
-  {"sh", DescriptorScriptType::kDescriptorScriptSh, true, true, false},
-  {"combo", DescriptorScriptType::kDescriptorScriptCombo, true, true, false},
-  {"wsh", DescriptorScriptType::kDescriptorScriptWsh, false, true, false},
-  {"pk", DescriptorScriptType::kDescriptorScriptPk, false, true, false},
-  {"pkh", DescriptorScriptType::kDescriptorScriptPkh, false, true, false},
-  {"wpkh", DescriptorScriptType::kDescriptorScriptWpkh, false, true, false},
-  {"multi", DescriptorScriptType::kDescriptorScriptMulti, false, true, true},
-  {"sortedmulti", DescriptorScriptType::kDescriptorScriptSortedMulti, false, true, true},
-  {"addr", DescriptorScriptType::kDescriptorScriptAddr, true, false, false},
-  {"raw", DescriptorScriptType::kDescriptorScriptRaw, true, false, false},
+    {"sh", DescriptorScriptType::kDescriptorScriptSh, true, true, false},
+    {"combo", DescriptorScriptType::kDescriptorScriptCombo, true, true, false},
+    {"wsh", DescriptorScriptType::kDescriptorScriptWsh, false, true, false},
+    {"pk", DescriptorScriptType::kDescriptorScriptPk, false, true, false},
+    {"pkh", DescriptorScriptType::kDescriptorScriptPkh, false, true, false},
+    {"wpkh", DescriptorScriptType::kDescriptorScriptWpkh, false, true, false},
+    {"multi", DescriptorScriptType::kDescriptorScriptMulti, false, true, true},
+    {"sortedmulti", DescriptorScriptType::kDescriptorScriptSortedMulti, false,
+     true, true},
+    {"addr", DescriptorScriptType::kDescriptorScriptAddr, true, false, false},
+    {"raw", DescriptorScriptType::kDescriptorScriptRaw, true, false, false},
 };
-
 
 // -----------------------------------------------------------------------------
 // DescriptorNode
@@ -78,8 +78,8 @@ DescriptorNode& DescriptorNode::operator=(const DescriptorNode& object) {
   return *this;
 }
 
-
-DescriptorNode DescriptorNode::Parse(const std::string& output_descriptor,
+DescriptorNode DescriptorNode::Parse(
+    const std::string& output_descriptor,
     const std::vector<AddressFormatData>& network_parameters) {
   DescriptorNode node(network_parameters);
   node.node_type_ = DescriptorNodeType::kDescriptorTypeScript;
@@ -91,7 +91,8 @@ DescriptorNode DescriptorNode::Parse(const std::string& output_descriptor,
   return node;
 }
 
-void DescriptorNode::AnalyzeChild(const std::string& descriptor, uint32_t depth) {
+void DescriptorNode::AnalyzeChild(
+    const std::string& descriptor, uint32_t depth) {
   bool is_terminate = false;
   size_t offset = 0;
   uint32_t depth_work = depth;
@@ -101,7 +102,7 @@ void DescriptorNode::AnalyzeChild(const std::string& descriptor, uint32_t depth)
   std::string descriptor_main;
   info(CFD_LOG_SOURCE, "AnalyzeChild = {}", descriptor);
 
-  for (size_t idx=0; idx<descriptor.size(); ++idx) {
+  for (size_t idx = 0; idx < descriptor.size(); ++idx) {
     const char& str = descriptor[idx];
     if (str == '#') {
       if (is_terminate) {
@@ -119,8 +120,7 @@ void DescriptorNode::AnalyzeChild(const std::string& descriptor, uint32_t depth)
         throw CfdException(
             CfdError::kCfdIllegalArgumentError, "Illegal checksum data.");
       }
-    }
-    else if (str == ',') {
+    } else if (str == ',') {
       if (exist_child_node) {
         // through
         // warn(CFD_LOG_SOURCE, "Failed to exist child node after terminate.");
@@ -143,21 +143,20 @@ void DescriptorNode::AnalyzeChild(const std::string& descriptor, uint32_t depth)
         throw CfdException(
             CfdError::kCfdIllegalArgumentError, "Illegal command.");
       }
-    }
-    else if (str == ' ') {
+    } else if (str == ' ') {
       ++offset;
-    }
-    else if (str == '(') {
+    } else if (str == '(') {
       if (depth_work == depth) {
         name_ = descriptor.substr(offset, idx - offset);
         offset = idx + 1;
       } else {
         exist_child_node = true;
       }
-      info(CFD_LOG_SOURCE, "Target`(` depth_work={}, name={}", depth_work, name_);
+      info(
+          CFD_LOG_SOURCE, "Target`(` depth_work={}, name={}", depth_work,
+          name_);
       ++depth_work;
-    }
-    else if (str == ')') {
+    } else if (str == ')') {
       --depth_work;
       info(CFD_LOG_SOURCE, "Target`)` depth_work = {}", depth_work);
       if (depth_work == depth) {
@@ -178,7 +177,9 @@ void DescriptorNode::AnalyzeChild(const std::string& descriptor, uint32_t depth)
             node.depth_ = depth + 1;
           }
           child_node_.push_back(node);
-          info(CFD_LOG_SOURCE, "Target`)` depth_work={}, child.value={}", depth_work, node.value_);
+          info(
+              CFD_LOG_SOURCE, "Target`)` depth_work={}, child.value={}",
+              depth_work, node.value_);
         }
       }
     }
@@ -186,8 +187,7 @@ void DescriptorNode::AnalyzeChild(const std::string& descriptor, uint32_t depth)
 
   if (name_.empty() || (name_ == "addr") || (name_ == "raw")) {
     // do nothing
-  }
-  else if (child_node_.empty()) {
+  } else if (child_node_.empty()) {
     warn(CFD_LOG_SOURCE, "Failed to child node empty.");
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "Failed to child node empty.");
@@ -200,7 +200,9 @@ void DescriptorNode::AnalyzeChild(const std::string& descriptor, uint32_t depth)
 
 void DescriptorNode::CheckChecksum(const std::string& descriptor) {
   if (checksum_.size() != 8) {
-    warn(CFD_LOG_SOURCE, "Expected 8 character checksum, not {} characters.", checksum_.size());
+    warn(
+        CFD_LOG_SOURCE, "Expected 8 character checksum, not {} characters.",
+        checksum_.size());
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "Expected 8 character checksum.");
   }
@@ -211,9 +213,10 @@ void DescriptorNode::CheckChecksum(const std::string& descriptor) {
         CfdError::kCfdIllegalArgumentError, "Invalid characters in payload.");
   }
   if (checksum_ != checksum) {
-    warn(CFD_LOG_SOURCE,
-         "Provided checksum '{}' does not match computed checksum '{}'.",
-         checksum_, checksum);
+    warn(
+        CFD_LOG_SOURCE,
+        "Provided checksum '{}' does not match computed checksum '{}'.",
+        checksum_, checksum);
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "Unmatch checksum.");
   }
@@ -243,7 +246,8 @@ std::string DescriptorNode::GenerateChecksum(const std::string& descriptor) {
       "ijklmnopqrstuvwxyzABCDEFGH`#\"\\ ";
 
   /** The character set for the checksum itself (same as bech32). */
-  static const std::string kChecksumCharset = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+  static const std::string kChecksumCharset =
+      "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 
   static auto poly_mod = [](uint64_t c, int val) -> uint64_t {
     uint8_t c0 = c >> 35;
@@ -259,7 +263,7 @@ std::string DescriptorNode::GenerateChecksum(const std::string& descriptor) {
   uint64_t c = 1;
   int cls = 0;
   int clscount = 0;
-  for (size_t idx=0; idx<descriptor.size(); ++idx) {
+  for (size_t idx = 0; idx < descriptor.size(); ++idx) {
     const char& ch = descriptor[idx];
     auto pos = kInputCharset.find(ch);
     if (pos == std::string::npos) return "";
@@ -305,7 +309,8 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
     // derive key check (xpub,etc)
     info(CFD_LOG_SOURCE, "key_info_ = {}", key_info_);
     std::string hdkey_top = key_info_.substr(0, 4);
-    if ((hdkey_top == "xpub") || (hdkey_top == "tpub") || (hdkey_top == "xprv") || (hdkey_top == "tprv")) {
+    if ((hdkey_top == "xpub") || (hdkey_top == "tpub") ||
+        (hdkey_top == "xprv") || (hdkey_top == "tprv")) {
       key_type_ = DescriptorKeyType::kDescriptorKeyBip32;
       if ((hdkey_top == "xprv") || (hdkey_top == "tprv")) {
         key_type_ = kDescriptorKeyBip32Priv;
@@ -315,8 +320,7 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
       }
       // FIXME HDKeyの実装
       key_info_ = key_info_;  // Keyクラスをserializeする
-    }
-    else {
+    } else {
       key_type_ = DescriptorKeyType::kDescriptorKeyPublic;
       bool is_wif = false;
       Pubkey pubkey;
@@ -355,7 +359,8 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
             privkey = Privkey::FromWif(key_info_, NetType::kTestnet);
           } catch (const CfdException& except) {
             std::string errmsg(except.what());
-            if (errmsg.find("Error WIF to Private key.") == std::string::npos) {
+            if (errmsg.find("Error WIF to Private key.") ==
+                std::string::npos) {
               throw except;
             }
           }
@@ -396,27 +401,38 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
           CfdError::kCfdIllegalArgumentError, "Failed to child node empty.");
     }
   } else if (!child_node_.empty()) {
-    warn(CFD_LOG_SOURCE, "Failed to child node num. size={}", child_node_.size());
+    warn(
+        CFD_LOG_SOURCE, "Failed to child node num. size={}",
+        child_node_.size());
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "Failed to child node num.");
   }
 
   if (p_data->multisig) {
     if (child_node_.size() < 2) {
-      warn(CFD_LOG_SOURCE, "Failed to multisig node low. size={}", child_node_.size());
+      warn(
+          CFD_LOG_SOURCE, "Failed to multisig node low. size={}",
+          child_node_.size());
       throw CfdException(
           CfdError::kCfdIllegalArgumentError, "Failed to multisig node low.");
     }
     if ((child_node_[0].number_ == 0) || (child_node_[0].number_ > 16) ||
-        ((child_node_.size() - 1) < static_cast<size_t>(child_node_[0].number_))) {
-      warn(CFD_LOG_SOURCE, "Failed to multisig require num. num={}", child_node_[0].number_);
+        ((child_node_.size() - 1) <
+         static_cast<size_t>(child_node_[0].number_))) {
+      warn(
+          CFD_LOG_SOURCE, "Failed to multisig require num. num={}",
+          child_node_[0].number_);
       throw CfdException(
-          CfdError::kCfdIllegalArgumentError, "Failed to multisig require num.");
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to multisig require num.");
     }
     if ((child_node_.size() - 1) > 16) {
-      warn(CFD_LOG_SOURCE, "Failed to multisig pubkey num. num={}", child_node_.size() - 1);
+      warn(
+          CFD_LOG_SOURCE, "Failed to multisig pubkey num. num={}",
+          child_node_.size() - 1);
       throw CfdException(
-          CfdError::kCfdIllegalArgumentError, "Failed to multisig pubkey num.");
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to multisig pubkey num.");
     }
     for (auto& child : child_node_) {
       child.AnalyzeAll(name_);
@@ -428,43 +444,46 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
     script_type_ = p_data->type;
     Script script = GenerateScript(nullptr);
 #endif
-  }
-  else if (name_ == "addr") {
+  } else if (name_ == "addr") {
     Address addr(value_, addr_prefixes_);
     info(CFD_LOG_SOURCE, "Address={}", addr.GetAddress());
-  }
-  else if (name_ == "raw") {
+  } else if (name_ == "raw") {
     Script script(value_);
     info(CFD_LOG_SOURCE, "script size={}", script.GetData().GetDataSize());
-  }
-  else if (child_node_.size() != 1) {
-    warn(CFD_LOG_SOURCE, "Failed to child node num. size={}", child_node_.size());
+  } else if (child_node_.size() != 1) {
+    warn(
+        CFD_LOG_SOURCE, "Failed to child node num. size={}",
+        child_node_.size());
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "Failed to child node num.");
-  }
-  else {
+  } else {
     if ((name_ == "wsh") && (!parent_name.empty()) && (parent_name != "sh")) {
       warn(CFD_LOG_SOURCE, "Failed to wsh parent. only top or sh.");
       throw CfdException(
-          CfdError::kCfdIllegalArgumentError, "Failed to wsh parent. only top or sh.");
-    }
-    else if ((name_ == "wpkh") && (parent_name == "wsh")) {
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to wsh parent. only top or sh.");
+    } else if ((name_ == "wpkh") && (parent_name == "wsh")) {
       warn(CFD_LOG_SOURCE, "Failed to wpkh parent. cannot wsh.");
       throw CfdException(
-          CfdError::kCfdIllegalArgumentError, "Failed to wpkh parent. cannot wsh.");
-    }
-    else if (((name_ == "wsh") || (name_ == "sh")) &&
-        (child_node_[0].node_type_ != DescriptorNodeType::kDescriptorTypeScript)) {
-      warn(CFD_LOG_SOURCE,
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to wpkh parent. cannot wsh.");
+    } else if (
+        ((name_ == "wsh") || (name_ == "sh")) &&
+        (child_node_[0].node_type_ !=
+         DescriptorNodeType::kDescriptorTypeScript)) {
+      warn(
+          CFD_LOG_SOURCE,
           "Failed to sh child type. child is script only. nodetype={}",
           child_node_[0].node_type_);
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
           "Failed to sh child type. child is script only.");
-    }
-    else if ((name_ != "wsh") && (name_ != "sh") &&
-        (child_node_[0].node_type_ != DescriptorNodeType::kDescriptorTypeKey)) {
-      warn(CFD_LOG_SOURCE,
+    } else if (
+        (name_ != "wsh") && (name_ != "sh") &&
+        (child_node_[0].node_type_ !=
+         DescriptorNodeType::kDescriptorTypeKey)) {
+      warn(
+          CFD_LOG_SOURCE,
           "Failed to child type. child is key only. nodetype={}",
           child_node_[0].node_type_);
       throw CfdException(
@@ -476,19 +495,19 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
   script_type_ = p_data->type;
 }
 
-Script DescriptorNode::GenerateScript(std::vector<std::string>* array_argument, Script* redeem_script) const {
+Script DescriptorNode::GenerateScript(
+    std::vector<std::string>* array_argument,
+    std::vector<Script>* script_list) const {
   ScriptBuilder build;
   Script locking_script;
 
   if (node_type_ == DescriptorNodeType::kDescriptorTypeKey) {
     Pubkey pubkey = GetPubkey(array_argument);
     build.AppendData(pubkey);
-  }
-  else if (node_type_ == DescriptorNodeType::kDescriptorTypeScript) {
+  } else if (node_type_ == DescriptorNodeType::kDescriptorTypeScript) {
     if (script_type_ == DescriptorScriptType::kDescriptorScriptRaw) {
       return Script(value_);
-    }
-    else if (script_type_ == DescriptorScriptType::kDescriptorScriptAddr) {
+    } else if (script_type_ == DescriptorScriptType::kDescriptorScriptAddr) {
       Address addr(value_, addr_prefixes_);
       return addr.GetLockingScript();
     }
@@ -504,14 +523,16 @@ Script DescriptorNode::GenerateScript(std::vector<std::string>* array_argument, 
         std::sort(pubkeys.begin(), pubkeys.end(), Pubkey::IsLarge);
       }
       Script script = ScriptUtil::CreateMultisigRedeemScript(reqnum, pubkeys);
-      if (redeem_script) *redeem_script = script;
+      if (script_list) script_list->push_back(script);
       return script;
-    }
-    else if ((script_type_ == DescriptorScriptType::kDescriptorScriptSh) ||
+    } else if (
+        (script_type_ == DescriptorScriptType::kDescriptorScriptSh) ||
         (script_type_ == DescriptorScriptType::kDescriptorScriptWsh)) {
-      Script script = child_node_[0].GenerateScript(
-          array_argument);
-      if (redeem_script) *redeem_script = script;
+      Script script =
+          child_node_[0].GenerateScript(array_argument, script_list);
+      if (script_list && (!script.IsMultisigScript())) {
+        script_list->push_back(script);
+      }
       if (script_type_ == DescriptorScriptType::kDescriptorScriptWsh) {
         locking_script = ScriptUtil::CreateP2wshLockingScript(script);
       } else {
@@ -524,8 +545,7 @@ Script DescriptorNode::GenerateScript(std::vector<std::string>* array_argument, 
     if (script_type_ == DescriptorScriptType::kDescriptorScriptPk) {
       build.AppendData(pubkey);
       build.AppendOperator(ScriptOperator::OP_CHECKSIG);
-    }
-    else {
+    } else {
       if (script_type_ == DescriptorScriptType::kDescriptorScriptCombo) {
         if (pubkey.IsCompress()) {
           // p2wpkh
@@ -534,37 +554,32 @@ Script DescriptorNode::GenerateScript(std::vector<std::string>* array_argument, 
           // p2pkh
           locking_script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
         }
-      }
-      else if (script_type_ == DescriptorScriptType::kDescriptorScriptPkh) {
+      } else if (script_type_ == DescriptorScriptType::kDescriptorScriptPkh) {
         locking_script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
-      }
-      else if (script_type_ == DescriptorScriptType::kDescriptorScriptWpkh) {
+      } else if (script_type_ == DescriptorScriptType::kDescriptorScriptWpkh) {
         locking_script = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
       }
       return locking_script;
     }
-  }
-  else if (node_type_ == DescriptorNodeType::kDescriptorTypeNumber) {
+  } else if (node_type_ == DescriptorNodeType::kDescriptorTypeNumber) {
     ScriptElement elem(static_cast<int64_t>(number_));
     build.AppendElement(elem);
-  }
-  else {
+  } else {
     // do nothing
   }
   return build.Build();
 }
 
-Pubkey DescriptorNode::GetPubkey(std::vector<std::string>* array_argument) const {
+Pubkey DescriptorNode::GetPubkey(
+    std::vector<std::string>* array_argument) const {
   Pubkey pubkey;
   if (key_type_ == DescriptorKeyType::kDescriptorKeyPublic) {
     pubkey = Pubkey(key_info_);
-  }
-  else if (need_arg_num_ == 0) {
+  } else if (need_arg_num_ == 0) {
     // FIXME HDkey
     // 指定キー
     // 強化鍵の場合、xprv/tprvの必要あり
-  }
-  else {
+  } else {
     if (array_argument && array_argument->empty()) {
       warn(CFD_LOG_SOURCE, "Failed to generate pubkey from hdkey.");
       throw CfdException(
@@ -585,8 +600,8 @@ Pubkey DescriptorNode::GetPubkey(std::vector<std::string>* array_argument) const
   return pubkey;
 }
 
-
-std::vector<Script> DescriptorNode::GenerateScriptAll(std::vector<std::string>* array_argument) const {
+std::vector<Script> DescriptorNode::GenerateScriptAll(
+    std::vector<std::string>* array_argument) const {
   if (script_type_ != DescriptorScriptType::kDescriptorScriptCombo) {
     // warn(CFD_LOG_SOURCE, "Illegal node. only `combo`.");
     // throw CfdException(
@@ -638,11 +653,9 @@ std::string DescriptorNode::ToString(bool append_checksum) const {
 
   if (name_.empty()) {
     result = value_;
-  }
-  else if (child_node_.empty()) {
+  } else if (child_node_.empty()) {
     result = name_ + "(" + value_ + ")";
-  }
-  else {
+  } else {
     result = name_ + "(";
     std::string child_text;
     for (const auto& child : child_node_) {
@@ -662,12 +675,10 @@ std::string DescriptorNode::ToString(bool append_checksum) const {
   return result;
 }
 
-
 // -----------------------------------------------------------------------------
 // Descriptor
 // -----------------------------------------------------------------------------
-Descriptor::Descriptor() {
-}
+Descriptor::Descriptor() {}
 
 Descriptor Descriptor::Parse(
     const std::string& output_descriptor,
@@ -684,15 +695,16 @@ Descriptor Descriptor::Parse(
 }
 
 #ifndef CFD_DISABLE_ELEMENTS
-Descriptor Descriptor::ParseElements(
-    const std::string& output_descriptor) {
-  std::vector<AddressFormatData> network_pefixes = GetElementsAddressFormatList();
+Descriptor Descriptor::ParseElements(const std::string& output_descriptor) {
+  std::vector<AddressFormatData> network_pefixes =
+      GetElementsAddressFormatList();
   return Parse(output_descriptor, &network_pefixes);
 }
 #endif  // CFD_DISABLE_ELEMENTS
 
 bool Descriptor::IsComboScript() const {
-  if (root_node_.GetScriptType() != DescriptorScriptType::kDescriptorScriptCombo) {
+  if (root_node_.GetScriptType() !=
+      DescriptorScriptType::kDescriptorScriptCombo) {
     return false;
   }
   return true;
@@ -702,7 +714,7 @@ uint32_t Descriptor::GetNeedArgumentNum() const {
   return root_node_.GetNeedArgumentNum();
 }
 
-Script Descriptor::GetScript(Script* redeem_script) const {
+Script Descriptor::GetScript(std::vector<Script>* script_list) const {
   if (GetNeedArgumentNum() != 0) {
     warn(CFD_LOG_SOURCE, "Failed to empty argument.");
     throw CfdException(
@@ -710,7 +722,7 @@ Script Descriptor::GetScript(Script* redeem_script) const {
         "Failed to empty argument. need argument descriptor.");
   }
   std::vector<std::string> list;
-  return root_node_.GenerateScript(&list, redeem_script);
+  return root_node_.GenerateScript(&list, script_list);
 }
 
 std::vector<Script> Descriptor::GetScriptCombo() const {
@@ -720,7 +732,8 @@ std::vector<Script> Descriptor::GetScriptCombo() const {
 
 std::vector<Script> Descriptor::GetScriptCombo(
     const std::vector<std::string>& array_argument) const {
-  if (root_node_.GetScriptType() != DescriptorScriptType::kDescriptorScriptCombo) {
+  if (root_node_.GetScriptType() !=
+      DescriptorScriptType::kDescriptorScriptCombo) {
     warn(CFD_LOG_SOURCE, "Illegal node. only `combo`.");
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "Illegal node. only `combo`.");
@@ -729,23 +742,23 @@ std::vector<Script> Descriptor::GetScriptCombo(
   return root_node_.GenerateScriptAll(&list);
 }
 
-Script Descriptor::GenerateScript(const std::string& argument, Script* redeem_script) const {
+Script Descriptor::GenerateScript(
+    const std::string& argument, std::vector<Script>* script_list) const {
   std::vector<std::string> list;
-  for (uint32_t index=0; index<GetNeedArgumentNum(); ++index) {
+  for (uint32_t index = 0; index < GetNeedArgumentNum(); ++index) {
     list.push_back(argument);
   }
-  return GenerateScript(list, redeem_script);
+  return GenerateScript(list, script_list);
 }
 
 Script Descriptor::GenerateScript(
-    const std::vector<std::string>& array_argument, Script* redeem_script) const {
+    const std::vector<std::string>& array_argument,
+    std::vector<Script>* script_list) const {
   std::vector<std::string> copy_list = array_argument;
-  return root_node_.GenerateScript(&copy_list, redeem_script);
+  return root_node_.GenerateScript(&copy_list, script_list);
 }
 
-DescriptorNode Descriptor::GetNode() const {
-  return root_node_;
-}
+DescriptorNode Descriptor::GetNode() const { return root_node_; }
 
 std::string Descriptor::ToString(bool append_checksum) const {
   return root_node_.ToString(append_checksum);

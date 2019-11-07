@@ -50,18 +50,22 @@ enum DescriptorKeyType {
   kDescriptorKeyBip32Priv,
 };
 
-
 class CFD_CORE_EXPORT DescriptorNode {
  public:
   DescriptorNode();
-  explicit DescriptorNode(const std::vector<AddressFormatData>& network_parameters);
+  explicit DescriptorNode(
+      const std::vector<AddressFormatData>& network_parameters);
   DescriptorNode& operator=(const DescriptorNode& object);
 
-  static DescriptorNode Parse(const std::string& output_descriptor,
+  static DescriptorNode Parse(
+      const std::string& output_descriptor,
       const std::vector<AddressFormatData>& network_parameters);
 
-  Script GenerateScript(std::vector<std::string>* array_argument, Script* redeem_script = nullptr) const;
-  std::vector<Script> GenerateScriptAll(std::vector<std::string>* array_argument) const;
+  Script GenerateScript(
+      std::vector<std::string>* array_argument,
+      std::vector<Script>* script_list = nullptr) const;
+  std::vector<Script> GenerateScriptAll(
+      std::vector<std::string>* array_argument) const;
   uint32_t GetNeedArgumentNum() const;
   std::string ToString(bool append_checksum = true) const;
 
@@ -92,15 +96,13 @@ class CFD_CORE_EXPORT DescriptorNode {
   void AnalyzeAll(const std::string& parent_name);
 };
 
-class CFD_CORE_EXPORT Descriptor
-{
+class CFD_CORE_EXPORT Descriptor {
  public:
   static Descriptor Parse(
-    const std::string& output_descriptor,
-    const std::vector<AddressFormatData>* network_parameters = nullptr);
+      const std::string& output_descriptor,
+      const std::vector<AddressFormatData>* network_parameters = nullptr);
 #ifndef CFD_DISABLE_ELEMENTS
-  static Descriptor ParseElements(
-    const std::string& output_descriptor);
+  static Descriptor ParseElements(const std::string& output_descriptor);
 #endif  // CFD_DISABLE_ELEMENTS
 
   Descriptor();
@@ -108,16 +110,23 @@ class CFD_CORE_EXPORT Descriptor
   bool IsComboScript() const;
   uint32_t GetNeedArgumentNum() const;
 
-  Script GetScript(Script* redeem_script = nullptr) const;   // GetNeedArgumentNum == 0
-  std::vector<Script> GetScriptCombo() const;   // IsComboScript == true
-  std::vector<Script> GetScriptCombo(const std::vector<std::string>& array_argument) const;   // IsComboScript == true
+  Script GetScript(std::vector<Script>* script_list = nullptr)
+      const;                                   // GetNeedArgumentNum == 0
+  std::vector<Script> GetScriptCombo() const;  // IsComboScript == true
+  std::vector<Script> GetScriptCombo(
+      const std::vector<std::string>& array_argument)
+      const;  // IsComboScript == true
   // Pubkeyが圧縮されていない場合、セットにはP2PKおよびP2PKHスクリプトのみが含まれます。
 
   /**
    * 複数の引数がある場合、同じ内容を一括指定する。
    */
-  Script GenerateScript(const std::string& argument, Script* redeem_script = nullptr) const;
-  Script GenerateScript(const std::vector<std::string>& array_argument, Script* redeem_script = nullptr) const;
+  Script GenerateScript(
+      const std::string& argument,
+      std::vector<Script>* script_list = nullptr) const;
+  Script GenerateScript(
+      const std::vector<std::string>& array_argument,
+      std::vector<Script>* script_list = nullptr) const;
 
   DescriptorNode GetNode() const;
   std::string ToString(bool append_checksum = true) const;
