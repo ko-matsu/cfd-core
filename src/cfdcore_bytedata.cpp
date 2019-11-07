@@ -99,6 +99,10 @@ ByteData ByteData::GetVariableInt(uint64_t v) {
   return ByteData(size_byte);
 }
 
+bool ByteData::IsLarge(const ByteData& source, const ByteData& destination) {
+  return source.data_ < destination.data_;
+}
+
 //////////////////////////////////
 /// ByteData160
 //////////////////////////////////

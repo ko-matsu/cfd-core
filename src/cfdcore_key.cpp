@@ -82,6 +82,10 @@ Pubkey Pubkey::CombinePubkey(Pubkey pubkey, Pubkey message_key) {
   return Pubkey(WallyUtil::CombinePubkeySecp256k1Ec(data_list));
 }
 
+bool Pubkey::IsLarge(const Pubkey& source, const Pubkey& destination) {
+  return ByteData::IsLarge(source.data_, destination.data_);
+}
+
 // ----------------------------------------------------------------------------
 // Private Key
 // ----------------------------------------------------------------------------

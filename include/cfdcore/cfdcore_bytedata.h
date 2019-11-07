@@ -86,6 +86,14 @@ class CFD_CORE_EXPORT ByteData {
    */
   static ByteData GetVariableInt(uint64_t value);
 
+  /**
+   * @brief 指定された2つの公開鍵のHEX値を比較する.
+   * @param[in] byte_data 公開鍵のByteData
+   * @retval true   正常フォーマット
+   * @retval false  不正フォーマット
+   */
+  static bool IsLarge(const ByteData& source, const ByteData& destination);
+
  private:
   /**
    * @brief データ格納Byte配列

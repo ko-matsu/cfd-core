@@ -20,6 +20,7 @@ TEST_CFDCORE_SOURCES= \
     test_cryptoutil.cpp \
     test_stringutil.cpp \
     test_amount.cpp \
+    test_descriptor.cpp \
     test_transaction.cpp \
     test_abstracttxin.cpp \
     test_abstracttxout.cpp \
