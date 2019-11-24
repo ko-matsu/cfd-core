@@ -15,8 +15,8 @@
 #if !defined(CFD_USE_BACKTRACE)
 // do nothing
 #elif defined(_WIN32)
-#include <windows.h>
 #include <imagehlp.h>
+#include <windows.h>
 #pragma comment(lib, "imagehlp.lib")
 
 #elif defined(__GNUC__)
@@ -25,7 +25,7 @@
 #elif defined(TARGET_OS_MAC)
 
 #else
-#define  __USE_GNU
+#define __USE_GNU
 #include <dlfcn.h>
 #endif
 
@@ -38,7 +38,6 @@ namespace core {
 using logger::info;
 using logger::trace;
 using logger::warn;
-
 
 // https://rti7743.hatenadiary.org/entry/20110109/1294605380
 // https://puarts.com/?pid=1109
@@ -59,14 +58,15 @@ void DumpStack(int error_code, const std::string& message) {
  * @param[in] message       error message
  */
 void DumpStack(int error_code, const std::string& message) {
-  static constexpr int kSymbolInfoSize = sizeof(SYMBOL_INFO) + 256 * sizeof(char);
+  static constexpr int kSymbolInfoSize =
+      sizeof(SYMBOL_INFO) + 256 * sizeof(char);
   static constexpr int kStackTraceNum = 100;
   static constexpr int kStackNameSize = 255;
-  unsigned int   count;
+  unsigned int count;
   unsigned short frames;
-  void*          stack[kStackTraceNum];
-  SYMBOL_INFO*   symbol;
-  HANDLE         process;
+  void* stack[kStackTraceNum];
+  SYMBOL_INFO* symbol;
+  HANDLE process;
   warn(CFD_LOG_SOURCE, "exception: ecode[{}] msg[{}]", error_code, message);
   process = GetCurrentProcess();
   SymInitialize(process, NULL, TRUE);
@@ -74,7 +74,7 @@ void DumpStack(int error_code, const std::string& message) {
 
   symbol = (SYMBOL_INFO*)malloc(kSymbolInfoSize);
   if (symbol != nullptr) {
-    symbol->MaxNameLen   = kStackNameSize;
+    symbol->MaxNameLen = kStackNameSize;
     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
     for (count = 0; count < frames; ++count) {
       SymFromAddr(process, (DWORD64)(stack[count]), 0, symbol);
@@ -107,7 +107,8 @@ void DumpStack(int error_code, const std::string& message) {
     int count = stack_list.size();
     for (auto text : stack_list) {
       count--;
-      fprintf(stderr, "[backtrace:gnu] [%02d]: %s\n", count, text.c_str());
+      // fprintf(stderr, "[backtrace] [%02d]: %s\n", count, text.c_str());
+      warn(CFD_LOG_SOURCE, "[backtrace] [{}]: {}", count, text);
     }
   }
 }
@@ -120,7 +121,7 @@ void DumpStack(int error_code, const std::string& message) {
 void DumpStack(int error_code, const std::string& message) {
   // do nothing
   warn(CFD_LOG_SOURCE, "exception: ecode[{}] msg[{}]", error_code, message);
-  fprintf(stderr, "exception: ecode[%d] msg[%s]\n", error_code, message.c_str());
+  // fprintf(stderr, "exception: ecode[%d] msg[%s]\n", error_code, message.c_str());
 }
 #else
 /**
@@ -138,7 +139,9 @@ void DumpStack(int error_code, const std::string& message) {
   Dl_info info;
   for (int index = 0; index < kBacktraceCount; ++index) {
     dladdr(__builtin_return_address(index), &info);
-    fprintf(stderr, "[backtrace] %s (%s)\n", info.dli_sname, info.dli_fname);
+    // fprintf(stderr, "[backtrace] %s (%s)\n", info.dli_sname, info.dli_fname);
+    warn(
+        CFD_LOG_SOURCE, "[backtrace] {} ({})", info.dli_sname, info.dli_fname);
     // __builtin_return_address(index)
     // info.dli_fbase
     // info.dli_saddr
