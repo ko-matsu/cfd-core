@@ -16,6 +16,7 @@ endif()
 # option(ENABLE_DEBUG "enable debugging (ON or OFF. default:OFF)" OFF)
 option(ENABLE_ELEMENTS "enable elements code (ON or OFF. default:ON)" ON)
 option(ENABLE_BITCOIN  "enable bitcoin code (ON or OFF. default:ON)" ON)
+option(ENABLE_BACKTRACE "enable backtrace on exception (ON or OFF. default:OFF)" OFF)
 
 if(NOT WIN32)
 #option(TARGET_RPATH "target rpath list (separator is ';') (default:)" "")
@@ -48,6 +49,12 @@ set(CFD_OBJ_BINARY_DIR   ${CMAKE_BINARY_DIR}/${WORK_WINDOWS_BINARY_DIR_NAME})
 set(CFD_ROOT_BINARY_DIR  ${CMAKE_BINARY_DIR})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY  ${CFD_OBJ_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  ${CFD_OBJ_BINARY_DIR}) # for linux
+endif()
+
+if(NOT ENABLE_BACKTRACE)
+set(CFD_BACKTRACE_USE   CFD_USE_BACKTRACE=1)
+else()
+set(CFD_BACKTRACE_USE   "")
 endif()
 
 if(NOT ENABLE_BITCOIN)
@@ -151,8 +158,8 @@ target_compile_options(${PROJECT_NAME}
 )
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE
-    CFD_USE_BACKTRACE=1
     CFD_CORE_BUILD=1
+    ${CFD_BACKTRACE_USE}
     ${CFD_BITCOIN_USE}
     ${CFD_ELEMENTS_USE}
     ${ELEMENTS_COMP_OPT}
