@@ -9,6 +9,7 @@ CFDCORE_SOURCES = \
   cfdcore_bytedata.cpp \
   cfdcore_util.cpp \
   cfdcore_wally_util.cpp \
+  cfdcore_exception.cpp \
   cfdcore_script.cpp \
   cfdcore_descriptor.cpp \
   cfdcore_transaction_common.cpp \

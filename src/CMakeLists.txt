@@ -143,7 +143,7 @@ target_compile_options(${PROJECT_NAME}
     $<IF:$<CXX_COMPILER_ID:MSVC>,
       /LD
       /source-charset:utf-8 /Wall
-      /wd4061 /wd4244 /wd4251 /wd4365 /wd4464 /wd4514 /wd4571 /wd4574 /wd4623 /wd4625 /wd4626 /wd4710 /wd4711 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027 /wd5039 /wd5045 /wd5052
+      /wd4061 /wd4244 /wd4251 /wd4365 /wd4464 /wd4514 /wd4571 /wd4574 /wd4623 /wd4625 /wd4626 /wd4710 /wd4711 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027 /wd5039 /wd5045 /wd5052 /wd4668
       ${STACK_PROTECTOR_OPT},
       -Wall -Wextra ${PROFILE_ARCS_OPT} ${TEST_COVERAGE_OPT}
     >
@@ -151,6 +151,7 @@ target_compile_options(${PROJECT_NAME}
 )
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE
+    CFD_USE_BACKTRACE=1
     CFD_CORE_BUILD=1
     ${CFD_BITCOIN_USE}
     ${CFD_ELEMENTS_USE}

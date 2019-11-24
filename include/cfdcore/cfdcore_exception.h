@@ -61,6 +61,13 @@ const std::map<CfdError, std::string> kErrorTypeMap(
 const char kCfdUnknownErrorMessage[] = "Unknown error occurred.";
 
 /**
+ * @brief dump stacktrace.
+ * @param[in] error_code    error code
+ * @param[in] message       error message
+ */
+CFD_CORE_API void DumpStack(int error_code, const std::string& message);
+
+/**
  * @brief CFD例外クラス
  */
 class CfdException : public std::exception {
@@ -69,26 +76,34 @@ class CfdException : public std::exception {
    * @brief コンストラクタ
    */
   CfdException()
-      : error_code_(kCfdUnknownError), message_(kCfdUnknownErrorMessage) {}
+      : error_code_(kCfdUnknownError), message_(kCfdUnknownErrorMessage) {
+    DumpStack(error_code_, message_);
+  }
   /**
    * @brief コンストラクタ
    * @param[in] message   エラーメッセージ
    */
   explicit CfdException(const std::string& message)
-      : error_code_(kCfdUnknownError), message_(message) {}
+      : error_code_(kCfdUnknownError), message_(message) {
+    DumpStack(error_code_, message_);
+  }
   /**
    * @brief コンストラクタ
    * @param[in] error_code    エラーコード
    */
   explicit CfdException(CfdError error_code)
-      : error_code_(error_code), message_(kCfdUnknownErrorMessage) {}
+      : error_code_(error_code), message_(kCfdUnknownErrorMessage) {
+    DumpStack(error_code_, message_);
+  }
   /**
    * @brief コンストラクタ
    * @param[in] error_code    エラーコード
    * @param[in] message       エラーメッセージ
    */
   CfdException(CfdError error_code, const std::string& message)
-      : error_code_(error_code), message_(message) {}
+      : error_code_(error_code), message_(message) {
+    DumpStack(error_code_, message_);
+  }
   /**
    * @brief デストラクタ
    */

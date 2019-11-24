@@ -16,6 +16,8 @@ using cfd::core::ByteData256;
 using cfd::core::CfdException;
 
 TEST(Txid, TxidEmpty) {
+  cfd::core::CfdCoreHandle hdl = nullptr;
+  cfd::core::Initialize(&hdl);
   Txid txid;
   EXPECT_STREQ(txid.GetHex().c_str(), "");
   EXPECT_EQ(txid.GetData().GetDataSize(), 0);
