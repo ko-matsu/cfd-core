@@ -14,7 +14,8 @@ option(ENABLE_SHARED "enable shared library (ON or OFF. default:OFF)" OFF)
 endif()
 option(ENABLE_DEBUG "enable debugging (ON or OFF. default:OFF)" OFF)
 option(ENABLE_ELEMENTS "enable elements code (ON or OFF. default:ON)" ON)
-option(ENABLE_BITCOIN  "enable bitcoin code (ON or OFF. default:ON)" ON)
+option(ENABLE_TESTS "enable code tests (ON or OFF. default:ON)" ON)
+option(DISABLE_GCC_LINK "disabled gc link for windows (ON or OFF. default:OFF)" OFF)
 
 if(NOT WIN32)
 option(TARGET_RPATH "target rpath list (separator is ';') (default:@rpath;./)" OFF)
@@ -91,7 +92,8 @@ endif()
 ####################
 # cfdcore test
 ####################
-if(ENABLE_TESTS)
+if(NOT ENABLE_TESTS)
+else()
 enable_testing()
 include(CTest)
 project(cfdcore_test CXX)
@@ -171,7 +173,7 @@ target_link_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
   PRIVATE $<$<BOOL:$<CXX_COMPILER_ID:MSVC>>:winmm.lib>
   PRIVATE $<$<BOOL:$<CXX_COMPILER_ID:MSVC>>:ws2_32.lib>
-  PRIVATE $<IF:$<OR:$<PLATFORM_ID:Darwin>,$<CXX_COMPILER_ID:MSVC>>,,rt>
+  PRIVATE $<IF:$<OR:$<PLATFORM_ID:Darwin>,$<CXX_COMPILER_ID:MSVC>,$<BOOL:$<DISABLE_GCC_LINK>>>,,rt>
   PRIVATE $<$<BOOL:$<CXX_COMPILER_ID:GNU>>:-static-libgcc>
   PRIVATE $<$<BOOL:$<CXX_COMPILER_ID:GNU>>:-static-libstdc++>
   PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:pthread>
