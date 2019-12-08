@@ -14,39 +14,23 @@ on:
     - testing/*
 
 jobs:
-  build-win:
-    name: windows-build
+  build-cmake:
+    name: cmake build
 
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
 
     steps:
     - uses: actions/checkout@v1
     - name: cmake_version
       run: cmake --version
-    - name: cmake_generage
+    - name: cmake_generage-windows
+      if: ${{ runner.os }} == 'Windows'
       run: cmake -S . -B build -G "Visual Studio 16 2019"
-    - name: cmake_configure
-      run: cmake -D ENABLE_SHARED=1 --build build
-    - name: cmake_build
-      run: cmake --build build --config Release
-    - name: ctest
-      run: |
-        cd build
-        ctest -C Release
-
-  build-mac:
-    needs: build-win
-    name: mac-build
-
-    runs-on: macos-latest
-
-    steps:
-    - uses: actions/checkout@v1
-    - name: brew_install
-      run: brew install cmake
-    - name: cmake_version
-      run: cmake --version
     - name: cmake_generage
+      if: ${{ runner.os }} != 'Windows'
       run: cmake -S . -B build -G "Unix Makefiles"
     - name: cmake_configure
       run: cmake -D ENABLE_SHARED=1 --build build
