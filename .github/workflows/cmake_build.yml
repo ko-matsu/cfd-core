@@ -1,4 +1,4 @@
-name: CI
+name: cmake-build
 
 on: 
   push:
@@ -21,7 +21,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: pkg_install
-      run: sudo apt-get install cmake ctest
+      run: sudo apt-get install cmake
     - name: cmake_version
       run: cmake --version
     - name: cmake_generage
