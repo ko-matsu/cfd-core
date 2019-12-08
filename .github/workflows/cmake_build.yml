@@ -1,0 +1,32 @@
+name: CI
+
+on: 
+  push:
+    branches:
+    - master
+    - develop
+    - testing/*
+    - release/*
+  pull_request:
+    branches:
+    - master
+    - develop
+    - testing/*
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: ko-matsu/cfd-core@master
+    - name: pkg_install
+      run:  apt install cmake ctest
+    - name: cmake_generage
+      run: cmake -S . -B build  -G "Unix Makefiles"
+    - name: cmake_configure
+      run: cmake -D ENABLE_SHARED=1 --build build
+    - name: cmake_build
+      run: cmake --build build --config Release
+    - name: ctest
+      run: cd build && ctest -C Release
