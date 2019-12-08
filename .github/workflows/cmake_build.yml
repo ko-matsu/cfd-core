@@ -16,16 +16,14 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v1
-    - name: pkg_install
-      run: sudo apt-get install cmake
     - name: cmake_version
       run: cmake --version
     - name: cmake_generage
-      run: cmake -S . -B build  -G "Unix Makefiles"
+      run: cmake -S . -B build -G "Visual Studio 16 2019"
     - name: cmake_configure
       run: cmake -D ENABLE_SHARED=1 --build build
     - name: cmake_build
