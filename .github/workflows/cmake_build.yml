@@ -20,6 +20,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: pkg_install
+      run: sudo apt-get install cmake ctest
     - name: cmake_version
       run: cmake --version
     - name: cmake_generage
@@ -30,5 +32,3 @@ jobs:
       run: cmake --build build --config Release
     - name: ctest
       run: cd build && ctest -C Release
-#    - name: pkg_install
-#      run:  apt install cmake ctest
