@@ -29,4 +29,6 @@ jobs:
     - name: cmake_build
       run: cmake --build build --config Release
     - name: ctest
-      run: cd build && ctest -C Release
+      run: |
+        cd build
+        ctest -C Release
