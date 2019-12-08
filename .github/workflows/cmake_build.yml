@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: ko-matsu/cfd-core@master
+    - uses: actions/checkout@v1
     - name: pkg_install
       run:  apt install cmake ctest
     - name: cmake_generage
