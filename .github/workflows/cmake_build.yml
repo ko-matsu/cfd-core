@@ -27,10 +27,10 @@ jobs:
     - name: cmake_version
       run: cmake --version
     - name: cmake_generage-windows
-      if: ${{matrix.os}} == 'Windows'
+      if: matrix.os == 'windows-latest'
       run: cmake -S . -B build -G "Visual Studio 16 2019"
-    - name: cmake_generage
-      if: ${{matrix.os}} != 'Windows'
+    - name: cmake_generage-macos
+      if: matrix.os == 'macos-latest'
       run: cmake -S . -B build -G "Unix Makefiles"
     - name: cmake_configure
       run: cmake -D ENABLE_SHARED=1 --build build
