@@ -20,6 +20,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: cmake_version
+      run: cmake --version
     - name: cmake_generage
       run: cmake -S . -B build  -G "Unix Makefiles"
     - name: cmake_configure
