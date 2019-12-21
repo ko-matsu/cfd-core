@@ -132,7 +132,9 @@ target_compile_options(${PROJECT_NAME}
       ${STACK_PROTECTOR_OPT},
       -Wall -Wextra
     >
-    $<$<BOOL:$<CXX_COMPILER_ID:GNU>>:${STACK_PROTECTOR_OPT}>
+    $<$<BOOL:$<CXX_COMPILER_ID:GNU>>:${STACK_PROTECTOR_OPT} -j 4>
+    $<$<BOOL:$<CXX_COMPILER_ID:Clang>>: -flto-jobs=4>
+    $<$<BOOL:$<CXX_COMPILER_ID:AppleClang>>: -flto-jobs=4>
 )
 
 if(ENABLE_SHARED OR USE_CFDCORE_SHARED)

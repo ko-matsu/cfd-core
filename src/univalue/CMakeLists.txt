@@ -90,7 +90,9 @@ target_compile_options(${PROJECT_NAME}
       /LD /source-charset:utf-8 /MP /wd4251 ${STACK_PROTECTOR_OPT},
       -Wall -Wextra -Wno-unused-function
     >
-    $<$<BOOL:$<CXX_COMPILER_ID:GNU>>:${STACK_PROTECTOR_OPT}>
+    $<$<BOOL:$<CXX_COMPILER_ID:GNU>>:${STACK_PROTECTOR_OPT} -j 4>
+    $<$<BOOL:$<CXX_COMPILER_ID:Clang>>: -flto-jobs=4>
+    $<$<BOOL:$<CXX_COMPILER_ID:AppleClang>>: -flto-jobs=4>
 )
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE
