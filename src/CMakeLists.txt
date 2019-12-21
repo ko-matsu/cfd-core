@@ -154,9 +154,7 @@ target_compile_options(${PROJECT_NAME}
       ${STACK_PROTECTOR_OPT},
       -Wall -Wextra ${PROFILE_ARCS_OPT} ${TEST_COVERAGE_OPT}
     >
-    $<$<BOOL:$<CXX_COMPILER_ID:GNU>>:${STACK_PROTECTOR_OPT} -j 4>
-    $<$<BOOL:$<CXX_COMPILER_ID:Clang>>: -flto-jobs=4>
-    $<$<BOOL:$<CXX_COMPILER_ID:AppleClang>>: -flto-jobs=4>
+    $<$<BOOL:$<CXX_COMPILER_ID:GNU>>:${STACK_PROTECTOR_OPT}>
 )
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE
