@@ -127,7 +127,7 @@ endif()
 target_compile_options(${PROJECT_NAME}
   PRIVATE
     $<IF:$<CXX_COMPILER_ID:MSVC>,
-      /source-charset:utf-8 /Wall 
+      /source-charset:utf-8 /Wall /MP
       /wd4061 /wd4244 /wd4251 /wd4365 /wd4464 /wd4514 /wd4571 /wd4574 /wd4623 /wd4625 /wd4626 /wd4668 /wd4710 /wd4711 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027 /wd5039 /wd5045 /wd5052
       ${STACK_PROTECTOR_OPT},
       -Wall -Wextra

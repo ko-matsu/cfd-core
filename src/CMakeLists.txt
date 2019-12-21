@@ -149,7 +149,7 @@ target_compile_options(${PROJECT_NAME}
   PRIVATE
     $<IF:$<CXX_COMPILER_ID:MSVC>,
       /LD
-      /source-charset:utf-8 /Wall
+      /source-charset:utf-8 /Wall /MP
       /wd4061 /wd4244 /wd4251 /wd4365 /wd4464 /wd4514 /wd4571 /wd4574 /wd4623 /wd4625 /wd4626 /wd4710 /wd4711 /wd4774 /wd4820 /wd4946 /wd5026 /wd5027 /wd5039 /wd5045 /wd5052
       ${STACK_PROTECTOR_OPT},
       -Wall -Wextra ${PROFILE_ARCS_OPT} ${TEST_COVERAGE_OPT}
@@ -168,7 +168,8 @@ target_compile_definitions(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC
-    ../include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<INSTALL_INTERFACE:include>
   PRIVATE
     .
     include
@@ -217,19 +218,32 @@ endif()
 # install & export
 ####################
 include(GNUInstallDirs)
+set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON) 
 
 install(TARGETS       ${PROJECT_NAME}
         EXPORT        ${PROJECT_NAME}-export
         ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME       DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        OBJECTS       DESTINATION ${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 # https://cmake.org/cmake/help/latest/command/install.html
 
-export(TARGETS ${PROJECT_NAME}
-       APPEND FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}-export.cmake
-       EXPORT_LINK_INTERFACE_LIBRARIES)
+install(EXPORT ${PROJECT_NAME}-export
+        FILE ${PROJECT_NAME}-config.cmake
+        DESTINATION "cmake/"
+        EXPORT_LINK_INTERFACE_LIBRARIES)
 
 install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../include/cfdcore"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         FILES_MATCHING PATTERN "*.h")
+
+if(MSVC)
+install(DIRECTORY "${CFD_OBJ_BINARY_DIR}/"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        FILES_MATCHING PATTERN "*.exp")
+endif()
+
+#export(TARGETS ${PROJECT_NAME}
+#       APPEND FILE ${PROJECT_BINARY_DIR}/${PROJECT_NAME}-config.cmake)
