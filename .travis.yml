@@ -1,0 +1,36 @@
+branches:
+  only:
+    - feature/travis_test
+language: cpp
+sudo: required
+dist: bionic
+compiler:
+  - clang
+
+matrix:
+    include:
+      - os: osx
+        compiler: clang
+        osx_image: xcode9.4
+        env: BUILD_TYPE="Release"
+
+before_install:
+    - brew install cmake || brew upgrade cmake
+    - cmake --version
+
+before_script:
+  - cd "${TRAVIS_BUILD_DIR}"
+  - mkdir dist
+  - mkdir build
+  - cmake -S . -B build
+  - cmake -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DENABLE_SHARED=on -DENABLE_TESTS=off -DENABLE_JS_WRAPPER=off -DENABLE_CAPI=on --build build
+
+script:
+  - cmake --build build
+
+after_script:
+  - cd build
+  - make install DESTDIR=../dist
+  - cd ../dist
+  - ls -l
+
