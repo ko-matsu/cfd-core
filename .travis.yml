@@ -33,4 +33,16 @@ after_script:
   - make install DESTDIR=../dist
   - cd ../dist
   - ls -l usr/local/lib
-  - zip -r cfd.zip usr
+  - zip -r cfdcore-darwin-static-x86_64.zip usr
+
+# https://docs.travis-ci.com/user/deployment-v2/providers/releases/
+# https://qiita.com/sanemat/items/cbea8d3caa908e7422a0
+# deploy:
+#   provider: releases
+#   api_key:
+#     secure: "YOUR_ENCRYPTED_VALUE"
+#   file: cfdcore-darwin-static-x86_64.zip
+#   draft: false
+#   on:
+#     tags: true
+#     repo: ko-matsu/cfd-core
