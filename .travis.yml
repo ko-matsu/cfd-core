@@ -23,7 +23,7 @@ before_script:
   - mkdir dist
   - mkdir build
   - cmake -S . -B build
-  - cmake -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DENABLE_SHARED=on -DENABLE_TESTS=off -DENABLE_JS_WRAPPER=off -DENABLE_CAPI=on --build build
+  - cmake -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DENABLE_SHARED=off -DENABLE_TESTS=off -DENABLE_JS_WRAPPER=off -DENABLE_CAPI=on --build build
 
 script:
   - cmake --build build
@@ -32,5 +32,5 @@ after_script:
   - cd build
   - make install DESTDIR=../dist
   - cd ../dist
-  - ls -l
-
+  - ls -l usr/local/lib
+  - zip -r cfd.zip usr
