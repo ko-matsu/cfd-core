@@ -21,6 +21,7 @@
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_script.h"
 #include "cfdcore/cfdcore_util.h"
+#include "cfdcore_miniscript.h"  // NOLINT
 #define CFDCORE_NOT_USE_LIBWALLY_SCRIPT
 #include "cfdcore_wally_util.h"  // NOLINT
 #undef CFDCORE_NOT_USE_LIBWALLY_SCRIPT
@@ -924,6 +925,24 @@ bool Script::IsPegoutScript() const {
   return true;
 }
 
+std::string Script::GetMiniScript() const {
+  MiniScriptConverter ctx;
+  Node node = FromScript(*this, ctx);
+  std::string result;
+  if (!node.ToString(ctx, result)) {
+    warn(CFD_LOG_SOURCE, "node.ToString fail.");
+    throw CfdException(CfdError::kCfdIllegalStateError, "script to miniscript error.");
+  }
+  return result;
+}
+
+Script Script::ConvertFromMiniScript(const std::string& text) {
+  MiniScriptConverter ctx;
+  Node node = FromString(text, ctx);
+  return node.ToScript(ctx);
+}
+
+
 // -----------------------------------------------------------------------------
 // ScriptBuilder
 // -----------------------------------------------------------------------------
@@ -1037,7 +1056,15 @@ ScriptBuilder& ScriptBuilder::AppendElement(const ScriptElement& element) {
   return *this;
 }
 
-Script ScriptBuilder::Build() {
+ScriptBuilder& ScriptBuilder::AppendScript(const Script& script) {
+  const std::vector<uint8_t>& byte_array = script.GetData().GetBytes();
+  std::copy(
+      byte_array.begin(), byte_array.end(),
+      std::back_inserter(script_byte_array_));
+  return *this;
+}
+
+Script ScriptBuilder::Build() const {
   ByteData data(script_byte_array_);
   if (data.GetDataSize() > Script::kMaxScriptSize) {
     warn(CFD_LOG_SOURCE, "Script size is over.");
@@ -1046,6 +1073,37 @@ Script ScriptBuilder::Build() {
   }
 
   return Script(data);
+}
+
+
+ScriptBuilder operator<<(ScriptBuilder builder, const ScriptOperator& operate_object) {
+  builder.AppendOperator(operate_object);
+  return builder;
+}
+
+ScriptBuilder operator<<(ScriptBuilder builder, const ByteData& data) {
+  builder.AppendData(data);
+  return builder;
+}
+
+ScriptBuilder operator<<(ScriptBuilder builder, const int64_t& data) {
+  builder.AppendData(data);
+  return builder;
+}
+
+ScriptBuilder operator<<(ScriptBuilder builder, const Script& data) {
+  builder.AppendScript(data);
+  return builder;
+}
+
+ScriptBuilder operator<<(ScriptBuilder builder, const ScriptBuilder& data) {
+  builder.AppendScript(data.Build());
+  return builder;
+}
+
+ScriptBuilder operator+(ScriptBuilder builder, const ScriptBuilder& data) {
+  builder.AppendScript(data.Build());
+  return builder;
 }
 
 // -----------------------------------------------------------------------------

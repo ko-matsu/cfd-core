@@ -774,6 +774,10 @@ class CFD_CORE_EXPORT Script {
    */
   bool IsPegoutScript() const;
 
+  std::string GetMiniScript() const;
+
+  static Script ConvertFromMiniScript(const std::string& text);
+
  private:
   /// script byte data
   ByteData script_data_;
@@ -883,6 +887,12 @@ class CFD_CORE_EXPORT ScriptBuilder {
    * @return            script builder object.
    */
   ScriptBuilder &AppendElement(const ScriptElement &element);
+  /**
+   * @brief               append script data direct.
+   * @param[in] script    script data.
+   * @return              script builder object.
+   */
+  ScriptBuilder &AppendScript(const Script &script);
 
   // ScriptBuilder& AppendData(const ByteData& data, bool is_template);
 
@@ -890,7 +900,12 @@ class CFD_CORE_EXPORT ScriptBuilder {
    * @brief   build script.
    * @return  script
    */
-  Script Build();
+  Script Build() const;
+
+  ScriptBuilder& operator<<(const ScriptBuilder& data) {
+    AppendScript(data.Build());
+    return *this;
+  }
 
  private:
   std::vector<uint8_t> script_byte_array_;  ///< byte array
@@ -1041,6 +1056,18 @@ class CFD_CORE_EXPORT ScriptUtil {
  private:
   ScriptUtil();
 };
+
+CFD_CORE_API ScriptBuilder operator<<(ScriptBuilder builder, const ScriptOperator& operate_object);
+
+CFD_CORE_API ScriptBuilder operator<<(ScriptBuilder builder, const ByteData& data);
+
+CFD_CORE_API ScriptBuilder operator<<(ScriptBuilder builder, const int64_t& data);
+
+CFD_CORE_API ScriptBuilder operator<<(ScriptBuilder builder, const Script& data);
+
+CFD_CORE_API ScriptBuilder operator<<(ScriptBuilder builder, const ScriptBuilder& data);
+
+CFD_CORE_API ScriptBuilder operator+(ScriptBuilder builder, const ScriptBuilder& data);
 
 }  // namespace core
 }  // namespace cfd

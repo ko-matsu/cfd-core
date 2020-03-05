@@ -20,6 +20,7 @@ using cfd::core::ByteData;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
 using cfd::core::NetType;
+using cfd::core::CfdException;
 
 TEST(Script, Script) {
   size_t size = 0;
@@ -462,3 +463,443 @@ TEST(Script, IsPegoutScriptTest) {
   EXPECT_FALSE(script.IsP2wshScript());
   EXPECT_TRUE(script.IsPegoutScript());
 }
+
+
+TEST(Script, ConvertFromMiniScriptTest) {
+  cfd::core::CfdCoreHandle handle = nullptr;
+  cfd::core::Initialize(&handle);
+
+  std::string miniscript;
+  Script script;
+  try {
+    miniscript = "and_v(vc:pk(K),c:pk(A))";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_CHECKSIGVERIFY 030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {   // fail
+    // multisig
+    miniscript = "thresh_m(1,0306226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f,030000000000000000000000000000000000000000000000000000000000000001)";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "");
+    // TODO `1 2 OP_CHECKMULTISIG`となり、Pubkeyが出力されない。
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {
+    // miniscript - A single key
+    miniscript = "c:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af)";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {
+    // miniscript - One of two keys (equally likely)
+    // or_b(c:pk(key_1),sc:pk(key_2))
+    miniscript = "or_b(c:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),sc:pk(036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af))";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_SWAP 036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_CHECKSIG OP_BOOLOR");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {
+    // TODO: どうもpk_hは複合型らしく。miniscriptとscriptで内包値が異なるらしい。これがエラー原因。バイナリ値記載の場合、不可逆にすべきか否か。
+    // miniscript - One of two keys (one likely, one unlikely)
+    // or_d(c:pk(key_likely),c:pk_h(key_unlikely))
+    miniscript = "or_d(c:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),c:pk_h(036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af))";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_IFDUP OP_NOTIF OP_DUP OP_HASH160 036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_EQUALVERIFY OP_CHECKSIG OP_ENDIF");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {
+    // miniscript - One of two keys (one likely, one unlikely)
+    // or_d(c:pk(key_likely),c:pk_h(key_unlikely))
+    miniscript = "or_d(c:pk(key_likely),c:pk_h(key_unlikely))";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_IFDUP OP_NOTIF OP_DUP OP_HASH160 0000000000000000000000000000000000000000 OP_EQUALVERIFY OP_CHECKSIG OP_ENDIF");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {
+    // miniscript - A 3-of-3 that turns into a 2-of-3 after 90 days
+    // thresh(3,c:pk(key_1),sc:pk(key_2),sc:pk(key_3),sdv:older(12960))
+    miniscript = "thresh(3,c:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),sc:pk(036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),sc:pk(0211dcbf6768e8eff85d7b294776f046a5294a64158586cd2bc6da4b0740eacd2f),sdv:older(12960))";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_SWAP 036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_CHECKSIG OP_ADD OP_SWAP 0211dcbf6768e8eff85d7b294776f046a5294a64158586cd2bc6da4b0740eacd2f OP_CHECKSIG OP_CHECKSIG OP_ADD OP_SWAP OP_DUP OP_IF OP_DUP OP_IF 12960 OP_CHECKSEQUENCEVERIFY OP_VERIFY OP_VERIFY OP_ENDIF OP_ENDIF OP_ADD 3 OP_EQUAL");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {
+    // miniscript - A 3-of-3 that turns into a 2-of-3 after 90 days
+    // thresh(3,c:pk(key_1),sc:pk(key_2),sc:pk(key_3),sdv:older(12960))
+    miniscript = "thresh(3,c:pk(key_1),sc:pk(key_2),sc:pk(key_3),sdv:older(12960))";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_SWAP 030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_CHECKSIG OP_ADD OP_SWAP 030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_CHECKSIG OP_ADD OP_SWAP OP_DUP OP_IF OP_DUP OP_IF 12960 OP_CHECKSEQUENCEVERIFY OP_VERIFY OP_VERIFY OP_ENDIF OP_ENDIF OP_ADD 3 OP_EQUAL");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {
+    // miniscript - The BOLT #3 to_local policy
+    // andor(c:pk(key_local),older(1008),c:pk(key_revocation))
+    miniscript = "andor(c:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),older(1008),c:pk(036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af))";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_NOTIF 036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_ELSE 1008 OP_CHECKSEQUENCEVERIFY OP_ENDIF");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {
+    // miniscript - The BOLT #3 to_local policy
+    // andor(c:pk(key_local),older(1008),c:pk(key_revocation))
+    miniscript = "andor(c:pk(key_local),older(1008),c:pk(key_revocation))";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_NOTIF 030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_ELSE 1008 OP_CHECKSEQUENCEVERIFY OP_ENDIF");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {
+    // miniscript - A user and a 2FA service need to sign off, but after 90 days the user alone is enough
+    // and_v(vc:pk(key_user),or_d(c:pk(key_service),older(12960)))
+    miniscript = "and_v(vc:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),or_d(c:pk(036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),older(12960)))";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_CHECKSIGVERIFY 036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af OP_CHECKSIG OP_IFDUP OP_NOTIF 12960 OP_CHECKSEQUENCEVERIFY OP_ENDIF");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {
+    // miniscript - A user and a 2FA service need to sign off, but after 90 days the user alone is enough
+    // and_v(vc:pk(key_user),or_d(c:pk(key_service),older(12960)))
+    miniscript = "and_v(vc:pk(key_user),or_d(c:pk(key_service),older(12960)))";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_CHECKSIGVERIFY 030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_IFDUP OP_NOTIF 12960 OP_CHECKSEQUENCEVERIFY OP_ENDIF");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {
+    // miniscript - The BOLT #3 offered HTLC policy
+    miniscript = "t:or_c(c:pk(key_revocation),and_v(vc:pk(key_remote),or_c(c:pk(key_local),v:hash160(925d4028880bd0c9d68fbc7fc7dfee976698629c))))";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_NOTIF 030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_CHECKSIGVERIFY 030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_NOTIF OP_SIZE 32 OP_EQUALVERIFY OP_HASH160 925d4028880bd0c9d68fbc7fc7dfee976698629c OP_EQUALVERIFY OP_ENDIF OP_ENDIF 1");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+
+  try {
+    // miniscript - The BOLT #3 received HTLC policy
+    miniscript = "andor(c:pk(key_remote),or_i(and_v(vc:pk_h(key_local),hash160(925d4028880bd0c9d68fbc7fc7dfee976698629c)),older(1008)),c:pk(key_revocation))";
+    script = Script::ConvertFromMiniScript(miniscript);
+    EXPECT_STREQ(script.ToString().c_str(),
+        "030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_NOTIF 030000000000000000000000000000000000000000000000000000000000000000 OP_CHECKSIG OP_ELSE OP_IF OP_DUP OP_HASH160 0000000000000000000000000000000000000000 OP_EQUALVERIFY OP_CHECKSIG OP_CHECKSIGVERIFY OP_SIZE 32 OP_EQUALVERIFY OP_HASH160 925d4028880bd0c9d68fbc7fc7dfee976698629c OP_EQUAL OP_ELSE 1008 OP_CHECKSEQUENCEVERIFY OP_ENDIF OP_ENDIF");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  } catch (...) {
+    EXPECT_TRUE(false);
+  }
+}
+
+TEST(Script, GetMiniScriptTest) {
+  cfd::core::CfdCoreHandle handle = nullptr;
+  cfd::core::Initialize(&handle);
+  Script script;
+  ScriptBuilder builder;
+  std::string miniscript;
+  try {
+    // multisig
+    builder = ScriptBuilder();
+    builder.AppendOperator(ScriptOperator::OP_1);
+    builder.AppendData(ByteData("0306226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f"));
+    builder.AppendData(ByteData("030000000000000000000000000000000000000000000000000000000000000001"));
+    builder.AppendOperator(ScriptOperator::OP_2);
+    builder.AppendOperator(ScriptOperator::OP_CHECKMULTISIG);
+    script = builder.Build();
+    miniscript = script.GetMiniScript();
+    EXPECT_STREQ(miniscript.c_str(),
+        "thresh_m(1,0306226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f,030000000000000000000000000000000000000000000000000000000000000001)");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  }
+
+  try {
+    // miniscript - A single key
+    builder = ScriptBuilder();
+    builder.AppendData(ByteData("027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    script = builder.Build();
+    miniscript = script.GetMiniScript();
+    EXPECT_STREQ(miniscript.c_str(),
+        "c:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af)");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  }
+
+  try {
+    // miniscript - One of two keys (equally likely)
+    builder = ScriptBuilder();
+    builder.AppendData(ByteData("027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_SWAP);
+    builder.AppendData(ByteData("036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_BOOLOR);
+    script = builder.Build();
+    miniscript = script.GetMiniScript();
+    EXPECT_STREQ(miniscript.c_str(),
+        "or_b(c:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),sc:pk(036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af))");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  }
+
+  try {
+    // miniscript - One of two keys (one likely, one unlikely)
+    builder = ScriptBuilder();
+    builder.AppendData(ByteData("027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_IFDUP);
+    builder.AppendOperator(ScriptOperator::OP_NOTIF);
+    builder.AppendOperator(ScriptOperator::OP_DUP);
+    builder.AppendOperator(ScriptOperator::OP_HASH160);
+    builder.AppendData(ByteData("925d4028880bd0c9d68fbc7fc7dfee976698629c"));
+    builder.AppendOperator(ScriptOperator::OP_EQUALVERIFY);
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_ENDIF);
+    script = builder.Build();
+    miniscript = script.GetMiniScript();
+    EXPECT_STREQ(miniscript.c_str(),
+        "or_d(c:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),c:pk_h(925d4028880bd0c9d68fbc7fc7dfee976698629c))");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  }
+
+  try {
+    // miniscript - A 3-of-3 that turns into a 2-of-3 after 90 days
+    builder = ScriptBuilder();
+    builder.AppendData(ByteData("027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_SWAP);
+    builder.AppendData(ByteData("036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_ADD);
+    builder.AppendOperator(ScriptOperator::OP_SWAP);
+    builder.AppendData(ByteData("0211dcbf6768e8eff85d7b294776f046a5294a64158586cd2bc6da4b0740eacd2f"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_ADD);
+    builder.AppendOperator(ScriptOperator::OP_SWAP);
+    builder.AppendOperator(ScriptOperator::OP_DUP);
+    builder.AppendOperator(ScriptOperator::OP_IF);
+    builder.AppendData(12960);
+    builder.AppendOperator(ScriptOperator::OP_CHECKSEQUENCEVERIFY);
+    builder.AppendOperator(ScriptOperator::OP_VERIFY);
+    builder.AppendOperator(ScriptOperator::OP_ENDIF);
+    builder.AppendOperator(ScriptOperator::OP_ADD);
+    builder.AppendData(3);
+    builder.AppendOperator(ScriptOperator::OP_EQUAL);
+    script = builder.Build();
+    miniscript = script.GetMiniScript();
+    EXPECT_STREQ(miniscript.c_str(),
+        "thresh(3,c:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),sc:pk(036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),sc:pk(0211dcbf6768e8eff85d7b294776f046a5294a64158586cd2bc6da4b0740eacd2f),sdv:older(12960))");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  }
+
+  try {
+    // miniscript - The BOLT #3 to_local policy
+    builder = ScriptBuilder();
+    builder.AppendData(ByteData("027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_NOTIF);
+    builder.AppendData(ByteData("036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_ELSE);
+    builder.AppendData(1008);
+    builder.AppendOperator(ScriptOperator::OP_CHECKSEQUENCEVERIFY);
+    builder.AppendOperator(ScriptOperator::OP_ENDIF);
+    script = builder.Build();
+    miniscript = script.GetMiniScript();
+    EXPECT_STREQ(miniscript.c_str(),
+        "andor(c:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),older(1008),c:pk(036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af))");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  }
+
+  try {
+    // miniscript - A user and a 2FA service need to sign off, but after 90 days the user alone is enough
+    builder = ScriptBuilder();
+    builder.AppendData(ByteData("027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIGVERIFY);
+    builder.AppendData(ByteData("036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_IFDUP);
+    builder.AppendOperator(ScriptOperator::OP_NOTIF);
+    builder.AppendData(static_cast<int64_t>(12960));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSEQUENCEVERIFY);
+    builder.AppendOperator(ScriptOperator::OP_ENDIF);
+    script = builder.Build();
+    miniscript = script.GetMiniScript();
+    EXPECT_STREQ(miniscript.c_str(),
+        "and_v(vc:pk(027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),or_d(c:pk(036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af),older(12960)))");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  }
+
+  try {  // fail
+    // miniscript - The BOLT #3 offered HTLC policy
+    builder = ScriptBuilder();
+    builder.AppendData(ByteData("027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_NOTIF);
+    builder.AppendData(ByteData("036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIGVERIFY);
+    builder.AppendData(ByteData("036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_NOTIF);
+    builder.AppendOperator(ScriptOperator::OP_SIZE);
+    builder.AppendData(static_cast<int64_t>(20));
+    builder.AppendOperator(ScriptOperator::OP_EQUALVERIFY);
+    builder.AppendOperator(ScriptOperator::OP_HASH160);
+    builder.AppendData(ByteData("925d4028880bd0c9d68fbc7fc7dfee976698629c"));
+    builder.AppendOperator(ScriptOperator::OP_EQUALVERIFY);
+    builder.AppendOperator(ScriptOperator::OP_ENDIF);
+    builder.AppendOperator(ScriptOperator::OP_ENDIF);
+    builder.AppendOperator(ScriptOperator::OP_1);
+    script = builder.Build();
+    miniscript = script.GetMiniScript();
+    EXPECT_STREQ(miniscript.c_str(),
+        "");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  }
+
+  try {
+    // miniscript - The BOLT #3 received HTLC policy
+    builder = ScriptBuilder();
+    builder.AppendData(ByteData("027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_NOTIF);
+    builder.AppendData(ByteData("036892aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af"));
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+    builder.AppendOperator(ScriptOperator::OP_ELSE);
+    builder.AppendOperator(ScriptOperator::OP_IF);
+    builder.AppendOperator(ScriptOperator::OP_DUP);
+    builder.AppendOperator(ScriptOperator::OP_HASH160);
+    builder.AppendData(ByteData("925d4028880bd0c9d68fbc7fc7dfee976698629c"));
+    builder.AppendOperator(ScriptOperator::OP_EQUALVERIFY);
+    builder.AppendOperator(ScriptOperator::OP_CHECKSIGVERIFY);
+    builder.AppendOperator(ScriptOperator::OP_SIZE);
+    builder.AppendData(static_cast<int64_t>(32));
+    builder.AppendOperator(ScriptOperator::OP_EQUALVERIFY);
+    builder.AppendOperator(ScriptOperator::OP_HASH160);
+    builder.AppendData(ByteData("925d4028880bd0c9d68fbc7fc7dfee976698629c"));
+    builder.AppendOperator(ScriptOperator::OP_EQUAL);
+    builder.AppendOperator(ScriptOperator::OP_ELSE);
+    builder.AppendData(1008);
+    builder.AppendOperator(ScriptOperator::OP_CHECKSEQUENCEVERIFY);
+    builder.AppendOperator(ScriptOperator::OP_ENDIF);
+    builder.AppendOperator(ScriptOperator::OP_ENDIF);
+    script = builder.Build();
+    miniscript = script.GetMiniScript();
+    EXPECT_STREQ(miniscript.c_str(),
+        "");
+  } catch (const CfdException& e1) {
+    EXPECT_STREQ("", e1.what());
+  } catch (const std::exception& e2) {
+    EXPECT_STREQ("", e2.what());
+  }
+}
+
