@@ -181,7 +181,7 @@ inline void ConvertFromUniValue(
           "Json value convert error. Value out of range.");
     }
 
-    char *endp = NULL;
+    char* endp = NULL;
     errno = 0;
     value = static_cast<uint64_t>(std::strtoull(str.c_str(), &endp, 10));
     if ((errno == ERANGE) || ((endp != nullptr) && (*endp != '\0'))) {
