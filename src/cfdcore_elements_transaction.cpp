@@ -22,6 +22,7 @@
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_transaction.h"
 #include "cfdcore/cfdcore_util.h"
+#include "cfdcore_secp256k1.h"   // NOLINT
 #include "cfdcore_wally_util.h"  // NOLINT
 #include "wally_elements.h"      // NOLINT
 
@@ -1989,6 +1990,17 @@ void ConfidentialTransaction::BlindTransaction(
   info(
       CFD_LOG_SOURCE, "txin blind_target_count={} blinded_txin_count={}",
       blind_target_count, blinded_txin_count);
+
+  // check of SECP256K1_SURJECTIONPROOF_MAX_N_INPUTS
+  size_t surjectionproofInputNum = input_asset_ids.size() / kAssetSize;
+  if (Secp256k1::GetSurjectionproofInputLimit() < surjectionproofInputNum) {
+    warn(
+        CFD_LOG_SOURCE, "blind input count over. count[{}] limit[{}]",
+        surjectionproofInputNum, Secp256k1::GetSurjectionproofInputLimit());
+    throw CfdException(
+        kCfdIllegalStateError,
+        "blind input count over.(for SECP256K1_SURJECTIONPROOF_MAX_N_INPUTS)");
+  }
 
   for (const size_t index : blind_issuance_indexes) {
     bool asset_blind = false;
