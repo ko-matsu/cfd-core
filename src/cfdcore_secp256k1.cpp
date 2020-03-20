@@ -10,11 +10,12 @@
 
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_logger.h"
-#include "cfdcore_secp256k1.h"     // NOLINT
-#include "secp256k1.h"             // NOLINT
-#include "secp256k1_generator.h"   // NOLINT
-#include "secp256k1_rangeproof.h"  // NOLINT
-#include "secp256k1_whitelist.h"   // NOLINT
+#include "cfdcore_secp256k1.h"          // NOLINT
+#include "secp256k1.h"                  // NOLINT
+#include "secp256k1_generator.h"        // NOLINT
+#include "secp256k1_rangeproof.h"       // NOLINT
+#include "secp256k1_surjectionproof.h"  // NOLINT
+#include "secp256k1_whitelist.h"        // NOLINT
 
 namespace cfd {
 namespace core {
@@ -30,12 +31,19 @@ static constexpr uint8_t kCompressedPubkeyByteSize =
     33;  //!< ByteSize of compressed pubkey
 static constexpr uint8_t kFullPubkeyByteSize =
     65;  //!< ByteSize of full pubkey
+//! Maximum of surjectionproof input
+static constexpr uint32_t kSurjectionproofMaxInputs =
+    SECP256K1_SURJECTIONPROOF_MAX_N_INPUTS;
 
 //////////////////////////////////
 /// Secp256k1
 //////////////////////////////////
 Secp256k1::Secp256k1(void* context) : secp256k1_context_(context) {
   // do nothing
+}
+
+uint32_t Secp256k1::GetSurjectionproofInputLimit() {
+  return kSurjectionproofMaxInputs;
 }
 
 ByteData Secp256k1::CombinePubkeySecp256k1Ec(
