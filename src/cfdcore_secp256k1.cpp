@@ -109,6 +109,49 @@ ByteData Secp256k1::CombinePubkeySecp256k1Ec(
   return ByteData(byte_data);
 }
 
+ByteData Secp256k1::CompressPubkeySecp256k1Ec(
+    const ByteData& uncompressed_pubkey) {
+  secp256k1_context* context =
+      static_cast<secp256k1_context*>(secp256k1_context_);
+
+  if (secp256k1_context_ == NULL) {
+    warn(CFD_LOG_SOURCE, "Secp256k1 context is NULL.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Secp256k1 context is NULL.");
+  }
+
+  if (uncompressed_pubkey.GetDataSize() != 65) {
+    warn(CFD_LOG_SOURCE, "Invalid Argument pubkey size.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Invalid Pubkey size.");
+  }
+
+  secp256k1_pubkey pubkey;
+  int ret = secp256k1_ec_pubkey_parse(
+      context, &pubkey, uncompressed_pubkey.GetBytes().data(),
+      uncompressed_pubkey.GetDataSize());
+  if (ret != 1) {
+    warn(CFD_LOG_SOURCE, "Secp256k1 pubkey parse Error.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Secp256k1 pubkey parse Error.");
+  }
+
+  std::vector<uint8_t> byte_data(33);
+  size_t byte_size = byte_data.size();
+  // Format ByteData
+  ret = secp256k1_ec_pubkey_serialize(
+      context, byte_data.data(), &byte_size, &pubkey, SECP256K1_EC_COMPRESSED);
+  if (ret != 1) {
+    warn(CFD_LOG_SOURCE, "Secp256k1 pubkey serialize Error.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Secp256k1 pubkey serialize Error.");
+  }
+
+  byte_data.resize(byte_size);
+  return ByteData(byte_data);
+}
+
 ByteData Secp256k1::AddTweakPrivkeySecp256k1Ec(
     const ByteData& privkey, const ByteData& tweak) {
   if (secp256k1_context_ == NULL) {
