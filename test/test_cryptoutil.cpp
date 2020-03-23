@@ -471,6 +471,17 @@ TEST(CryptoUtil, ConvertSignatureFromDer) {
   EXPECT_STREQ(signature.GetHex().c_str(), hex_sig.c_str());
 }
 
+TEST(CryptoUtil, ConvertSignatureFromDerHexEmpty) {
+  try {
+    ByteData hex_sig;
+    ByteData byte_data = CryptoUtil::ConvertSignatureFromDer(hex_sig, nullptr);
+  } catch (const cfd::core::CfdException &cfd_except) {
+    EXPECT_STREQ(cfd_except.what(), "der decode error.");
+    return;
+  }
+  ASSERT_TRUE(false);
+}
+
 // Base64 encode tool
 // https://cryptii.com/pipes/base64-to-hex
 // EncodeBase64----------------------------------------------------------------
