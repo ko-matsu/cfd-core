@@ -13,6 +13,7 @@
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
+#include "cfdcore/cfdcore_transaction_common.h"
 #include "cfdcore/cfdcore_util.h"
 #include "cfdcore_wally_util.h"  // NOLINT
 
@@ -107,6 +108,11 @@ Pubkey Pubkey::CreateNegate() const {
 
 bool Pubkey::IsLarge(const Pubkey& source, const Pubkey& destination) {
   return ByteData::IsLarge(source.data_, destination.data_);
+}
+
+bool Pubkey::VerifyEcSignature(
+    const ByteData256& signature_hash, const ByteData& signature) const {
+  return SignatureUtil::VerifyEcSignature(signature_hash, *this, signature);
 }
 
 // ----------------------------------------------------------------------------
@@ -269,6 +275,12 @@ bool Privkey::IsValid(const std::vector<uint8_t>& buffer) {
     // return buffer.size() == kPrivkeySize;
   }
   return false;
+}
+
+ByteData Privkey::CalculateEcSignature(
+    const ByteData256& signature_hash, bool has_grind_r) const {
+  return SignatureUtil::CalculateEcSignature(
+      signature_hash, *this, has_grind_r);
 }
 
 }  // namespace core
