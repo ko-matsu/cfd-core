@@ -414,7 +414,8 @@ ExtPrivkey::ExtPrivkey(
   tweak_sum_ = tweak_sum;
 }
 
-ExtPrivkey::ExtPrivkey(NetType network_type, const Privkey& parent_key,
+ExtPrivkey::ExtPrivkey(
+    NetType network_type, const Privkey& parent_key,
     const ByteData256& parent_chain_code, uint8_t parent_depth,
     uint32_t child_num) {
   if (!parent_key.IsValid()) {
@@ -446,8 +447,8 @@ ExtPrivkey::ExtPrivkey(NetType network_type, const Privkey& parent_key,
 
   struct ext_key extkey = {};
   memset(&extkey, 0, sizeof(extkey));
-  int ret = bip32_key_from_parent(&parent, child_num,
-      BIP32_FLAG_KEY_PRIVATE, &extkey);
+  int ret = bip32_key_from_parent(
+      &parent, child_num, BIP32_FLAG_KEY_PRIVATE, &extkey);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "bip32_key_from_parent error. ret={}", ret);
     throw CfdException(
@@ -456,7 +457,8 @@ ExtPrivkey::ExtPrivkey(NetType network_type, const Privkey& parent_key,
 
   std::vector<uint8_t> data(BIP32_SERIALIZED_LEN);
   ret = bip32_key_serialize(
-      &extkey, BIP32_FLAG_KEY_PRIVATE | BIP32_FLAG_KEY_TWEAK_SUM, data.data(), data.size());
+      &extkey, BIP32_FLAG_KEY_PRIVATE | BIP32_FLAG_KEY_TWEAK_SUM, data.data(),
+      data.size());
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "bip32_key_serialize error. ret={}", ret);
     throw CfdException(
@@ -657,7 +659,8 @@ ExtPubkey::ExtPubkey(
   tweak_sum_ = tweak_sum;
 }
 
-ExtPubkey::ExtPubkey(NetType network_type, const Pubkey& parent_key,
+ExtPubkey::ExtPubkey(
+    NetType network_type, const Pubkey& parent_key,
     const ByteData256& parent_chain_code, uint8_t parent_depth,
     uint32_t child_num) {
   if (!parent_key.IsValid()) {
@@ -692,8 +695,9 @@ ExtPubkey::ExtPubkey(NetType network_type, const Pubkey& parent_key,
 
   struct ext_key extkey = {};
   memset(&extkey, 0, sizeof(extkey));
-  int ret = bip32_key_from_parent(&parent, child_num,
-      BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_KEY_TWEAK_SUM, &extkey);
+  int ret = bip32_key_from_parent(
+      &parent, child_num, BIP32_FLAG_KEY_PUBLIC | BIP32_FLAG_KEY_TWEAK_SUM,
+      &extkey);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "bip32_key_from_parent error. ret={}", ret);
     throw CfdException(

@@ -259,7 +259,8 @@ class CFD_CORE_EXPORT ExtPrivkey {
    * @param[in] parent_depth       parent depth
    * @param[in] child_num          child num
    */
-  explicit ExtPrivkey(NetType network_type, const Privkey& parent_key,
+  explicit ExtPrivkey(
+      NetType network_type, const Privkey& parent_key,
       const ByteData256& parent_chain_code, uint8_t parent_depth,
       uint32_t child_num);
 
@@ -438,7 +439,8 @@ class CFD_CORE_EXPORT ExtPubkey {
    * @param[in] parent_depth       parent depth
    * @param[in] child_num          child num
    */
-  explicit ExtPubkey(NetType network_type, const Pubkey& parent_key,
+  explicit ExtPubkey(
+      NetType network_type, const Pubkey& parent_key,
       const ByteData256& parent_chain_code, uint8_t parent_depth,
       uint32_t child_num);
 
