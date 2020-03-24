@@ -106,6 +106,35 @@ Pubkey Pubkey::CreateNegate() const {
   return Pubkey(negated);
 }
 
+Pubkey Pubkey::Compress() const {
+  if (IsCompress()) {
+    return *this;
+  }
+
+  ByteData compress_data = WallyUtil::CompressPubkey(data_);
+  return Pubkey(compress_data);
+}
+
+Pubkey Pubkey::Uncompress() const {
+  if (!IsCompress()) {
+    return *this;
+  }
+
+  // The conversion from uncompress to compress is irreversible.
+  // (if convert compress to uncompress, prefix is '04'. Not '06' or '07'.)
+  std::vector<uint8_t> decompress_data(EC_PUBLIC_KEY_UNCOMPRESSED_LEN);
+  std::vector<uint8_t> data = data_.GetBytes();
+  int ret = wally_ec_public_key_decompress(
+      data.data(), data.size(), decompress_data.data(),
+      decompress_data.size());
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_ec_public_key_decompress error. ret={}", ret);
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Failed to uncompress pubkey.");
+  }
+  return Pubkey(decompress_data);
+}
+
 bool Pubkey::IsLarge(const Pubkey& source, const Pubkey& destination) {
   return ByteData::IsLarge(source.data_, destination.data_);
 }

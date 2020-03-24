@@ -49,6 +49,13 @@ class Secp256k1 {
   ByteData CombinePubkeySecp256k1Ec(const std::vector<ByteData>& pubkey_list);
 
   /**
+   * @brief compress pubkey.
+   * @param[in] uncompressed_pubkey  uncompressed pubkey.
+   * @return data of compressed Pubkey
+   */
+  ByteData CompressPubkeySecp256k1Ec(const ByteData& uncompressed_pubkey);
+
+  /**
    * \~english 
    * @brief Tweak a private key by adding tweak.
    * @param[in] privkey     private key.(must 32-byte)

@@ -135,6 +135,18 @@ class CFD_CORE_EXPORT Pubkey {
   Pubkey CreateNegate() const;
 
   /**
+   * @brief Create new uncompressed public key.
+   * @return new instance of pubkey key with uncompressed.
+   */
+  Pubkey Compress() const;
+
+  /**
+   * @brief Create new uncompressed public key.
+   * @return new instance of pubkey key with uncompressed.
+   */
+  Pubkey Uncompress() const;
+
+  /**
    * @brief Verify if a signature with respect to a public key and a message.
    * @param[in] signature_hash  the message to verify the signature against.
    * @param[in] signature       the signature to verify.

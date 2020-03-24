@@ -179,6 +179,18 @@ TEST(Pubkey, NegateTest) {
   EXPECT_TRUE(pubkey.Equals(negate.CreateNegate()));
 }
 
+TEST(Pubkey, CompressUncompressTest) {
+  std::string key_uncompressed = "076468efc14b8512007bb720d6e7d4217a6686095a79b57e50dd48355110422955400e1a8f159b5dcea116049d09eb756b80d52aeaabb195b343cf713f62f01a73";
+  std::string ext_key_uncompressed = "046468efc14b8512007bb720d6e7d4217a6686095a79b57e50dd48355110422955400e1a8f159b5dcea116049d09eb756b80d52aeaabb195b343cf713f62f01a73";
+  std::string ext_key_compressed = "036468efc14b8512007bb720d6e7d4217a6686095a79b57e50dd48355110422955";
+  Pubkey pubkey = Pubkey(key_uncompressed);
+  Pubkey comp_pubkey = pubkey.Compress();
+  EXPECT_STREQ(comp_pubkey.GetHex().c_str(), ext_key_compressed.c_str());
+
+  Pubkey uncomp_pubkey = comp_pubkey.Uncompress();
+  EXPECT_STREQ(uncomp_pubkey.GetHex().c_str(), ext_key_uncompressed.c_str());
+}
+
 TEST(Pubkey, VerifyEcSignature) {
   Pubkey pubkey(
       "031777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb");
