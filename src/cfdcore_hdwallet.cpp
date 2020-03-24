@@ -669,11 +669,9 @@ ExtPubkey::ExtPubkey(
         CfdError::kCfdIllegalArgumentError,
         "Failed to pubkey. ExtPubkey invalid pubkey.");
   }
-  if (!parent_key.IsCompress()) {
-    warn(CFD_LOG_SOURCE, "uncompressed pubkey.");
-    throw CfdException(
-        CfdError::kCfdIllegalArgumentError,
-        "Failed to pubkey. pubkey is uncompressed.");
+  Pubkey key = parent_key;
+  if (!key.IsCompress()) {
+    key = key.Compress();
   }
 
   // create simple parent data
@@ -686,8 +684,8 @@ ExtPubkey::ExtPubkey(
   }
   parent.depth = parent_depth;
   parent.priv_key[0] = BIP32_FLAG_KEY_PUBLIC;
-  std::vector<uint8_t> pubkey_bytes = parent_key.GetData().GetBytes();
-  std::vector<uint8_t> pubkey_hash = HashUtil::Hash160(parent_key).GetBytes();
+  std::vector<uint8_t> pubkey_bytes = key.GetData().GetBytes();
+  std::vector<uint8_t> pubkey_hash = HashUtil::Hash160(key).GetBytes();
   std::vector<uint8_t> chain_bytes = parent_chain_code.GetData().GetBytes();
   memcpy(parent.pub_key, pubkey_bytes.data(), pubkey_bytes.size());
   memcpy(parent.hash160, pubkey_hash.data(), pubkey_hash.size());
