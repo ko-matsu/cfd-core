@@ -2089,7 +2089,8 @@ void ConfidentialTransaction::BlindTransaction(
       Amount temp_amount = value.GetAmount();
       input_values.push_back(temp_amount.GetSatoshiValue());
       blind_txout_indexes.push_back(index);
-      input_confidential_keys[index] = txout_confidential_keys[index];
+      input_confidential_keys[index] =
+          txout_confidential_keys[index].Compress();
     }
   }
   blind_target_count += blind_txout_indexes.size();
@@ -2168,16 +2169,20 @@ void ConfidentialTransaction::BlindTransaction(
     }
     std::vector<uint8_t> surjection_proof(size);
 
-    std::vector<uint8_t> bytes =
-        RandomNumberUtil::GetRandomBytes(kBlindFactorSize);
+    std::vector<uint8_t> entropy;
+    uint8_t retry_count = 0;
     const std::vector<uint8_t> &asset_bytes =
         output_asset_id.GetUnblindedData().GetBytes();
-    ret = wally_asset_surjectionproof(
-        asset_bytes.data(), asset_bytes.size(), abf.data(), abf.size(),
-        generator.data(), generator.size(), bytes.data(), bytes.size(),
-        input_asset_ids.data(), input_asset_ids.size(), input_abfs.data(),
-        input_abfs.size(), input_generators.data(), input_generators.size(),
-        surjection_proof.data(), surjection_proof.size(), &size);
+    do {
+      entropy = RandomNumberUtil::GetRandomBytes(kBlindFactorSize);
+      ret = wally_asset_surjectionproof(
+          asset_bytes.data(), asset_bytes.size(), abf.data(), abf.size(),
+          generator.data(), generator.size(), entropy.data(), entropy.size(),
+          input_asset_ids.data(), input_asset_ids.size(), input_abfs.data(),
+          input_abfs.size(), input_generators.data(), input_generators.size(),
+          surjection_proof.data(), surjection_proof.size(), &size);
+      ++retry_count;
+    } while ((ret != WALLY_ERROR) && (retry_count < 10));
     if (ret != WALLY_OK) {
       warn(
           CFD_LOG_SOURCE, "wally_asset_surjectionproof NG[{}] index={}", ret,
