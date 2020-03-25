@@ -2397,6 +2397,37 @@ std::vector<UnblindParameter> ConfidentialTransaction::UnblindTxOut(
   return results;
 }
 
+UnblindParameter ConfidentialTransaction::UnblindTxOutWithNonce(
+    uint32_t tx_out_index, const Privkey &nonce) {
+  CheckTxOutIndex(tx_out_index, __LINE__, __FUNCTION__);
+
+  ConfidentialTxOut tx_out(vout_[tx_out_index]);
+  if (!tx_out.GetAsset().HasBlinding() || !tx_out.GetNonce().HasBlinding() ||
+      !tx_out.GetConfidentialValue().HasBlinding() ||
+      (tx_out.GetRangeProof().GetDataSize() == 0) ||
+      (tx_out.GetSurjectionProof().GetDataSize() == 0)) {
+    warn(
+        CFD_LOG_SOURCE,
+        "Failed to unblind TxOut. Target TxOut already unblinded.: "
+        "tx_out_index=[{}]",
+        tx_out_index);
+    throw CfdException(
+        kCfdIllegalStateError,
+        "Failed to unblind TxOut. Target TxOut already unblinded.");
+  }
+
+  UnblindParameter result = CalculateUnblindData(
+      nonce, tx_out.GetRangeProof(), tx_out.GetConfidentialValue(),
+      tx_out.GetLockingScript(), tx_out.GetAsset());
+
+  // clear and set unblind value to txout
+  SetTxOutCommitment(
+      tx_out_index, result.asset, result.value, ConfidentialNonce(),
+      ByteData(), ByteData());
+
+  return result;
+}
+
 UnblindParameter ConfidentialTransaction::CalculateUnblindData(
     const ConfidentialNonce &nonce, const Privkey &blinding_key,
     const ByteData &rangeproof, const ConfidentialValue &value_commitment,
