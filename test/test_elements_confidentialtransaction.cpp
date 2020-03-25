@@ -723,6 +723,40 @@ TEST(ConfidentialTransaction, BlindTxOutTest) {
   EXPECT_EQ(unblindList[1].value.GetAmount().GetSatoshiValue(), 10000);
 }
 
+TEST(ConfidentialTransaction, BlindTxOutUncompressedPubkeyTest) {
+  std::string tx_hex = "020000000001438cbb074e26715c25a11d12ef22f8e6080c466ff607936208473787138ba95a0000000000ffffffff0301f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f010000000000895440001976a914dff13ae1f9b4ce176adbeef85db623a6ee5a907988ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f0100000000000f1b30001976a914de89a605e67cabd0391ecc8b01ba1ec9434394fe88ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f010000000000002710000000000000";
+  ConfidentialTransaction tx(tx_hex);
+  double inputamount = 0.1;
+  std::string inputblinder =
+      "0000000000000000000000000000000000000000000000000000000000000000";
+  std::string inputasset =
+      "6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3";
+  std::string inputassetblinder =
+      "0000000000000000000000000000000000000000000000000000000000000000";
+  std::string pubkey1_hex =
+      "04dada4cf7659309225a0a7cc34b7281fde98181a871ff9666ee7118895fe2a659d5f346c08488fb6a73a0d92ad1b547e58265b338fb2e73cea9ae6cd224225e22";
+  std::string pubkey2_hex =
+      "04964523753907b96be824651f55eac8aead20f97759333813b3c0d9edc213e6abbce207ea330383fdccc5c78e9cd89f3eae8ed6089ddb7dd0878c7836e82e38bd";
+  Pubkey pubkey1(pubkey1_hex);
+  Pubkey pubkey2(pubkey2_hex);
+
+  std::vector<BlindParameter> blind_list;
+  BlindParameter param;
+  param.asset = ConfidentialAssetId(inputasset);
+  param.abf = BlindFactor(inputassetblinder);
+  param.vbf = BlindFactor(inputblinder);
+  param.value = ConfidentialValue(Amount::CreateByCoinAmount(inputamount));
+  blind_list.push_back(param);
+  std::vector<Pubkey> pubkeys;
+  pubkeys.push_back(pubkey1);
+  pubkeys.push_back(pubkey2);
+  pubkeys.push_back(Pubkey());
+
+  EXPECT_NO_THROW((tx.BlindTxOut(blind_list, pubkeys)));
+  // 乱数が混ざるため、サイズだけチェック
+  EXPECT_EQ(tx.GetHex().length(), 12560);
+}
+
 TEST(ConfidentialTransaction, BlindTransactionTest1) {
   std::string tx_hex = "020000000001e6162f9bbac022e67327e717a3885b316a54e50c34ba266b58f1999854c596810000008000ffffffff0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000003b9aca00010000000005f5e10004017d63e62c547bcc63dcdd626493ca47219edb08de15e68dc12d773abcc6b4076e01000000003b9aca000017a914ba570779a432049e072b0f201e43f482c772a0808701e30071704b5fbe1cca1bdfb1760d46ec1d094b7057b4d45fad23f4bdd321debc010000000005f5e1000017a914bb1706309b3384d40a63619a353014018afd142b870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000298100017a914a3949e9a8b0b813db67c8fc5ad14194a297979cd870125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a010000000000002710000000000000";
   ConfidentialTransaction tx(tx_hex);
