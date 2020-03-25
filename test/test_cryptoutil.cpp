@@ -335,6 +335,22 @@ TEST(CryptoUtil, HmacSha256) {
       "5af1c9ec83a512db8ea42f288b82c8a07ed05685c28e3c4c8d4c4e1b2f40b212");
 }
 
+// HmacSha256------------------------------------------------------------------
+TEST(CryptoUtil, HmacSha256BlindKey) {
+  ByteData key(
+      "10844437907de6b5f9886df4345ad76c8c83b3abaa2220843a899d743ada3fd2");
+  std::vector<uint8_t> bdata(7);
+  std::string abf = "VBF";
+  uint32_t zero = 0;
+  memcpy(bdata.data(), abf.data(), 3);
+  memcpy(bdata.data()+3, &zero, 4);
+  ByteData data(bdata);
+  ByteData256 byte_data = CryptoUtil::HmacSha256(key.GetBytes(), data);
+  EXPECT_STREQ(
+      byte_data.GetHex().c_str(),
+      "ee3f40bae5cd1c127bd6ac7c1626b99243c57800471ceb5b4e95e6ec7f3fc88d");
+}
+
 TEST(CryptoUtil, HmacSha256KeyEmpty) {
   try {
     std::vector<uint8_t> key;
