@@ -2182,7 +2182,7 @@ void ConfidentialTransaction::BlindTransaction(
           input_abfs.size(), input_generators.data(), input_generators.size(),
           surjection_proof.data(), surjection_proof.size(), &size);
       ++retry_count;
-    } while ((ret != WALLY_ERROR) && (retry_count < 10));
+    } while ((ret == WALLY_ERROR) && (retry_count < 20));
     if (ret != WALLY_OK) {
       warn(
           CFD_LOG_SOURCE, "wally_asset_surjectionproof NG[{}] index={}", ret,
