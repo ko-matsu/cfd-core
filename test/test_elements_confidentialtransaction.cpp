@@ -708,7 +708,7 @@ TEST(ConfidentialTransaction, BlindTxOutTest) {
 
   EXPECT_NO_THROW((tx.BlindTxOut(blind_list, pubkeys)));
   // 乱数が混ざるため、サイズだけチェック
-  EXPECT_EQ(tx.GetHex().length(), 12552);
+  EXPECT_EQ(tx.GetHex().length(), 17676);
   std::string blind_tx = tx.GetHex();
 
   std::vector<Privkey> blinding_keys;
@@ -754,7 +754,7 @@ TEST(ConfidentialTransaction, BlindTxOutUncompressedPubkeyTest) {
 
   EXPECT_NO_THROW((tx.BlindTxOut(blind_list, pubkeys)));
   // 乱数が混ざるため、サイズだけチェック
-  EXPECT_EQ(tx.GetHex().length(), 12560);
+  EXPECT_EQ(tx.GetHex().length(), 17684);
 }
 
 TEST(ConfidentialTransaction, BlindTransactionTest1) {
@@ -808,8 +808,11 @@ TEST(ConfidentialTransaction, BlindTransactionTest1) {
 
   EXPECT_NO_THROW((tx.BlindTransaction(blind_list, issue_keys, pubkeys)));
   // 乱数が混ざるため、サイズだけチェック
-  EXPECT_EQ(tx.GetHex().length(), 30918);
+  EXPECT_EQ(tx.GetHex().length(), 43728);
   std::string blind_tx = tx.GetHex();
+  // if(tx.GetHex().length() != 30918) {
+  //   EXPECT_STREQ("", blind_tx.c_str());
+  // }
 
   std::vector<Privkey> blinding_keys;
   blinding_keys.push_back(privkeyIssue1);
