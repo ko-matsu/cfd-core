@@ -3234,7 +3234,7 @@ void ConfidentialTransaction::CheckTxOutIndex(
   if (vout_.size() <= index) {
     spdlog::source_loc location = {CFD_LOG_FILE, line, caller};
     warn(location, "vout[{}] out_of_range.", index);
-    throw CfdException(kCfdOutOfRangeError, "vin out_of_range error.");
+    throw CfdException(kCfdOutOfRangeError, "vout out_of_range error.");
   }
 }
 
