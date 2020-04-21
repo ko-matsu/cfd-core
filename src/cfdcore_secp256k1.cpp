@@ -40,11 +40,13 @@ static constexpr uint32_t kSurjectionproofMaxInputs =
  * @brief A pointer to a function to deterministically generate a nonce.
  * @param[out] nonce32  pointer to a 32-byte array to be filled by the function.
  * @param[in] data      Arbitrary data pointer that is passed through.
+ * @param[in] attempt   unused.
  * @retval 1    a nonce was successfully generated.
  */
-int CfdSecp256k1ConstantNonceFunction(
+static int CfdSecp256k1ConstantNonceFunction(
     unsigned char* nonce32, const unsigned char*, const unsigned char*,
-    const unsigned char*, void* data, unsigned int) {
+    const unsigned char*, void* data, unsigned int attempt) {
+  (void)attempt;
   memcpy(nonce32, (const unsigned char*)data, 32);
   return 1;
 }
