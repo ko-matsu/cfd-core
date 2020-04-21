@@ -493,11 +493,10 @@ void AbstractTransaction::RemoveScriptWitnessStackAll(uint32_t tx_in_index) {
   struct wally_tx *tx_pointer =
       static_cast<struct wally_tx *>(wally_tx_pointer_);
   if (tx_pointer->num_inputs > tx_in_index) {
-    int ret = WALLY_OK;
     struct wally_tx_witness_stack *stack_pointer = NULL;
     if (tx_pointer->inputs[tx_in_index].witness != NULL) {
       stack_pointer = tx_pointer->inputs[tx_in_index].witness;
-      ret = wally_tx_witness_stack_free(stack_pointer);
+      int ret = wally_tx_witness_stack_free(stack_pointer);
       tx_pointer->inputs[tx_in_index].witness = NULL;
       if (ret != WALLY_OK) {
         warn(CFD_LOG_SOURCE, "wally_tx_witness_stack_free NG[{}].", ret);
