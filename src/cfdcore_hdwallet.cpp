@@ -177,7 +177,12 @@ static std::vector<uint32_t> ToArrayFromString(
 
     // strtol関数による変換
     char* p_str_end = nullptr;
-    uint32_t value = std::strtoul(str.c_str(), &p_str_end, 10);
+    uint32_t value;
+    if ((str.size() > 2) && (str[0] == '0') && (str[1] == 'x')) {
+      value = std::strtoul(str.c_str(), &p_str_end, 16);
+    } else {
+      value = std::strtoul(str.c_str(), &p_str_end, 10);
+    }
     if (str.empty() || ((p_str_end != nullptr) && (*p_str_end != '\0'))) {
       warn(CFD_LOG_SOURCE, "{} bip32 string path fail.", caller_name);
       throw CfdException(

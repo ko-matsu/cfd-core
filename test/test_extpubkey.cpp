@@ -149,12 +149,7 @@ TEST(ExtPubkey, DerivePubkeyTest) {
   EXPECT_STREQ(child2.GetPubTweakSum().GetHex().c_str(), child.GetPubTweakSum().GetHex().c_str());
 #endif  // CFD_DISABLE_ELEMENTS
 
-  try {
-    child2 = extkey.DerivePubkey("m/0/44");
-  } catch (const CfdException& except) {
-    EXPECT_STREQ(except.what(), "");
-  }
-  EXPECT_NO_THROW((child2 = extkey.DerivePubkey("m/0/44")));
+  EXPECT_NO_THROW((child2 = extkey.DerivePubkey("m/0x000000000/0x2c")));  // 0/44
   EXPECT_STREQ(child2.GetData().GetHex().c_str(), child.GetData().GetHex().c_str());
   EXPECT_STREQ(child2.GetVersionData().GetHex().c_str(), child.GetVersionData().GetHex().c_str());
   EXPECT_EQ(child2.GetVersion(), child.GetVersion());
