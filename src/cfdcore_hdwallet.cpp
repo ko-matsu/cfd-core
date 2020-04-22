@@ -173,7 +173,7 @@ static std::vector<uint32_t> ToArrayFromString(
       str = str.substr(0, str.size() - 1);
       hardened = true;
     }
-    if (str == "m") continue;  // master key
+    if ((str == "m") || (str == "M")) continue;  // master key
 
     // strtol関数による変換
     char* p_str_end = nullptr;
