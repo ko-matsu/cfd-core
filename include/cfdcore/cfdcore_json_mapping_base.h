@@ -172,7 +172,7 @@ inline void ConvertFromUniValue(
   using cfd::core::CfdException;
   using cfd::core::logger::warn;
   if (json_value.isStr() || json_value.isNum()) {
-    std::string str = json_value.get_str();
+    std::string str = json_value.getValStr();
     if (str == "0n") {
       str = "0";
     }
