@@ -224,10 +224,7 @@ inline void ConvertFromUniValue(
       bool is_digits_only = std::all_of(begin_pos, str.end(), ::isdigit);
       // check max of int64 : execute call get_int64()
       if (is_digits_only) {
-        if (std::is_unsigned<T>::value) {
-          json_value_copy = UniValue(UniValue::VNUM, json_value.get_str());
-        } else {
-        }
+        json_value_copy = UniValue(UniValue::VNUM, json_value.get_str());
       }
     }
   }
