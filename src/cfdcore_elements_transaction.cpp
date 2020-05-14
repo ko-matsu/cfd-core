@@ -410,6 +410,11 @@ BlindFactor::BlindFactor(const std::string &hex_string) : data_() {
   data_ = ByteData256(reverse_buffer);
 }
 
+BlindFactor::BlindFactor(const ByteData &byte_data)
+    : BlindFactor(ByteData256(byte_data)) {
+  // do nothing
+}
+
 BlindFactor::BlindFactor(const ByteData256 &byte_data) : data_(byte_data) {
   // do nothing
 }
@@ -1018,6 +1023,24 @@ uint32_t ConfidentialTransaction::GetTxOutIndex(
   }
   warn(CFD_LOG_SOURCE, "locking script is not found.");
   throw CfdException(kCfdIllegalArgumentError, "locking script is not found.");
+}
+
+std::vector<uint32_t> ConfidentialTransaction::GetTxOutIndexList(
+    const Script &locking_script) const {
+  std::vector<uint32_t> result;
+  std::string search_str = locking_script.GetHex();
+  uint32_t index = 0;
+  for (; index < static_cast<uint32_t>(vout_.size()); ++index) {
+    if (search_str == vout_[index].GetLockingScript().GetHex()) {
+      result.push_back(index);
+    }
+  }
+  if (result.empty()) {
+    warn(CFD_LOG_SOURCE, "locking script is not found.");
+    throw CfdException(
+        kCfdIllegalArgumentError, "locking script is not found.");
+  }
+  return result;
 }
 
 uint32_t ConfidentialTransaction::GetTxInCount() const {

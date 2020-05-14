@@ -246,6 +246,11 @@ class CFD_CORE_EXPORT BlindFactor {
    * @brief コンストラクタ.
    * @param[in] byte_data       byte array data.
    */
+  explicit BlindFactor(const ByteData& byte_data);
+  /**
+   * @brief コンストラクタ.
+   * @param[in] byte_data       byte array data.
+   */
   explicit BlindFactor(const ByteData256& byte_data);
   /**
    * @brief デストラクタ.
@@ -912,6 +917,13 @@ class CFD_CORE_EXPORT ConfidentialTransaction : public AbstractTransaction {
    * @return 条件に合致するTxOutのindex番号
    */
   virtual uint32_t GetTxOutIndex(const Script& locking_script) const;
+  /**
+   * @brief TxOutのindexを一括取得する.
+   * @param[in] locking_script  locking script
+   * @return 条件に合致するTxOutのindex番号の一覧
+   */
+  virtual std::vector<uint32_t> GetTxOutIndexList(
+      const Script& locking_script) const;
 
   /**
    * @brief 保持しているTxInの数を取得する.
