@@ -505,6 +505,24 @@ uint32_t Transaction::GetTxOutIndex(const Script &locking_script) const {
   throw CfdException(kCfdIllegalArgumentError, "locking script is not found.");
 }
 
+std::vector<uint32_t> Transaction::GetTxOutIndexList(
+    const Script &locking_script) const {
+  std::vector<uint32_t> result;
+  std::string search_str = locking_script.GetHex();
+  uint32_t index = 0;
+  for (; index < static_cast<uint32_t>(vout_.size()); ++index) {
+    if (search_str == vout_[index].GetLockingScript().GetHex()) {
+      result.push_back(index);
+    }
+  }
+  if (result.empty()) {
+    warn(CFD_LOG_SOURCE, "locking script is not found.");
+    throw CfdException(
+        kCfdIllegalArgumentError, "locking script is not found.");
+  }
+  return result;
+}
+
 uint32_t Transaction::GetTxInCount() const {
   return static_cast<uint32_t>(vin_.size());
 }

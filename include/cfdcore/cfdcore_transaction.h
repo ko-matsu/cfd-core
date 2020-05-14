@@ -369,6 +369,13 @@ class CFD_CORE_EXPORT Transaction : public AbstractTransaction {
    */
   virtual uint32_t GetTxOutIndex(const Script& locking_script) const;
   /**
+   * @brief TxOutのindexを一括取得する.
+   * @param[in] locking_script  locking script
+   * @return 条件に合致するTxOutのindex番号の一覧
+   */
+  virtual std::vector<uint32_t> GetTxOutIndexList(
+      const Script& locking_script) const;
+  /**
    * @brief 保持しているTxOutの数を取得する.
    * @return TxOut数
    */
