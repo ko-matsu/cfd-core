@@ -311,9 +311,18 @@ TEST(ConfidentialTxOutReference, GetSerializeSize) {
 
     wit_size = 0;
     no_wit_size = 0;
-    EXPECT_EQ(txout_ref.GetSerializeSize(true, &wit_size, &no_wit_size), 3150);
-    EXPECT_EQ(wit_size, 3028);
-    EXPECT_EQ(no_wit_size, 122);
+    int exponent = 0;
+    int minimum_bits = 36;
+    EXPECT_EQ(3181,
+        txout_ref.GetSerializeSize(true, &wit_size, &no_wit_size, exponent, minimum_bits));
+    EXPECT_EQ(3059, wit_size);
+    EXPECT_EQ(122, no_wit_size);
+
+    minimum_bits = 52;
+    EXPECT_EQ(4462,
+        txout_ref.GetSerializeSize(true, &wit_size, &no_wit_size, exponent, minimum_bits));
+    EXPECT_EQ(4340, wit_size);
+    EXPECT_EQ(122, no_wit_size);
   }
 }
 
@@ -326,7 +335,9 @@ TEST(ConfidentialTxOutReference, GetSerializeVsize) {
 
   EXPECT_EQ(txout_ref.GetSerializeVsize(false), 67);
 
-  EXPECT_EQ(txout_ref.GetSerializeVsize(true), 879);
+  EXPECT_EQ(887, txout_ref.GetSerializeVsize(true, 0, 36));
+
+  EXPECT_EQ(1207, txout_ref.GetSerializeVsize(true, 0, 52));
 }
 
 #endif  // CFD_DISABLE_ELEMENTS

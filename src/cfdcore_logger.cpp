@@ -53,7 +53,7 @@ namespace logger {
 #if defined(DEBUG) || defined(CFDCORE_DEBUG)
 static bool cfdcore_logger_is_debug = true;
 #else
-static bool cfdcore_logger_is_debug = false;
+static bool cfdcore_logger_is_debug = true;
 #endif
 
 bool IsEnableLogLevel(cfd::core::logger::CfdLogLevel level) {
