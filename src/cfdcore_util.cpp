@@ -425,6 +425,10 @@ ByteData256 CryptoUtil::HmacSha256(
   return ByteData256(output);
 }
 
+ByteData256 CryptoUtil::HmacSha256(const ByteData &key, const ByteData &data) {
+  return HmacSha256(key.GetBytes(), data);
+}
+
 ByteData CryptoUtil::HmacSha512(
     const std::vector<uint8_t> &key, const ByteData &data) {
   std::vector<uint8_t> output(HMAC_SHA512_LEN);
