@@ -301,6 +301,8 @@ class CFD_CORE_EXPORT ConfidentialTxIn : public AbstractTxIn {
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits              rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   * @param[in,out] rangeproof_size       rangeproof size.
+   *   0 is calclate from exponent and minimum bits. not 0 is using value.
    * @return TxIn size.
    */
   static uint32_t EstimateTxInSize(
@@ -310,7 +312,8 @@ class CFD_CORE_EXPORT ConfidentialTxIn : public AbstractTxIn {
       uint32_t* witness_area_size = nullptr,
       uint32_t* no_witness_area_size = nullptr, bool is_reissuance = false,
       const Script* scriptsig_template = nullptr, int exponent = 0,
-      int minimum_bits = kDefaultBlindMinimumBits);
+      int minimum_bits = kDefaultBlindMinimumBits,
+      uint32_t* rangeproof_size = nullptr);
 
   /**
    * @brief estimate txin's virtual size direct.
@@ -326,6 +329,8 @@ class CFD_CORE_EXPORT ConfidentialTxIn : public AbstractTxIn {
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits              rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   * @param[in,out] rangeproof_size       rangeproof size.
+   *   0 is calclate from exponent and minimum bits. not 0 is using value.
    * @return TxIn virtual size.
    */
   static uint32_t EstimateTxInVsize(
@@ -333,7 +338,8 @@ class CFD_CORE_EXPORT ConfidentialTxIn : public AbstractTxIn {
       uint32_t pegin_btc_tx_size = 0, Script fedpeg_script = Script(),
       bool is_issuance = false, bool is_blind = false,
       bool is_reissuance = false, const Script* scriptsig_template = nullptr,
-      int exponent = 0, int minimum_bits = kDefaultBlindMinimumBits);
+      int exponent = 0, int minimum_bits = kDefaultBlindMinimumBits,
+      uint32_t* rangeproof_size = nullptr);
 
   /**
    * @brief コンストラクタ.
@@ -809,12 +815,15 @@ class CFD_CORE_EXPORT ConfidentialTxOutReference
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits              rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   * @param[in,out] rangeproof_size       rangeproof size.
+   *   0 is calclate from exponent and minimum bits. not 0 is using value.
    * @return serialized size
    */
   uint32_t GetSerializeSize(
       bool is_blinded = true, uint32_t* witness_area_size = nullptr,
       uint32_t* no_witness_area_size = nullptr, int exponent = 0,
-      int minimum_bits = kDefaultBlindMinimumBits) const;
+      int minimum_bits = kDefaultBlindMinimumBits,
+      uint32_t* rangeproof_size = nullptr) const;
 
   /**
    * @brief Get a serialized virtual size.
@@ -823,11 +832,14 @@ class CFD_CORE_EXPORT ConfidentialTxOutReference
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits              rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
+   * @param[in,out] rangeproof_size       rangeproof size.
+   *   0 is calclate from exponent and minimum bits. not 0 is using value.
    * @return serialized virtual size.
    */
   uint32_t GetSerializeVsize(
       bool is_blinded = true, int exponent = 0,
-      int minimum_bits = kDefaultBlindMinimumBits) const;
+      int minimum_bits = kDefaultBlindMinimumBits,
+      uint32_t* rangeproof_size = nullptr) const;
 
  private:
   ConfidentialAssetId asset_;             //!< confidential asset

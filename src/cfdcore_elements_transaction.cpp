@@ -672,7 +672,7 @@ uint32_t ConfidentialTxIn::EstimateTxInSize(
     Script fedpeg_script, bool is_issuance, bool is_blind,
     uint32_t *witness_area_size, uint32_t *no_witness_area_size,
     bool is_reissuance, const Script *scriptsig_template, int exponent,
-    int minimum_bits) {
+    int minimum_bits, uint32_t *rangeproof_size) {
   // issuance時の追加サイズ: entity(32),hash(32),amount(8+1),key(8+1)
   static constexpr const uint32_t kIssuanceAppendSize = 82;
   // blind issuance時の追加サイズ: entity,hash,amount(33),key(33)
@@ -713,10 +713,19 @@ uint32_t ConfidentialTxIn::EstimateTxInSize(
     if ((!is_issuance && !is_reissuance) || !is_blind) {
       witness_size += 2;  // issuance rangeproof size
     } else {
-      uint32_t rangeproof_size =
-          8 + CalculateRangeProofSize(exponent, minimum_bits);
-      if (!is_reissuance) rangeproof_size *= 2;
-      witness_size += rangeproof_size;
+      uint32_t work_proof_size = 0;
+      if ((rangeproof_size != nullptr) && (*rangeproof_size != 0)) {
+        work_proof_size = *rangeproof_size;
+      } else {
+        work_proof_size = 4 + CalculateRangeProofSize(exponent, minimum_bits);
+        if (rangeproof_size != nullptr) *rangeproof_size = work_proof_size;
+      }
+      if (is_reissuance) {
+        work_proof_size += 1;
+      } else {
+        work_proof_size *= 2;
+      }
+      witness_size += work_proof_size;
     }
   }
 
@@ -732,13 +741,14 @@ uint32_t ConfidentialTxIn::EstimateTxInSize(
 uint32_t ConfidentialTxIn::EstimateTxInVsize(
     AddressType addr_type, Script redeem_script, uint32_t pegin_btc_tx_size,
     Script fedpeg_script, bool is_issuance, bool is_blind, bool is_reissuance,
-    const Script *scriptsig_template, int exponent, int minimum_bits) {
+    const Script *scriptsig_template, int exponent, int minimum_bits,
+    uint32_t *rangeproof_size) {
   uint32_t witness_size = 0;
   uint32_t no_witness_size = 0;
   ConfidentialTxIn::EstimateTxInSize(
       addr_type, redeem_script, pegin_btc_tx_size, fedpeg_script, is_issuance,
       is_blind, &witness_size, &no_witness_size, is_reissuance,
-      scriptsig_template, exponent, minimum_bits);
+      scriptsig_template, exponent, minimum_bits, rangeproof_size);
   return AbstractTransaction::GetVsizeFromSize(no_witness_size, witness_size);
 }
 
@@ -904,7 +914,8 @@ ConfidentialTxOutReference::ConfidentialTxOutReference(
 
 uint32_t ConfidentialTxOutReference::GetSerializeSize(
     bool is_blinded, uint32_t *witness_area_size,
-    uint32_t *no_witness_area_size, int exponent, int minimum_bits) const {
+    uint32_t *no_witness_area_size, int exponent, int minimum_bits,
+    uint32_t *rangeproof_size) const {
   static constexpr const uint32_t kTxOutSurjection = 162 + 1;
   // SECP256K1_SURJECTIONPROOF_SERIALIZATION_BYTES(256, 3) = 162
   // static constexpr const uint32_t kTxOutRangeproof = 2893 + 3;
@@ -920,7 +931,14 @@ uint32_t ConfidentialTxOutReference::GetSerializeSize(
         static_cast<uint32_t>(locking_script_.GetData().GetSerializeSize());
     witness_size += kTxOutSurjection;  // surjection proof
     // witness_size += kTxOutRangeproof;  // range proof
-    witness_size += CalculateRangeProofSize(exponent, minimum_bits) + 8;
+    uint32_t work_proof_size = 0;
+    if ((rangeproof_size != nullptr) && (*rangeproof_size != 0)) {
+      work_proof_size = *rangeproof_size;
+    } else {
+      work_proof_size = 4 + CalculateRangeProofSize(exponent, minimum_bits);
+      if (rangeproof_size != nullptr) *rangeproof_size = work_proof_size;
+    }
+    witness_size += work_proof_size;
   } else {
     result += kConfidentialDataSize;   // asset
     result += kConfidentialValueSize;  // value
@@ -946,11 +964,13 @@ uint32_t ConfidentialTxOutReference::GetSerializeSize(
 }
 
 uint32_t ConfidentialTxOutReference::GetSerializeVsize(
-    bool is_blinded, int exponent, int minimum_bits) const {
+    bool is_blinded, int exponent, int minimum_bits,
+    uint32_t *rangeproof_size) const {
   uint32_t witness_size = 0;
   uint32_t no_witness_size = 0;
   GetSerializeSize(
-      is_blinded, &witness_size, &no_witness_size, exponent, minimum_bits);
+      is_blinded, &witness_size, &no_witness_size, exponent, minimum_bits,
+      rangeproof_size);
   return AbstractTransaction::GetVsizeFromSize(no_witness_size, witness_size);
 }
 
