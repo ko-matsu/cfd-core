@@ -45,11 +45,11 @@ TEST(Amount, CreateInstanceTest) {
   EXPECT_EQ(expect_satoshi_val, amt.GetSatoshiValue());
 
   const int expect_satoshi_ival = 240000000;
-  amt = Amount::CreateBySatoshiAmount(expect_satoshi_ival);
+  amt = Amount(expect_satoshi_ival);
   EXPECT_EQ(expect_satoshi_val, amt.GetSatoshiValue());
 
   const uint32_t expect_satoshi_uval = 240000000;
-  amt = Amount::CreateBySatoshiAmount(expect_satoshi_uval);
+  amt = Amount(expect_satoshi_uval);
   EXPECT_EQ(expect_satoshi_val, amt.GetSatoshiValue());
 }
 
