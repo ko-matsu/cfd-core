@@ -111,25 +111,30 @@ uint32_t TxIn::EstimateTxInSize(
 
   if (is_pubkey) {
     script_size = Pubkey::kCompressedPubkeySize + EC_SIGNATURE_DER_MAX_LEN + 3;
+  } else if (
+      (scriptsig_template != nullptr) && (!scriptsig_template->IsEmpty())) {
+    script_size = static_cast<uint32_t>(
+        scriptsig_template->GetData().GetSerializeSize());
   } else {
-    // Forehead is a little big
-    script_size = EC_SIGNATURE_DER_MAX_LEN + 2;  // allNum + sig(serialize)
+    // Forehead is a big size
+    script_size = (EC_SIGNATURE_DER_MAX_LEN - 2) * 2;
     if (!redeem_script.IsEmpty()) {
-      script_size +=
-          static_cast<uint32_t>(redeem_script.GetData().GetSerializeSize());
+      size_t redeem_script_size = redeem_script.GetData().GetSerializeSize();
+      script_size += static_cast<uint32_t>(redeem_script_size);
       try {
         // OP_0 <sig1> <sig2> ... <unlocking script>
         uint32_t reqnum = 0;
         ScriptUtil::ExtractPubkeysFromMultisigScript(redeem_script, &reqnum);
-        script_size += (EC_SIGNATURE_DER_MAX_LEN + 2) * reqnum;
-        script_size += 2;  // 先頭のOP_0部
+        if (reqnum != 0) {
+          // set multisig size
+          script_size = static_cast<uint32_t>(redeem_script_size);
+          script_size += (EC_SIGNATURE_DER_MAX_LEN + 2) * reqnum;
+          script_size += 2;  // for top OP_0 size
+        }
       } catch (const CfdException &except) {
         if (except.GetErrorCode() != CfdError::kCfdIllegalArgumentError) {
           // error occurs other than multisig confirmation
           throw except;
-        }
-        if (scriptsig_template != nullptr) {
-          script_size = scriptsig_template->GetData().GetDataSize();
         }
       }
     }
