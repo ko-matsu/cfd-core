@@ -242,13 +242,13 @@ TEST(ConfidentialTxIn, EstimateTxInSize) {
   static const std::string scriptsig_template = "00473044022047ac8e878352d3ebbde1c94ce3a10d057c24175747116f8288e5d794d12d482f0220217f36a485cae903c713331d877c1f64677e3622ad4010726870540656fe9dcb014752210205ffcdde75f262d66ada3dd877c7471f8f8ee9ee24d917c3e18d01cee458bafe2102be61f4350b4ae7544f99649a917f48ba16cf48c983ac1599774958d88ad17ec552ae";
   static const std::vector<TestEstimateConfidentialTxInSizeVector> test_vector = {
     {AddressType::kP2pkhAddress, 149, 0, Script(), 0, Script(), false, false, false, "", 0, 0},
-    {AddressType::kP2shAddress, 138, 0, exp_script, 0, Script(), false, false, false, "", 0, 0},
+    {AddressType::kP2shAddress, 204, 0, exp_script, 0, Script(), false, false, false, "", 0, 0},
     {AddressType::kP2shP2wpkhAddress, 174, 111, Script(), 0, Script(), false, false, false, "", 0, 0},
-    {AddressType::kP2shP2wshAddress, 154, 79, Script("51"), 0, Script(), false, false, false, "", 0, 0},
+    {AddressType::kP2shP2wshAddress, 220, 145, Script("51"), 0, Script(), false, false, false, "", 0, 0},
     {AddressType::kP2wpkhAddress, 152, 111, Script(), 0, Script(), false, false, false, "", 0, 0},
-    {AddressType::kP2wshAddress, 141, 100, exp_script, 0, Script(), false, false, false, "", 0, 0},
-    {AddressType::kP2wshAddress, 374, 333, Script(multisig_script), 0, Script(), false, false, false, "", 0, 0},
-    {AddressType::kP2wshAddress, 189, 148, exp_script, 0, Script(), false, false, false, scriptsig_template, 0, 0},
+    {AddressType::kP2wshAddress, 207, 166, exp_script, 0, Script(), false, false, false, "", 0, 0},
+    {AddressType::kP2wshAddress, 300, 259, Script(multisig_script), 0, Script(), false, false, false, "", 0, 0},
+    {AddressType::kP2wshAddress, 190, 149, exp_script, 0, Script(), false, false, false, scriptsig_template, 0, 0},
     // pegin
     {AddressType::kP2wpkhAddress, 610, 569, Script(), 226, Script("51"), false, false, false, "", 0, 0},
     // issue
@@ -292,12 +292,12 @@ TEST(ConfidentialTxIn, EstimateTxInVsize) {
   static const std::string multisig_script = "522102522952c3fc2a53a8651b08ce10988b7506a3b40a5c26f9648a911be33e73e1a0210340b52ae45bc1be5de083f1730fe537374e219c4836400623741d2a874e60590c21024a3477bc8b933a320eb5667ee72c35a81aa155c8e20cc51c65fb666de3a43b8253ae";
   static const std::vector<TestEstimateConfidentialTxInSizeVector> test_vector = {
     {AddressType::kP2pkhAddress, 149, 0, Script(), 0, Script(), false, false, false, "", 0, 0},
-    {AddressType::kP2shAddress, 138, 0, exp_script, 0, Script(), false, false, false, "", 0, 0},
+    {AddressType::kP2shAddress, 204, 0, exp_script, 0, Script(), false, false, false, "", 0, 0},
     {AddressType::kP2shP2wpkhAddress, 91, 0, Script(), 0, Script(), false, false, false, "", 0, 0},
-    {AddressType::kP2shP2wshAddress, 95, 0, Script("51"), 0, Script(), false, false, false, "", 0, 0},
+    {AddressType::kP2shP2wshAddress, 112, 0, Script("51"), 0, Script(), false, false, false, "", 0, 0},
     {AddressType::kP2wpkhAddress, 69, 0, Script(), 0, Script(), false, false, false, "", 0, 0},
-    {AddressType::kP2wshAddress, 66, 0, exp_script, 0, Script(), false, false, false, "", 0, 0},
-    {AddressType::kP2wshAddress, 125, 0, Script(multisig_script), 0, Script(), false, false, false, "", 0, 0},
+    {AddressType::kP2wshAddress, 83, 0, exp_script, 0, Script(), false, false, false, "", 0, 0},
+    {AddressType::kP2wshAddress, 106, 0, Script(multisig_script), 0, Script(), false, false, false, "", 0, 0},
     // pegin
     {AddressType::kP2wpkhAddress, 184, 0, Script(), 226, Script("51"), false, false, false, "", 0, 0},
     // issue
