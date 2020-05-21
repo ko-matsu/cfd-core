@@ -685,6 +685,13 @@ ByteData ExtPrivkey::GetFingerprintData() const {
 
 ByteData256 ExtPrivkey::GetPubTweakSum() const { return tweak_sum_; }
 
+NetType ExtPrivkey::GetNetworkType() const {
+  if (version_ == ExtPrivkey::kVersionMainnetPrivkey) {
+    return NetType::kMainnet;
+  }
+  return NetType::kTestnet;
+}
+
 // ----------------------------------------------------------------------------
 // ExtPubkey
 // ----------------------------------------------------------------------------
@@ -967,6 +974,13 @@ ByteData ExtPubkey::GetFingerprintData() const {
   byte_data[1] = (fingerprint_ >> 8) & 0xff;
   byte_data[0] = fingerprint_ & 0xff;
   return ByteData(byte_data);
+}
+
+NetType ExtPubkey::GetNetworkType() const {
+  if (version_ == ExtPubkey::kVersionMainnetPubkey) {
+    return NetType::kMainnet;
+  }
+  return NetType::kTestnet;
 }
 
 }  // namespace core
