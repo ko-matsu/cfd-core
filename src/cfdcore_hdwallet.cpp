@@ -174,6 +174,14 @@ static std::vector<uint32_t> ToArrayFromString(
       hardened = true;
     }
     if ((str == "m") || (str == "M")) continue;  // master key
+    if (str.empty()) {
+      warn(
+          CFD_LOG_SOURCE, "{} bip32 string path fail. empty item.",
+          caller_name);
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          caller_name + " bip32 string path fail. empty item.");
+    }
 
     // strtol関数による変換
     char* p_str_end = nullptr;
@@ -186,7 +194,7 @@ static std::vector<uint32_t> ToArrayFromString(
     if (str.empty() || ((p_str_end != nullptr) && (*p_str_end != '\0'))) {
       warn(CFD_LOG_SOURCE, "{} bip32 string path fail.", caller_name);
       throw CfdException(
-          CfdError::kCfdIllegalStateError,
+          CfdError::kCfdIllegalArgumentError,
           caller_name + " bip32 string path fail.");
     }
     if (hardened) value |= 0x80000000;
@@ -196,7 +204,7 @@ static std::vector<uint32_t> ToArrayFromString(
   if (result.empty()) {
     warn(CFD_LOG_SOURCE, "{} bip32 string path empty.", caller_name);
     throw CfdException(
-        CfdError::kCfdIllegalStateError,
+        CfdError::kCfdIllegalArgumentError,
         caller_name + " bip32 string path empty.");
   }
   return result;
