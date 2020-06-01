@@ -128,6 +128,30 @@ TEST(Descriptor, Parse_combo) {
   }
 }
 
+TEST(Descriptor, Parse_combo_uncompress) {
+  std::string descriptor = "combo(04ef514f1aeb14baa6cc57ab3268fb329ca540c48454f7f46771ed731e34ba521a116bc35b3f8d748aea5dfad083a73961908797c97fc0ca4f8d874aba9778fc77)";
+  Descriptor desc;
+  Script locking_script;
+  std::string desc_str = "";
+  std::vector<Script> combo_list;
+
+  EXPECT_NO_THROW(desc = Descriptor::Parse(descriptor));
+  EXPECT_NO_THROW(locking_script = desc.GetLockingScript());
+  EXPECT_NO_THROW(desc_str = desc.ToString(false));
+  EXPECT_NO_THROW(combo_list = desc.GetLockingScriptAll());
+  EXPECT_TRUE(desc.IsComboScript());
+  EXPECT_STREQ(desc_str.c_str(), descriptor.c_str());
+  EXPECT_STREQ(locking_script.ToString().c_str(),
+      "OP_DUP OP_HASH160 06399b0a8229214e0614afa119531b46e1d1f29b OP_EQUALVERIFY OP_CHECKSIG");
+  EXPECT_EQ(combo_list.size(), 2);
+  if (combo_list.size() == 2) {
+    EXPECT_STREQ(combo_list[0].ToString().c_str(),
+        "OP_DUP OP_HASH160 06399b0a8229214e0614afa119531b46e1d1f29b OP_EQUALVERIFY OP_CHECKSIG");
+    EXPECT_STREQ(combo_list[1].ToString().c_str(),
+        "04ef514f1aeb14baa6cc57ab3268fb329ca540c48454f7f46771ed731e34ba521a116bc35b3f8d748aea5dfad083a73961908797c97fc0ca4f8d874aba9778fc77 OP_CHECKSIG");
+  }
+}
+
 TEST(Descriptor, Parse_sh_wsh) {
   std::string descriptor = "sh(wsh(pkh(02e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13)))";
   Descriptor desc;
