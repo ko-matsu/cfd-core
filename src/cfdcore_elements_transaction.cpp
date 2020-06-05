@@ -945,7 +945,7 @@ void ConfidentialTxOut::SetCommitment(
   range_proof_ = range_proof;
 }
 
-void ConfidentialTxOut::SetNonce(const ConfidentialNonce &value) {
+void ConfidentialTxOut::SetNonce(const ConfidentialNonce &nonce) {
   nonce_ = nonce;
 }
 
