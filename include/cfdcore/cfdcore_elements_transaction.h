@@ -707,9 +707,9 @@ class CFD_CORE_EXPORT ConfidentialTxOut : public AbstractTxOut {
   }
 
   /**
-   * @brief コンストラクタ.
+   * @brief set commitment.
    *
-   * blind/unblind後の情報登録用.
+   * for register api after blind/unblind.
    * @param[in] asset               asset.
    * @param[in] confidential_value  value commitment by confidential transaction.
    * @param[in] nonce               nonce.
@@ -721,6 +721,12 @@ class CFD_CORE_EXPORT ConfidentialTxOut : public AbstractTxOut {
       const ConfidentialValue& confidential_value,
       const ConfidentialNonce& nonce, const ByteData& surjection_proof,
       const ByteData& range_proof);
+
+  /**
+   * @brief set nonce.
+   * @param[in] nonce   nonce.
+   */
+  void SetNonce(const ConfidentialNonce& nonce);
   /**
    * @brief valueを設定する。
    * @param[in] value     amount value.
