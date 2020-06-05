@@ -940,9 +940,13 @@ void ConfidentialTxOut::SetCommitment(
     const ByteData &range_proof) {
   asset_ = asset;
   confidential_value_ = confidential_value;
-  nonce_ = nonce;
+  SetNonce(nonce);
   surjection_proof_ = surjection_proof;
   range_proof_ = range_proof;
+}
+
+void ConfidentialTxOut::SetNonce(const ConfidentialNonce &nonce) {
+  nonce_ = nonce;
 }
 
 void ConfidentialTxOut::SetValue(const Amount &value) { value_ = value; }
