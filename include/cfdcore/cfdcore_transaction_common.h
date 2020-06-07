@@ -384,7 +384,7 @@ class CFD_CORE_EXPORT AbstractTxOut {
   const Script GetLockingScript() const;
   /**
    * @brief get value amount.
-   * @return amount
+   * @param[in] value    amount.
    */
   virtual void SetValue(const Amount& value);
 
