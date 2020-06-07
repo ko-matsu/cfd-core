@@ -613,7 +613,7 @@ TEST(ConfidentialTransaction, TxOutTest) {
   EXPECT_NO_THROW(tx.SetTxOutValue(2, amt2));
   EXPECT_NO_THROW((txout_ref = tx.GetTxOut(2)));
   EXPECT_STREQ(txout_ref.GetConfidentialValue().GetHex().c_str(),
-               "010000000005f5e100");
+               "01000000000074cbb1");
 
   // RemoveTxOut
   EXPECT_THROW((tx.RemoveTxOut(3)), CfdException);
