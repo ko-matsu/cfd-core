@@ -731,7 +731,7 @@ class CFD_CORE_EXPORT ConfidentialTxOut : public AbstractTxOut {
    * @brief valueを設定する。
    * @param[in] value     amount value.
    */
-  void SetValue(const Amount& value);
+  virtual void SetValue(const Amount& value);
   /**
    * @brief assetを取得する。
    * @return asset
@@ -1328,6 +1328,12 @@ class CFD_CORE_EXPORT ConfidentialTransaction : public AbstractTransaction {
    * @return 追加したTxOutのindex位置
    */
   uint32_t AddTxOutFee(const Amount& value, const ConfidentialAssetId& asset);
+  /**
+   * @brief set TxOut's value.
+   * @param[in] index   target txout index
+   * @param[in] value   amount
+   */
+  void SetTxOutValue(uint32_t index, const Amount& value);
   /**
    * @brief TxOut情報を更新する.
    * @param[in] index               index位置
