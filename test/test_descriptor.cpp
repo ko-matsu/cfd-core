@@ -710,22 +710,22 @@ TEST(Descriptor, Parse_sh_wsh_miniscript_derive) {
   if (script_list.size() == 1) {
     EXPECT_STREQ(script_list[0].GenerateAddress(NetType::kMainnet).GetAddress().c_str(),
       "3GkEHYNEauSenEsqmnhjb9HGgb5pt4oaDm");
-    EXPECT_STREQ(script_list2[0].GetRedeemScript().ToString().c_str(),
-      "0 e29b7f3e543d581c99c92b59d45218b008b82c2d406bba3c7384d52e568124aa");
+    EXPECT_STREQ(script_list[0].GetRedeemScript().ToString().c_str(),
+      "0 ac9239e9359aaed6ef6c208ae6893ee0fabb5bb0a4775c0883902367a56eec58");
     EXPECT_STREQ(script_list[0].GetChild().GenerateAddress(NetType::kMainnet).GetAddress().c_str(),
       "bc1q4jfrn6f4n2hddmmvyz9wdzf7uratkkas53m4czyrjq3k0ftwa3vqvjzukn");
-    EXPECT_STREQ(script_list2[0].GetChild().GetRedeemScript().ToString().c_str(),
-      "OP_IF OP_DUP OP_HASH160 520e6e72bcd5b616bc744092139bd759c31d6bbe OP_EQUALVERIFY OP_CHECKSIG OP_NOTIF OP_DUP OP_HASH160 06afd46bcdfd22ef94ac122aa11f241244a37ecc OP_EQUALVERIFY OP_ELSE OP_DUP OP_HASH160 5ab62f0be26fe9d6205a155403f33e2ad2d31efe OP_EQUALVERIFY OP_ENDIF OP_ELSE 02d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e OP_ENDIF OP_CHECKSIG");
+    EXPECT_STREQ(script_list[0].GetChild().GetRedeemScript().ToString().c_str(),
+      "OP_IF OP_DUP OP_HASH160 7620e8418ab0d9835cbce5316bb9c8cbfbb82726 OP_EQUALVERIFY OP_CHECKSIG OP_NOTIF OP_DUP OP_HASH160 06afd46bcdfd22ef94ac122aa11f241244a37ecc OP_EQUALVERIFY OP_ELSE OP_DUP OP_HASH160 4de5a5faaee2ab254f2f042503acada802dd9714 OP_EQUALVERIFY OP_ENDIF OP_ELSE 02d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e OP_ENDIF OP_CHECKSIG");
   }
 
   EXPECT_EQ(script_list2.size(), 1);
   if (script_list2.size() == 1) {
-    EXPECT_STREQ(script_list[0].GenerateAddress(NetType::kMainnet).GetAddress().c_str(),
-      "3GkEHYNEauSenEsqmnhjb9HGgb5pt4oaDm");
+    EXPECT_STREQ(script_list2[0].GenerateAddress(NetType::kMainnet).GetAddress().c_str(),
+      "3GyYN9WnJBoMn8M5tuqVcFJq1BvbAcdPAt");
     EXPECT_STREQ(script_list2[0].GetRedeemScript().ToString().c_str(),
       "0 e29b7f3e543d581c99c92b59d45218b008b82c2d406bba3c7384d52e568124aa");
-    EXPECT_STREQ(script_list[0].GetChild().GenerateAddress(NetType::kMainnet).GetAddress().c_str(),
-      "bc1q4jfrn6f4n2hddmmvyz9wdzf7uratkkas53m4czyrjq3k0ftwa3vqvjzukn");
+    EXPECT_STREQ(script_list2[0].GetChild().GenerateAddress(NetType::kMainnet).GetAddress().c_str(),
+      "bc1qu2dh70j584vpexwf9dvag5sckqytstpdgp4m50rnsn2ju45pyj4qudazmh");
     EXPECT_STREQ(script_list2[0].GetChild().GetRedeemScript().ToString().c_str(),
       "OP_IF OP_DUP OP_HASH160 520e6e72bcd5b616bc744092139bd759c31d6bbe OP_EQUALVERIFY OP_CHECKSIG OP_NOTIF OP_DUP OP_HASH160 06afd46bcdfd22ef94ac122aa11f241244a37ecc OP_EQUALVERIFY OP_ELSE OP_DUP OP_HASH160 5ab62f0be26fe9d6205a155403f33e2ad2d31efe OP_EQUALVERIFY OP_ENDIF OP_ELSE 02d7924d4f7d43ea965a465ae3095ff41131e5946f3c85f79e44adbcf8e27e080e OP_ENDIF OP_CHECKSIG");
   }
