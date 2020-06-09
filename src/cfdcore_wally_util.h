@@ -21,6 +21,7 @@
 #include "wally_bip39.h"        // NOLINT
 #include "wally_core.h"         // NOLINT
 #include "wally_crypto.h"       // NOLINT
+#include "wally_descriptor.h"   // NOLINT
 #include "wally_script.h"       // NOLINT
 #include "wally_transaction.h"  // NOLINT
 

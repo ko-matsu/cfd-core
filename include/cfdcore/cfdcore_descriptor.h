@@ -52,6 +52,7 @@ enum DescriptorScriptType {
   kDescriptorScriptSortedMulti,  //!< sorted multisig
   kDescriptorScriptAddr,         //!< address
   kDescriptorScriptRaw,          //!< raw script
+  kDescriptorScriptMiniscript,   //!< miniscript
 };
 
 /**
