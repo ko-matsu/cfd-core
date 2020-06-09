@@ -468,12 +468,14 @@ ByteData CryptoUtil::ConvertSignatureToDer(
     try {
       SigHashType temp_sighash;
       ConvertSignatureFromDer(signature, &temp_sighash);
-      uint8_t flag = sighash_type.GetSigHashFlag();
+      uint8_t flag = static_cast<uint8_t>(sighash_type.GetSigHashFlag());
       if (flag == temp_sighash.GetSigHashFlag()) {
         return signature;
       }
     } catch (const CfdException &except) {
-      // do nothing
+      info(
+          CFD_LOG_SOURCE, "ConvertSignatureFromDer fail. fall through. ({})",
+          std::string(except.what()));
     }
   }
 
