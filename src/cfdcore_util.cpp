@@ -350,27 +350,38 @@ std::string CryptoUtil::DecryptAes256ToString(
 ByteData CryptoUtil::EncryptAes256Cbc(
     const std::vector<uint8_t> &key, const std::vector<uint8_t> &iv,
     const std::string &data) {
-  if (key.size() != AES_KEY_LEN_256) {
+  ByteData byte_data(
+      reinterpret_cast<const uint8_t *>(data.data()),
+      static_cast<uint32_t>(data.size()));
+  return EncryptAes256Cbc(ByteData(key), ByteData(iv), byte_data);
+}
+
+ByteData CryptoUtil::EncryptAes256Cbc(
+    const ByteData &key, const ByteData &iv, const ByteData &data) {
+  if (key.GetDataSize() != AES_KEY_LEN_256) {
     warn(CFD_LOG_SOURCE, "wally_aes key size NG.");
     throw CfdException(
         kCfdIllegalStateError, "EncryptAes256Cbc key size error.");
   }
 
-  if (data.empty()) {
+  if (data.IsEmpty()) {
     warn(CFD_LOG_SOURCE, "wally_aes data is Empty.");
     throw CfdException(
         kCfdIllegalStateError, "EncryptAes256Cbc data isEmpty.");
   }
 
-  size_t data_size = (((data.size() / kAesBlockLength) + 1) * kAesBlockLength);
+  size_t data_size =
+      (((data.GetDataSize() / kAesBlockLength) + 1) * kAesBlockLength);
   std::vector<uint8_t> output(data_size);
+  std::vector<uint8_t> key_data = key.GetBytes();
+  std::vector<uint8_t> iv_data = iv.GetBytes();
   size_t written = 0;
 
   // Encrypt data using AES(CBC mode, PKCS#7 padding).
   int ret = wally_aes_cbc(
-      key.data(), key.size(), iv.data(), iv.size(),
-      reinterpret_cast<const uint8_t *>(data.data()), data.size(),
-      AES_FLAG_ENCRYPT, output.data(), output.size(), &written);
+      key_data.data(), key_data.size(), iv_data.data(), iv_data.size(),
+      data.GetBytes().data(), data.GetDataSize(), AES_FLAG_ENCRYPT,
+      output.data(), output.size(), &written);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_aes_cbc NG[{}].", ret);
     throw CfdException(kCfdIllegalStateError, "EncryptAes256Cbc error.");
@@ -383,30 +394,39 @@ ByteData CryptoUtil::EncryptAes256Cbc(
 std::string CryptoUtil::DecryptAes256CbcToString(
     const std::vector<uint8_t> &key, const std::vector<uint8_t> &iv,
     const ByteData &data) {
-  if (key.size() != AES_KEY_LEN_256) {
+  ByteData decrypt_data = DecryptAes256Cbc(ByteData(key), ByteData(iv), data);
+  std::vector<uint8_t> output = decrypt_data.GetBytes();
+  std::string decrypt_string;
+  decrypt_string.append(
+      reinterpret_cast<const char *>(output.data()), output.size());
+  return decrypt_string;
+}
+
+ByteData CryptoUtil::DecryptAes256Cbc(
+    const ByteData &key, const ByteData &iv, const ByteData &data) {
+  if (key.GetDataSize() != AES_KEY_LEN_256) {
     warn(CFD_LOG_SOURCE, "wally_aes key size NG.");
     throw CfdException(
         kCfdIllegalStateError, "DecryptAes256Cbc key size error.");
   }
 
   std::vector<uint8_t> output(data.GetDataSize());
+  std::vector<uint8_t> key_data = key.GetBytes();
+  std::vector<uint8_t> iv_data = iv.GetBytes();
   size_t written = 0;
 
   // Decrypt data using AES(CBC mode, PKCS#7 padding).
   int ret = wally_aes_cbc(
-      key.data(), key.size(), iv.data(), iv.size(), data.GetBytes().data(),
-      data.GetDataSize(), AES_FLAG_DECRYPT, output.data(), output.size(),
-      &written);
+      key_data.data(), key_data.size(), iv_data.data(), iv_data.size(),
+      data.GetBytes().data(), data.GetDataSize(), AES_FLAG_DECRYPT,
+      output.data(), output.size(), &written);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_aes_cbc NG[{}].", ret);
     throw CfdException(kCfdIllegalStateError, "DecryptAes256Cbc error.");
   }
 
   output.resize(written);
-  std::string decrypt_string;
-  decrypt_string.append(
-      reinterpret_cast<const char *>(output.data()), output.size());
-  return decrypt_string;
+  return ByteData(output);
 }
 
 ByteData256 CryptoUtil::HmacSha256(
@@ -656,6 +676,21 @@ ByteData CryptoUtil::DecodeBase64(const std::string &str) {
   return byteData;
 }
 
+ByteData CryptoUtil::DecodeBase58(const std::string &str) {
+  std::vector<uint8_t> output(1024);
+  size_t written = 0;
+
+  int ret = wally_base58_to_bytes(
+      str.data(), 0, output.data(), output.size(), &written);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_base58_to_bytes NG[{}].", ret);
+    throw CfdException(kCfdIllegalStateError, "Decode base58 error.");
+  }
+
+  output.resize(written);
+  return ByteData(output);
+}
+
 ByteData CryptoUtil::DecodeBase58Check(const std::string &str) {
   std::vector<uint8_t> output(1024);
   size_t written = 0;
@@ -670,6 +705,32 @@ ByteData CryptoUtil::DecodeBase58Check(const std::string &str) {
 
   output.resize(written);
   return ByteData(output);
+}
+
+std::string CryptoUtil::EncodeBase58(const ByteData &data) {
+  std::vector<uint8_t> byte_array = data.GetBytes();
+  char *output = nullptr;
+
+  int ret = wally_base58_from_bytes(
+      byte_array.data(), byte_array.size(), 0, &output);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_base58_from_bytes NG[{}].", ret);
+    throw CfdException(kCfdIllegalStateError, "Decode base58 error.");
+  }
+  return WallyUtil::ConvertStringAndFree(output);
+}
+
+std::string CryptoUtil::EncodeBase58Check(const ByteData &data) {
+  std::vector<uint8_t> byte_array = data.GetBytes();
+  char *output = nullptr;
+
+  int ret = wally_base58_from_bytes(
+      byte_array.data(), byte_array.size(), BASE58_FLAG_CHECKSUM, &output);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_base58_from_bytes NG[{}].", ret);
+    throw CfdException(kCfdIllegalStateError, "Decode base58 error.");
+  }
+  return WallyUtil::ConvertStringAndFree(output);
 }
 
 ByteData256 CryptoUtil::ComputeFastMerkleRoot(
