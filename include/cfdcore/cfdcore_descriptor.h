@@ -595,7 +595,7 @@ class CFD_CORE_EXPORT DescriptorNode {
    * @retval true exist
    * @retval false not exist
    */
-  bool IsExistUncompressedKey();
+  bool ExistUncompressedKey();
 };
 
 /**

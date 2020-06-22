@@ -998,10 +998,10 @@ void DescriptorNode::AnalyzeKey() {
   info(CFD_LOG_SOURCE, "key_info = {}", key_info_);
 }
 
-bool DescriptorNode::IsExistUncompressedKey() {
+bool DescriptorNode::ExistUncompressedKey() {
   if (is_uncompressed_key_) return true;
   for (auto& child : child_node_) {
-    if (child.IsExistUncompressedKey()) return true;
+    if (child.ExistUncompressedKey()) return true;
   }
   return false;
 }
@@ -1186,7 +1186,7 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
     child_node_[0].AnalyzeAll(name_);
 
     if ((name_ == "wpkh") || (name_ == "wsh")) {
-      if (IsExistUncompressedKey()) {
+      if (ExistUncompressedKey()) {
         warn(
             CFD_LOG_SOURCE,
             "Failed to unsing uncompressed pubkey."
