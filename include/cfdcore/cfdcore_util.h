@@ -75,6 +75,11 @@ class CFD_CORE_EXPORT SigHashType {
   /**
    * @brief コピーコンストラクタ.
    * @param[in] sighash_type        SigHashType オブジェクト
+   */
+  SigHashType(const SigHashType &sighash_type);
+  /**
+   * @brief コピーコンストラクタ.
+   * @param[in] sighash_type        SigHashType オブジェクト
    * @return SigHashType オブジェクト
    */
   SigHashType &operator=(const SigHashType &sighash_type);

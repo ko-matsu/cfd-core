@@ -139,6 +139,11 @@ class CFD_CORE_EXPORT DescriptorKeyInfo {
   /**
    * @brief copy constructor.
    * @param[in] object    DescriptorKeyReference object
+   */
+  explicit DescriptorKeyInfo(const DescriptorKeyInfo& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    DescriptorKeyReference object
    * @return DescriptorKeyReference object
    */
   DescriptorKeyInfo& operator=(const DescriptorKeyInfo& object);
@@ -238,6 +243,11 @@ class CFD_CORE_EXPORT DescriptorKeyReference {
    */
   explicit DescriptorKeyReference(
       const ExtPubkey& ext_pubkey, const std::string* arg = nullptr);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    DescriptorKeyReference object
+   */
+  DescriptorKeyReference(const DescriptorKeyReference& object);
   /**
    * @brief copy constructor.
    * @param[in] object    DescriptorKeyReference object
@@ -345,6 +355,11 @@ class CFD_CORE_EXPORT DescriptorScriptReference {
   explicit DescriptorScriptReference(
       const Address& address_script,
       const std::vector<AddressFormatData>& address_prefixes);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    DescriptorScriptReference object
+   */
+  DescriptorScriptReference(const DescriptorScriptReference& object);
   /**
    * @brief copy constructor.
    * @param[in] object    DescriptorScriptReference object
@@ -490,6 +505,11 @@ class CFD_CORE_EXPORT DescriptorNode {
    */
   explicit DescriptorNode(
       const std::vector<AddressFormatData>& network_parameters);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    DescriptorNode object
+   */
+  DescriptorNode(const DescriptorNode& object);
   /**
    * @brief copy constructor.
    * @param[in] object    DescriptorNode object
@@ -651,6 +671,19 @@ class CFD_CORE_EXPORT Descriptor {
    * @brief constructor.
    */
   Descriptor();
+
+  /**
+   * @brief copy constructor.
+   * @param[in] object    Descriptor object
+   */
+  Descriptor(const Descriptor& object);
+
+  /**
+   * @brief copy constructor.
+   * @param[in] object    Descriptor object
+   * @return Descriptor object
+   */
+  Descriptor& operator=(const Descriptor& object);
 
   /**
    * @brief check combo script.
