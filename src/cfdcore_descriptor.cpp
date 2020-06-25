@@ -220,6 +220,17 @@ DescriptorKeyInfo::DescriptorKeyInfo(
   }
 }
 
+DescriptorKeyInfo::DescriptorKeyInfo(const DescriptorKeyInfo& object) {
+  key_type_ = object.key_type_;
+  pubkey_ = object.pubkey_;
+  privkey_ = object.privkey_;
+  extprivkey_ = object.extprivkey_;
+  extpubkey_ = object.extpubkey_;
+  parent_info_ = object.parent_info_;
+  path_ = object.path_;
+  key_string_ = object.key_string_;
+}
+
 DescriptorKeyInfo& DescriptorKeyInfo::operator=(
     const DescriptorKeyInfo& object) {
   key_type_ = object.key_type_;
@@ -289,6 +300,15 @@ DescriptorKeyReference::DescriptorKeyReference(
       pubkey_(ext_pubkey.GetPubkey()),
       extpubkey_(ext_pubkey),
       argument_((arg) ? *arg : "") {}
+
+DescriptorKeyReference::DescriptorKeyReference(
+    const DescriptorKeyReference& object) {
+  key_type_ = object.key_type_;
+  pubkey_ = object.pubkey_;
+  extprivkey_ = object.extprivkey_;
+  extpubkey_ = object.extpubkey_;
+  argument_ = object.argument_;
+}
 
 DescriptorKeyReference& DescriptorKeyReference::operator=(
     const DescriptorKeyReference& object) {
@@ -407,6 +427,19 @@ DescriptorScriptReference::DescriptorScriptReference(
       address_script_(address_script),
       addr_prefixes_(address_prefixes) {
   // do nothing
+}
+
+DescriptorScriptReference::DescriptorScriptReference(
+    const DescriptorScriptReference& object) {
+  locking_script_ = object.locking_script_;
+  script_type_ = object.script_type_;
+  address_script_ = object.address_script_;
+  is_script_ = object.is_script_;
+  redeem_script_ = object.redeem_script_;
+  child_script_ = object.child_script_;
+  keys_ = object.keys_;
+  req_num_ = object.req_num_;
+  addr_prefixes_ = object.addr_prefixes_;
 }
 
 DescriptorScriptReference& DescriptorScriptReference::operator=(
@@ -628,10 +661,31 @@ DescriptorNode::DescriptorNode(
   addr_prefixes_ = network_parameters;
 }
 
+DescriptorNode::DescriptorNode(const DescriptorNode& object) {
+  name_ = object.name_;
+  value_ = object.value_;
+  key_info_ = object.key_info_;
+  is_uncompressed_key_ = object.is_uncompressed_key_;
+  base_extkey_ = object.base_extkey_;
+  tweak_sum_ = object.tweak_sum_;
+  number_ = object.number_;
+  child_node_ = object.child_node_;
+  checksum_ = object.checksum_;
+  depth_ = object.depth_;
+  need_arg_num_ = object.need_arg_num_;
+  node_type_ = object.node_type_;
+  script_type_ = object.script_type_;
+  key_type_ = object.key_type_;
+  addr_prefixes_ = object.addr_prefixes_;
+}
+
 DescriptorNode& DescriptorNode::operator=(const DescriptorNode& object) {
   name_ = object.name_;
   value_ = object.value_;
   key_info_ = object.key_info_;
+  is_uncompressed_key_ = object.is_uncompressed_key_;
+  base_extkey_ = object.base_extkey_;
+  tweak_sum_ = object.tweak_sum_;
   number_ = object.number_;
   child_node_ = object.child_node_;
   checksum_ = object.checksum_;
@@ -966,24 +1020,10 @@ void DescriptorNode::AnalyzeKey() {
     if (is_wif) {
       // privkey WIF check
       bool is_compressed = true;
-      bool is_compressed_list[] = {true, false};
-      NetType nettype_list[] = {NetType::kMainnet, NetType::kTestnet};
-      size_t compressed_list_max = sizeof(is_compressed_list) / sizeof(bool);
-      size_t nettype_list_max = sizeof(nettype_list) / sizeof(NetType);
-      for (size_t i = 0; i < compressed_list_max; ++i) {
-        for (size_t j = 0; j < nettype_list_max; ++j) {
-          try {
-            privkey = Privkey::FromWif(
-                key_info_, nettype_list[j], is_compressed_list[i]);
-            is_compressed = is_compressed_list[i];
-          } catch (const CfdException& except) {
-            std::string errmsg(except.what());
-            if (errmsg.find("Error WIF to Private key.") ==
-                std::string::npos) {
-              throw except;
-            }
-          }
-        }
+      NetType nettype = NetType::kMainnet;
+      bool has_wif = Privkey::HasWif(key_info_, &nettype, &is_compressed);
+      if (has_wif) {
+        privkey = Privkey::FromWif(key_info_, nettype, is_compressed);
       }
       if (!privkey.IsValid()) {
         warn(CFD_LOG_SOURCE, "Failed to privkey.");
@@ -1486,6 +1526,15 @@ std::string DescriptorNode::ToString(bool append_checksum) const {
 // Descriptor
 // -----------------------------------------------------------------------------
 Descriptor::Descriptor() {}
+
+Descriptor::Descriptor(const Descriptor& object) {
+  root_node_ = object.root_node_;
+}
+
+Descriptor& Descriptor::operator=(const Descriptor& object) {
+  root_node_ = object.root_node_;
+  return *this;
+}
 
 Descriptor Descriptor::Parse(
     const std::string& output_descriptor,
