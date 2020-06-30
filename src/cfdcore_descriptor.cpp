@@ -4,6 +4,8 @@
  *
  * @brief implemations of related to Output Descriptor
  */
+#include "cfdcore/cfdcore_descriptor.h"
+
 #include <algorithm>
 #include <map>
 #include <memory>
@@ -14,7 +16,6 @@
 #include <vector>
 
 #include "cfdcore/cfdcore_address.h"
-#include "cfdcore/cfdcore_descriptor.h"
 #include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_hdwallet.h"
@@ -22,7 +23,6 @@
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_script.h"
 #include "cfdcore/cfdcore_util.h"
-
 #include "cfdcore_wally_util.h"  // NOLINT
 
 namespace cfd {
