@@ -48,6 +48,12 @@ TEST(Descriptor, Parse_pk) {
   EXPECT_STREQ(desc_str.c_str(), descriptor.c_str());
   EXPECT_STREQ(locking_script.ToString().c_str(),
     "02a5613bd857b7048924264d1e70e08fb2a7e6527d32b7ab1bb993ac59964ff397 OP_CHECKSIG");
+
+  // copy constructor
+  Descriptor desc2(desc);
+  EXPECT_NO_THROW(locking_script = desc.GetLockingScript());
+  EXPECT_STREQ(locking_script.ToString().c_str(),
+    "02a5613bd857b7048924264d1e70e08fb2a7e6527d32b7ab1bb993ac59964ff397 OP_CHECKSIG");
 }
 
 TEST(Descriptor, Parse_pkh) {
