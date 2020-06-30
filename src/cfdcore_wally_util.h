@@ -13,8 +13,8 @@
 #include <vector>
 
 #include "cfdcore/cfdcore_bytedata.h"
+#include "cfdcore/cfdcore_key.h"
 #include "cfdcore_secp256k1.h"  // NOLINT
-
 #include "wally_address.h"      // NOLINT
 #include "wally_bip32.h"        // NOLINT
 #include "wally_bip38.h"        // NOLINT
