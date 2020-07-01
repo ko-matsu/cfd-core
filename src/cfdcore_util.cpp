@@ -6,6 +6,8 @@
  *   \~english definition related to Utility classes
  */
 
+#include "cfdcore/cfdcore_util.h"
+
 #include <iterator>
 #include <random>
 #include <set>
@@ -15,7 +17,6 @@
 
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_logger.h"
-#include "cfdcore/cfdcore_util.h"
 #include "cfdcore_wally_util.h"  // NOLINT
 
 namespace cfd {

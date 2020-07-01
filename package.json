@@ -4,6 +4,7 @@
   "description": "cfd-core",
   "scripts": {
     "code_format": "clang-format -i --style=file src/*.cpp src/*.h src/include/cfdcore/*.h include/cfdcore/*.h",
+    "format": "run-s code_format lint_check",
     "cmake_make_install": "run-s cmake_clean cmake_release_make cmake_make_install_pkg",
     "cmake_install": "run-s cmake_clean cmake_release cmake_install_pkg",
     "cmake_install_pkg": "run-script-os",
@@ -122,12 +123,14 @@
     "doxygen_check:win32": "cd doc && doxygen Doxyfile_quiet_all && rmdir /S /Q html_all_quiet",
     "doxygen_check:linux": "cd doc && doxygen Doxyfile_quiet_all && rm -rf html_all_quiet",
     "doxygen_check:darwin": "cd doc && doxygen Doxyfile_quiet_all && rm -rf html_all_quiet",
+    "doxygen_dev": "cd doc && doxygen Doxyfile_quiet_all",
     "lint_check": "run-script-os",
     "lint_check:win32": "cd tools && lint_all_quiet.bat",
     "lint_check:linux": "cd tools && ./lint_quiet.sh",
     "lint_check:darwin": "cd tools && ./lint_quiet.sh",
     "build_and_test": "run-s cmake_build_parallel ctest lint_check doxygen_check",
     "git_subm_update": "git submodule -q foreach git fetch -q && git submodule -q update -i",
+    "check_local": "run-p doxygen_dev format",
     "check": "run-s doxygen_check ctest_quiet lint_check",
     "check_debug": "run-s doxygen_check lint_check ctest_debug",
     "check_all": "run-s cmake_clean git_subm_update cmake_quiet doxygen_check ctest_quiet lint_check"

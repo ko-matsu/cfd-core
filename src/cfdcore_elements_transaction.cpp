@@ -7,6 +7,8 @@
  */
 #ifndef CFD_DISABLE_ELEMENTS
 
+#include "cfdcore/cfdcore_elements_transaction.h"
+
 #include <algorithm>
 #include <limits>
 #include <string>
@@ -15,7 +17,6 @@
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_descriptor.h"
 #include "cfdcore/cfdcore_elements_address.h"
-#include "cfdcore/cfdcore_elements_transaction.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_hdwallet.h"
 #include "cfdcore/cfdcore_key.h"
