@@ -103,6 +103,7 @@
     "emcmake_configure:darwin": "emcmake cmake -S . -B build -G \"Unix Makefiles\" -DENABLE_EMSCRIPTEN=on -DENABLE_SHARED=on -DENABLE_TESTS=off -DENABLE_ELEMENTS=on -DGENERATE_WALLY=on -DENABLE_JS_WRAPPER=off -DTARGET_RPATH=./wallycore -DCMAKE_BUILD_TYPE=Release",
     "cmake_build_js": "cmake-js build -O build",
     "cmake_build": "cmake --build build --parallel 2 --config Release",
+    "cmake_build_single": "cmake --build build --parallel 1 --config Release",
     "cmake_build_parallel": "cmake --build build --parallel --config Release",
     "cmake_debug_build_parallel": "cmake --build build --parallel --config Debug",
     "cmake_debug_build": "cmake-js build -O build -D",
