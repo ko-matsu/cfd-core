@@ -125,6 +125,15 @@ static ByteData CalculateRangeProof(
       (script_item[0].GetOpCode() == ScriptOperator::OP_RETURN) ||
       (script_byte.size() > Script::kMaxScriptSize)) {
     min_range_value = 0;
+  } else if ((value != 0) && (minimum_range_value == 0)) {
+    min_range_value = 1;  // auto convert
+  }
+
+  if (value < static_cast<uint64_t>(min_range_value)) {
+    warn(CFD_LOG_SOURCE, "wally_asset_rangeproof NG[{}].", ret);
+    throw CfdException(
+        kCfdIllegalArgumentError,
+        "The amount is less than the minimumRangeValue.");
   }
 
   if (pubkey == nullptr) {
