@@ -37,26 +37,6 @@ static constexpr uint8_t kFullPubkeyByteSize =
 static constexpr uint32_t kSurjectionproofMaxInputs =
     SECP256K1_SURJECTIONPROOF_MAX_N_INPUTS;
 
-/**
- * @brief A pointer to a function to deterministically generate a nonce.
- * @param[out] nonce32  pointer to a 32-byte array to be filled by the function.
- * @param[in] data      Arbitrary data pointer that is passed through.
- * @param[in] attempt   unused.
- * @retval 1    a nonce was successfully generated.
- */
-static int CfdSecp256k1ConstantNonceFunction(
-    unsigned char* nonce32, const unsigned char*, const unsigned char*,
-    const unsigned char*, void* data, unsigned int attempt) {
-  (void)attempt;
-  memcpy(nonce32, (const unsigned char*)data, 32);
-  return 1;
-}
-/*
-    unsigned char* nonce32, const unsigned char* msg32,
-    const unsigned char* key32, const unsigned char* algo16,
-    void* data, unsigned int attempt) {
-*/
-
 //////////////////////////////////
 /// Secp256k1
 //////////////////////////////////
