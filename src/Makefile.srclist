@@ -19,5 +19,7 @@ CFDCORE_SOURCES = \
   cfdcore_coin.cpp \
   cfdcore_address.cpp \
   cfdcore_secp256k1.cpp \
+  cfdcore_schnorrsig.cpp \
+  secp256k1_util.cpp \
   ${CFDCORE_ELEMENTS_SOURCES}
 
