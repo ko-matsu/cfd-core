@@ -59,6 +59,10 @@ int ConstantNonceFunction(
     unsigned char *nonce32, const unsigned char *msg32,
     const unsigned char *key32, const unsigned char *algo16,
     const unsigned char *xonly_pk32, void *data) {
+  (void)msg32;
+  (void)key32;
+  (void)algo16;
+  (void)xonly_pk32;
   std::memcpy(nonce32, (const unsigned char *)data, 32);
   return 1;
 }

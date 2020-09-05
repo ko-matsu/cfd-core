@@ -88,19 +88,19 @@ class CFD_CORE_EXPORT SchnorrSignature {
    */
   ByteData GetData() const;
 
-  /**
+  /*
    * @brief Return the nonce part of the signature.
    *
    * @return
    */
-  SchnorrNonce GetNonce() const;
+  // SchnorrNonce GetNonce() const;
 
-  /**
+  /*
    * @brief Returns the second part of the signature as a Privkey instance.
    *
    * @return Privkey
    */
-  Privkey GetPrivkey() const;
+  // Privkey GetPrivkey() const;
 
  private:
   /**
@@ -140,25 +140,25 @@ class CFD_CORE_EXPORT SchnorrUtil {
       const ByteData256 &msg, const Privkey &sk, const Privkey &nonce);
 
   /**
- * @brief Compute a signature point for a Schnorr signature.
- *
- * @param msg the message that will be signed.
- * @param nonce the public component of the nonce that will be used.
- * @param pubkey the public key for which the signature will be valid.
- * @return Pubkey the signature point.
- */
+   * @brief Compute a signature point for a Schnorr signature.
+   *
+   * @param msg the message that will be signed.
+   * @param nonce the public component of the nonce that will be used.
+   * @param pubkey the public key for which the signature will be valid.
+   * @return Pubkey the signature point.
+   */
   static Pubkey ComputeSigPoint(
       const ByteData256 &msg, const SchnorrNonce &nonce, const Pubkey &pubkey);
 
   /**
- * @brief Verify a Schnorr signature.
- *
- * @param signature the signature to verify.
- * @param msg the message to verify the signature against.
- * @param pubkey the public key to verify the signature against.
- * @retval true if the signature is valid
- * @retval false if the signature is invalid
- */
+   * @brief Verify a Schnorr signature.
+   *
+   * @param signature the signature to verify.
+   * @param msg the message to verify the signature against.
+   * @param pubkey the public key to verify the signature against.
+   * @retval true if the signature is valid
+   * @retval false if the signature is invalid
+   */
   static bool Verify(
       const SchnorrSignature &signature, const ByteData256 &msg,
       const Pubkey &pubkey);
