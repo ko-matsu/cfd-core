@@ -60,3 +60,21 @@ TEST(SchnorrSig, ComputeSigPoint) {
 TEST(SchnorrSig, Verify) {
   EXPECT_TRUE(SchnorrUtil::Verify(signature, msg, pubkey));
 }
+
+TEST(SchnorrSig, GetSchnorrNonce) {
+  std::string expected_nonce =
+      "f14d7e54ff58c5d019ce9986be4a0e8b7d643bd08ef2cdf1099e1a457865b547";
+
+  auto nonce = signature.GetNonce();
+
+  EXPECT_EQ(expected_nonce, nonce.GetData().GetHex());
+}
+
+TEST(SchnorrSig, GetPrivkey) {
+  std::string expected_privkey =
+      "7c988c51634a8dc955950a58ff5dc8c506ddb796121e6675946312680c26cf33";
+
+  auto privkey = signature.GetPrivkey();
+
+  EXPECT_EQ(expected_privkey, privkey.GetData().GetHex());
+}
