@@ -74,6 +74,7 @@ class CFD_CORE_EXPORT SchnorrSignature {
    * @param data the data representing the adaptor signature
    */
   explicit SchnorrSignature(const ByteData &data);
+
   /**
    * @brief Construct a new Schnorr Signature object from a string
    *
@@ -88,19 +89,19 @@ class CFD_CORE_EXPORT SchnorrSignature {
    */
   ByteData GetData() const;
 
-  /*
+  /**
    * @brief Return the nonce part of the signature.
    *
    * @return
    */
-  // SchnorrNonce GetNonce() const;
+  SchnorrNonce GetNonce() const;
 
-  /*
+  /**
    * @brief Returns the second part of the signature as a Privkey instance.
    *
    * @return Privkey
    */
-  // Privkey GetPrivkey() const;
+  Privkey GetPrivkey() const;
 
  private:
   /**

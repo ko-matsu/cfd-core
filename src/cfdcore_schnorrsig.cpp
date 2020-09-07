@@ -32,6 +32,19 @@ SchnorrSignature::SchnorrSignature(const std::string &data)
 
 ByteData SchnorrSignature::GetData() const { return data_; }
 
+SchnorrNonce SchnorrSignature::GetNonce() const {
+  auto bytes = data_.GetBytes();
+  return SchnorrNonce(ByteData(std::vector<uint8_t>(
+      bytes.begin(), bytes.begin() + SchnorrNonce::kSchnorrNonceSize)));
+}
+
+Privkey SchnorrSignature::GetPrivkey() const {
+  auto bytes = data_.GetBytes();
+  auto start = bytes.begin() + SchnorrNonce::kSchnorrNonceSize;
+  auto end = start + Privkey::kPrivkeySize;
+  return Privkey(ByteData(std::vector<uint8_t>(start, end)));
+}
+
 SchnorrNonce::SchnorrNonce(const ByteData &data) : data_(data) {
   if ((data_.GetDataSize()) != SchnorrNonce::kSchnorrNonceSize) {
     throw CfdException(
