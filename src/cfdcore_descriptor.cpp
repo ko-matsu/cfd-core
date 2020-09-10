@@ -1074,7 +1074,7 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
       std::string miniscript = name_ + "(" + value_ + ")";
       std::vector<unsigned char> script(max_size);
       size_t written = 0;
-      int ret = wally_parse_miniscript(
+      int ret = wally_descriptor_parse_miniscript(
           miniscript.c_str(), nullptr, nullptr, 0, 0, 0, script.data(),
           script.size(), &written);
       if (ret == WALLY_OK) {
@@ -1297,7 +1297,7 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
       }
       std::vector<uint8_t> script(number_);
       size_t written = 0;
-      int ret = wally_parse_miniscript(
+      int ret = wally_descriptor_parse_miniscript(
           value_.c_str(), nullptr, nullptr, 0, child_num, 0, script.data(),
           script.size(), &written);
       if ((ret == WALLY_OK) && (written <= script.size())) {
