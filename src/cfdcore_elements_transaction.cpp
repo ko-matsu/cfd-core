@@ -172,11 +172,13 @@ static ByteData CalculateRangeProof(
 
 /**
  * @brief calculate rangeproof size.
+ * @param[in] amount          target amount
  * @param[in] exponent        blinding exponent
  * @param[in] minimum_bits    blinding minimum bits
  * @return rangeproof size.
  */
-static uint32_t CalculateRangeProofSize(int exponent, int minimum_bits) {
+static uint32_t CalculateRangeProofSize(
+    int64_t amount, int exponent, int minimum_bits) {
   // dummy value
   ByteData vbf_data(
       "e863b2791be1be9659a940123143f210b9760a3b85862bf0833ef27c80c83816");
@@ -189,9 +191,10 @@ static uint32_t CalculateRangeProofSize(int exponent, int minimum_bits) {
   Privkey privkey(key_data);
   std::vector<uint8_t> commitment;
   std::vector<uint8_t> range_proof;
+  uint64_t value = static_cast<uint64_t>(amount);
   CalculateRangeProof(
-      uint64_t{10000000}, nullptr, privkey, asset, empty_factor, vbf, Script(),
-      1, exponent, minimum_bits, &commitment, &range_proof);
+      value, nullptr, privkey, asset, empty_factor, vbf, Script(), 1, exponent,
+      minimum_bits, &commitment, &range_proof);
   uint32_t rangeproof_size =
       static_cast<uint32_t>(ByteData(range_proof).GetSerializeSize());
   info(
@@ -765,15 +768,17 @@ uint32_t ConfidentialTxIn::EstimateTxInSize(
     uint32_t *witness_area_size, uint32_t *no_witness_area_size,
     bool is_reissuance, const Script *scriptsig_template, int exponent,
     int minimum_bits, uint32_t *rangeproof_size) {
-  // issuance時の追加サイズ: entity(32),hash(32),amount(8+1),key(8+1)
+  // issuance's append size: entity(32),hash(32),amount(8+1),key(8+1)
   static constexpr const uint32_t kIssuanceAppendSize = 82;
-  // blind issuance時の追加サイズ: entity,hash,amount(33),key(33)
+  // blind issuance's append size: entity,hash,amount(33),key(33)
   static constexpr const uint32_t kIssuanceBlindSize = 130;
   // issuance rangeproof size
   // static constexpr const uint32_t kTxInRangeproof = 2893 + 3;
   // pegin size:
   // btc(9),asset(33),block(33),fedpegSize(-),txSize(3),txoutproof(152)
   static constexpr const uint32_t kPeginWitnessSize = 230;
+  // TODO(k-matsuzawa): Set amount upper limit and calculate maximum size
+  static constexpr const int64_t kIssuanceAmount = kMaxAmount;
   uint32_t witness_size = 0;
   uint32_t size = 0;
   TxIn::EstimateTxInSize(
@@ -809,7 +814,8 @@ uint32_t ConfidentialTxIn::EstimateTxInSize(
       if ((rangeproof_size != nullptr) && (*rangeproof_size != 0)) {
         work_proof_size = *rangeproof_size;
       } else {
-        work_proof_size = 4 + CalculateRangeProofSize(exponent, minimum_bits);
+        work_proof_size = 4 + CalculateRangeProofSize(
+                                  kIssuanceAmount, exponent, minimum_bits);
         if (rangeproof_size != nullptr) *rangeproof_size = work_proof_size;
       }
       if (is_reissuance) {
@@ -1053,7 +1059,10 @@ uint32_t ConfidentialTxOutReference::GetSerializeSize(
     if ((rangeproof_size != nullptr) && (*rangeproof_size != 0)) {
       work_proof_size = *rangeproof_size;
     } else {
-      work_proof_size = 4 + CalculateRangeProofSize(exponent, minimum_bits);
+      int64_t amount = confidential_value_.GetAmount().GetSatoshiValue();
+      if (amount == 0) amount = kMaxAmount;
+      work_proof_size =
+          4 + CalculateRangeProofSize(amount, exponent, minimum_bits);
       if (rangeproof_size != nullptr) *rangeproof_size = work_proof_size;
     }
     witness_size += work_proof_size;
