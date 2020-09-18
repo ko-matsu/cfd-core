@@ -253,12 +253,12 @@ TEST(ConfidentialTxIn, EstimateTxInSize) {
     {AddressType::kP2wpkhAddress, 610, 569, Script(), 226, Script("51"), false, false, false, "", 0, 0},
     // issue
     {AddressType::kP2wpkhAddress, 234, 111, Script(), 0, Script(), true, false, false, "", 0, 0},
-    {AddressType::kP2wpkhAddress, 6064, 5893, Script(), 0, Script(), true, true, false,
+    {AddressType::kP2wpkhAddress, /*6064*/ 8498, /*5893*/ 8327, Script(), 0, Script(), true, true, false,
         "", 0, 36},
     {AddressType::kP2wpkhAddress, 8626, 8455, Script(), 0, Script(), true, true, false,
         "", 0, 52},
     // reissue
-    {AddressType::kP2wpkhAddress, 3173, 3002, Script(), 0, Script(), true, true, true,
+    {AddressType::kP2wpkhAddress, /*3173*/ 4390, /*3002*/ 4219, Script(), 0, Script(), true, true, true,
         "", 0, 36},
     {AddressType::kP2wpkhAddress, 4454, 4283, Script(), 0, Script(), true, true, true,
         "", 0, 52},
@@ -281,7 +281,8 @@ TEST(ConfidentialTxIn, EstimateTxInSize) {
     EXPECT_EQ(size, test_data.size);
     EXPECT_EQ(wit_size, test_data.witness_size);
     if (test_data.minimum_bits == 36) {
-      EXPECT_EQ(cache_size, 2892);
+      // EXPECT_EQ(cache_size, 2892);
+      EXPECT_EQ(cache_size, 4109);
     } else if (test_data.minimum_bits == 52) {
       EXPECT_EQ(cache_size, 4173);
     }
@@ -302,10 +303,10 @@ TEST(ConfidentialTxIn, EstimateTxInVsize) {
     {AddressType::kP2wpkhAddress, 184, 0, Script(), 226, Script("51"), false, false, false, "", 0, 0},
     // issue
     {AddressType::kP2wpkhAddress, 151, 0, Script(), 0, Script(), true, false, false, "", 0, 0},
-    {AddressType::kP2wpkhAddress, 1645, 0, Script(), 0, Script(), true, true, false, "", 0, 36},
+    {AddressType::kP2wpkhAddress, /*1645*/ 2253, 0, Script(), 0, Script(), true, true, false, "", 0, 36},
     {AddressType::kP2wpkhAddress, 2285, 0, Script(), 0, Script(), true, true, false, "", 0, 52},
     // reissue
-    {AddressType::kP2wpkhAddress, 922, 0, Script(), 0, Script(), true, true, true, "", 0, 36},
+    {AddressType::kP2wpkhAddress, /*922*/ 1226, 0, Script(), 0, Script(), true, true, true, "", 0, 36},
     {AddressType::kP2wpkhAddress, 1242, 0, Script(), 0, Script(), true, true, true, "", 0, 52},
   };
 
