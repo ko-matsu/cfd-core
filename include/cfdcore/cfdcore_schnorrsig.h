@@ -17,29 +17,29 @@ using cfd::core::Privkey;
 using cfd::core::Pubkey;
 
 /**
- * @brief A Schnorr nonce.
+ * @brief A Schnorr public key.
  *
  */
-class CFD_CORE_EXPORT SchnorrNonce {
+class CFD_CORE_EXPORT SchnorrPubkey {
  public:
   /**
-  * @brief Size of a Schnorr nonce.
+  * @brief Size of a Schnorr public key.
   *
   */
-  static constexpr uint32_t kSchnorrNonceSize = 32;
+  static constexpr uint32_t kSchnorrPubkeySize = 32;
 
   /**
-   * @brief Construct a new Schnorr Nonce object from ByteData
+   * @brief Construct a new SchnorrPubkey object from ByteData
    *
    * @param data the data representing the adaptor nonce
    */
-  explicit SchnorrNonce(const ByteData &data);
+  explicit SchnorrPubkey(const ByteData &data);
   /**
-   * @brief Construct a new Schnorr Nonce object from a string
+   * @brief Construct a new Schnorr Pubkey object from a string
    *
    * @param data the data representing the adaptor nonce
    */
-  explicit SchnorrNonce(const std::string &data);
+  explicit SchnorrPubkey(const std::string &data);
 
   /**
    * @brief Get the underlying ByteData object
@@ -94,7 +94,7 @@ class CFD_CORE_EXPORT SchnorrSignature {
    *
    * @return
    */
-  SchnorrNonce GetNonce() const;
+  SchnorrPubkey GetNonce() const;
 
   /**
    * @brief Returns the second part of the signature as a Privkey instance.
@@ -149,7 +149,8 @@ class CFD_CORE_EXPORT SchnorrUtil {
    * @return Pubkey the signature point.
    */
   static Pubkey ComputeSigPoint(
-      const ByteData256 &msg, const SchnorrNonce &nonce, const Pubkey &pubkey);
+      const ByteData256 &msg, const SchnorrPubkey &nonce,
+      const SchnorrPubkey &pubkey);
 
   /**
    * @brief Verify a Schnorr signature.
@@ -162,7 +163,7 @@ class CFD_CORE_EXPORT SchnorrUtil {
    */
   static bool Verify(
       const SchnorrSignature &signature, const ByteData256 &msg,
-      const Pubkey &pubkey);
+      const SchnorrPubkey &pubkey);
 };
 
 }  // namespace core

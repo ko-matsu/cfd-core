@@ -4,6 +4,7 @@
 #define CFD_CORE_SRC_SECP256K1_UTIL_H_
 
 #include "cfdcore/cfdcore_key.h"
+#include "cfdcore/cfdcore_schnorrsig.h"
 #include "secp256k1.h"            // NOLINT
 #include "secp256k1_extrakeys.h"  // NOLINT
 
@@ -39,12 +40,12 @@ secp256k1_ecdsa_signature ParseSignature(const ByteData& signature);
 Pubkey ConvertSecpPubkey(const secp256k1_pubkey& pubkey);
 
 /**
- * @brief Parses a cfd-core Pubkey object to a secp256k1_xonly_pubkey struct.
+ * @brief Parses a cfd-core SchnorrPubkey object to a secp256k1_xonly_pubkey struct.
  *
- * @param pubkey the pubkey to parse.
+ * @param pubkey the Schnorr pubkey to parse.
  * @return secp256k1_xonly_pubkey
  */
-secp256k1_xonly_pubkey ParsePubkeyToXOnlyPubkey(const Pubkey& pubkey);
+secp256k1_xonly_pubkey ParseXOnlyPubkey(const SchnorrPubkey& pubkey);
 
 }  // namespace core
 }  // namespace cfd
