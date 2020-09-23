@@ -143,10 +143,16 @@ Pubkey SchnorrUtil::ComputeSigPoint(
   secp256k1_xonly_pubkey xonly_pubkey = ParsePubkeyToXOnlyPubkey(pubkey);
 
   secp256k1_pubkey secp_sigpoint;
+  secp256k1_xonly_pubkey secp_nonce;
+
+  auto nonce_bytes = nonce.GetData().GetBytes();
+  size_t copy_size = sizeof(secp_nonce.data);
+  if (copy_size > nonce_bytes.size()) copy_size = nonce_bytes.size();
+  memset(&secp_nonce, 0, sizeof(secp_nonce));
+  memcpy(secp_nonce.data, nonce_bytes.data(), copy_size);
 
   auto ret = secp256k1_schnorrsig_compute_sigpoint(
-      ctx, &secp_sigpoint, msg.GetBytes().data(),
-      nonce.GetData().GetBytes().data(), &xonly_pubkey);
+      ctx, &secp_sigpoint, msg.GetBytes().data(), &secp_nonce, &xonly_pubkey);
   if (ret != 1) {
     throw CfdException(
         CfdError::kCfdInternalError, "Could not compute sigpoint");
