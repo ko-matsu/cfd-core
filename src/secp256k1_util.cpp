@@ -6,6 +6,7 @@
 
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
+#include "cfdcore/cfdcore_schnorrsig.h"
 #include "secp256k1.h"            // NOLINT
 #include "secp256k1_extrakeys.h"  // NOLINT
 #include "wally_core.h"           // NOLINT
@@ -17,6 +18,7 @@ using cfd::core::ByteData;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
 using cfd::core::Pubkey;
+using cfd::core::SchnorrPubkey;
 
 secp256k1_pubkey ParsePubkey(const Pubkey& pubkey) {
   auto pubkey_bytes = pubkey.GetData().GetBytes();
@@ -32,16 +34,16 @@ secp256k1_pubkey ParsePubkey(const Pubkey& pubkey) {
   return result;
 }
 
-secp256k1_xonly_pubkey ParsePubkeyToXOnlyPubkey(const Pubkey& pubkey) {
+secp256k1_xonly_pubkey ParseXOnlyPubkey(const SchnorrPubkey& pubkey) {
   auto ctx = wally_get_secp_context();
   secp256k1_xonly_pubkey xonly_pubkey;
-  secp256k1_pubkey secp_pubkey = ParsePubkey(pubkey);
-  auto ret = secp256k1_xonly_pubkey_from_pubkey(
-      ctx, &xonly_pubkey, nullptr, &secp_pubkey);
+
+  auto ret = secp256k1_xonly_pubkey_parse(
+      ctx, &xonly_pubkey, pubkey.GetData().GetBytes().data());
 
   if (ret != 1) {
     throw CfdException(
-        CfdError::kCfdInternalError, "Could not create xonly pubkey.");
+        CfdError::kCfdInternalError, "Could not parse xonly pubkey");
   }
 
   return xonly_pubkey;

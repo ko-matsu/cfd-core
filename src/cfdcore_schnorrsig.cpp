@@ -32,30 +32,30 @@ SchnorrSignature::SchnorrSignature(const std::string &data)
 
 ByteData SchnorrSignature::GetData() const { return data_; }
 
-SchnorrNonce SchnorrSignature::GetNonce() const {
+SchnorrPubkey SchnorrSignature::GetNonce() const {
   auto bytes = data_.GetBytes();
-  return SchnorrNonce(ByteData(std::vector<uint8_t>(
-      bytes.begin(), bytes.begin() + SchnorrNonce::kSchnorrNonceSize)));
+  return SchnorrPubkey(ByteData(std::vector<uint8_t>(
+      bytes.begin(), bytes.begin() + SchnorrPubkey::kSchnorrPubkeySize)));
 }
 
 Privkey SchnorrSignature::GetPrivkey() const {
   auto bytes = data_.GetBytes();
-  auto start = bytes.begin() + SchnorrNonce::kSchnorrNonceSize;
+  auto start = bytes.begin() + SchnorrPubkey::kSchnorrPubkeySize;
   auto end = start + Privkey::kPrivkeySize;
   return Privkey(ByteData(std::vector<uint8_t>(start, end)));
 }
 
-SchnorrNonce::SchnorrNonce(const ByteData &data) : data_(data) {
-  if ((data_.GetDataSize()) != SchnorrNonce::kSchnorrNonceSize) {
+SchnorrPubkey::SchnorrPubkey(const ByteData &data) : data_(data) {
+  if ((data_.GetDataSize()) != SchnorrPubkey::kSchnorrPubkeySize) {
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "Invalid Schnorr nonce data.");
   }
 }
 
-SchnorrNonce::SchnorrNonce(const std::string &data)
-    : SchnorrNonce(ByteData(data)) {}
+SchnorrPubkey::SchnorrPubkey(const std::string &data)
+    : SchnorrPubkey(ByteData(data)) {}
 
-ByteData SchnorrNonce::GetData() const { return data_; }
+ByteData SchnorrPubkey::GetData() const { return data_; }
 
 /**
  * @brief A function that simply copies the data into the nonce.
@@ -138,15 +138,17 @@ SchnorrSignature SchnorrUtil::SignWithNonce(
 }
 
 Pubkey SchnorrUtil::ComputeSigPoint(
-    const ByteData256 &msg, const SchnorrNonce &nonce, const Pubkey &pubkey) {
+    const ByteData256 &msg, const SchnorrPubkey &nonce,
+    const SchnorrPubkey &pubkey) {
   auto ctx = wally_get_secp_context();
-  secp256k1_xonly_pubkey xonly_pubkey = ParsePubkeyToXOnlyPubkey(pubkey);
+  secp256k1_xonly_pubkey xonly_pubkey = ParseXOnlyPubkey(pubkey);
+
+  secp256k1_xonly_pubkey secp_nonce = ParseXOnlyPubkey(nonce);
 
   secp256k1_pubkey secp_sigpoint;
 
   auto ret = secp256k1_schnorrsig_compute_sigpoint(
-      ctx, &secp_sigpoint, msg.GetBytes().data(),
-      nonce.GetData().GetBytes().data(), &xonly_pubkey);
+      ctx, &secp_sigpoint, msg.GetBytes().data(), &secp_nonce, &xonly_pubkey);
   if (ret != 1) {
     throw CfdException(
         CfdError::kCfdInternalError, "Could not compute sigpoint");
@@ -157,9 +159,9 @@ Pubkey SchnorrUtil::ComputeSigPoint(
 
 bool SchnorrUtil::Verify(
     const SchnorrSignature &signature, const ByteData256 &msg,
-    const Pubkey &pubkey) {
+    const SchnorrPubkey &pubkey) {
   auto ctx = wally_get_secp_context();
-  secp256k1_xonly_pubkey xonly_pubkey = ParsePubkeyToXOnlyPubkey(pubkey);
+  secp256k1_xonly_pubkey xonly_pubkey = ParseXOnlyPubkey(pubkey);
   return 1 == secp256k1_schnorrsig_verify(
                   ctx, signature.GetData().GetBytes().data(),
                   msg.GetBytes().data(), &xonly_pubkey);
