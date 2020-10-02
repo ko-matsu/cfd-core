@@ -47,6 +47,14 @@ Pubkey ConvertSecpPubkey(const secp256k1_pubkey& pubkey);
  */
 secp256k1_xonly_pubkey ParseXOnlyPubkey(const SchnorrPubkey& pubkey);
 
+/**
+ * @brief Converts a secp256k1_xonly_pubkey struct to a cfd-core SchnorrPubkey object.
+ *
+ * @param pubkey the xonly pubkey struct to convert.
+ * @return SchnorrPubkey
+ */
+SchnorrPubkey ConvertSchnorrPubkey(const secp256k1_xonly_pubkey& pubkey);
+
 }  // namespace core
 }  // namespace cfd
 

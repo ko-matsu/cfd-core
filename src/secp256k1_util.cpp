@@ -79,5 +79,19 @@ Pubkey ConvertSecpPubkey(const secp256k1_pubkey& pubkey) {
   return Pubkey(result_bytes);
 }
 
+SchnorrPubkey ConvertSchnorrPubkey(const secp256k1_xonly_pubkey& pubkey) {
+  auto ctx = wally_get_secp_context();
+  std::vector<uint8_t> result_bytes(SchnorrPubkey::kSchnorrPubkeySize);
+  size_t result_bytes_size = result_bytes.size();
+  int ret =
+      secp256k1_xonly_pubkey_serialize(ctx, result_bytes.data(), &pubkey);
+  if (ret != 1) {
+    throw CfdException(
+        CfdError::kCfdInternalError, "Secp256k1 serialize exception");
+  }
+
+  return SchnorrPubkey(result_bytes);
+}
+
 }  // namespace core
 }  // namespace cfd

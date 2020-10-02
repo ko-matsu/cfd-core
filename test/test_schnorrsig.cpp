@@ -25,9 +25,6 @@ const ByteData256 aux_rand(
 const Privkey nonce(
     "8c8ca771d3c25eb38de7401818eeda281ac5446f5c1396148f8d9d67592440fe");
 
-const SchnorrPubkey schnorr_pubkey(
-    "f14d7e54ff58c5d019ce9986be4a0e8b7d643bd08ef2cdf1099e1a457865b547");
-
 const SchnorrSignature signature(
     "6470fd1303dda4fda717b9837153c24a6eab377183fc438f939e0ed2b620e9ee5077c4a8b"
     "8dca28963d772a94f5f0ddf598e1c47c137f91933274c7c3edadce8");
@@ -80,4 +77,10 @@ TEST(SchnorrSig, GetPrivkey) {
   auto privkey = signature.GetPrivkey();
 
   EXPECT_EQ(expected_privkey, privkey.GetData().GetHex());
+}
+
+TEST(SchnorrPubkey, FromPrivkey) {
+  auto actual_pubkey = SchnorrPubkey::FromPrivkey(sk);
+
+  EXPECT_EQ(pubkey.GetData().GetHex(), actual_pubkey.GetData().GetHex());
 }
