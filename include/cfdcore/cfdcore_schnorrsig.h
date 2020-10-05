@@ -48,6 +48,15 @@ class CFD_CORE_EXPORT SchnorrPubkey {
    */
   ByteData GetData() const;
 
+  /**
+   * @brief
+   *
+   * @param privkey the private key from which to create the Schnorr public key.
+   * @return SchnorrPubkey the public key associated with the given private key
+   * generated according to BIP340.
+   */
+  static SchnorrPubkey FromPrivkey(const Privkey &privkey);
+
  private:
   /**
    * @brief The underlying data

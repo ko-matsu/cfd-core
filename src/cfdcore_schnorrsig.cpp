@@ -48,12 +48,34 @@ Privkey SchnorrSignature::GetPrivkey() const {
 SchnorrPubkey::SchnorrPubkey(const ByteData &data) : data_(data) {
   if ((data_.GetDataSize()) != SchnorrPubkey::kSchnorrPubkeySize) {
     throw CfdException(
-        CfdError::kCfdIllegalArgumentError, "Invalid Schnorr nonce data.");
+        CfdError::kCfdIllegalArgumentError, "Invalid Schnorr pubkey data.");
   }
 }
 
 SchnorrPubkey::SchnorrPubkey(const std::string &data)
     : SchnorrPubkey(ByteData(data)) {}
+
+SchnorrPubkey SchnorrPubkey::FromPrivkey(const Privkey &privkey) {
+  auto ctx = wally_get_secp_context();
+  secp256k1_keypair keypair;
+  auto ret = secp256k1_keypair_create(
+      ctx, &keypair, privkey.GetData().GetBytes().data());
+
+  if (ret != 1) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Invalid private key");
+  }
+
+  secp256k1_xonly_pubkey x_only_pubkey;
+
+  ret = secp256k1_keypair_xonly_pub(ctx, &x_only_pubkey, nullptr, &keypair);
+
+  if (ret != 1) {
+    throw CfdException(CfdError::kCfdInternalError);
+  }
+
+  return ConvertSchnorrPubkey(x_only_pubkey);
+}
 
 ByteData SchnorrPubkey::GetData() const { return data_; }
 
