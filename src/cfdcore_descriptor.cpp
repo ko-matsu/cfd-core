@@ -68,10 +68,12 @@ std::string DescriptorKeyInfo::GetExtPrivkeyInformation(
   if (ext_privkey.IsValid()) {
     result = "[" + ext_privkey.GetFingerprintData().GetHex();
     if (!child_path.empty()) {
-      if (child_path[0] != '/') {
+      std::string::size_type index = 0;
+      if ((child_path[0] == 'm') || (child_path[0] == 'M')) ++index;
+      if (child_path[index] != '/') {
         result += "/";
       }
-      result += child_path;
+      result += child_path.substr(index);
     }
     result += "]";
   }
@@ -84,10 +86,12 @@ std::string DescriptorKeyInfo::GetExtPubkeyInformation(
   if (ext_pubkey.IsValid()) {
     result = "[" + ext_pubkey.GetFingerprintData().GetHex();
     if (!child_path.empty()) {
-      if (child_path[0] != '/') {
+      std::string::size_type index = 0;
+      if ((child_path[0] == 'm') || (child_path[0] == 'M')) ++index;
+      if (child_path[index] != '/') {
         result += "/";
       }
-      result += child_path;
+      result += child_path.substr(index);
     }
     result += "]";
   }
