@@ -16,6 +16,8 @@ using cfd::core::ByteData256;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
 
+class SchnorrSignature;
+
 /**
  * @brief A Schnorr public key.
  *
@@ -29,17 +31,56 @@ class CFD_CORE_EXPORT SchnorrPubkey {
   static constexpr uint32_t kSchnorrPubkeySize = 32;
 
   /**
+   * @brief Default constructor.
+   */
+  SchnorrPubkey();
+
+  /**
    * @brief Construct a new SchnorrPubkey object from ByteData
    *
    * @param data the data representing the adaptor nonce
    */
   explicit SchnorrPubkey(const ByteData &data);
   /**
+   * @brief Construct a new SchnorrPubkey object from ByteData256
+   *
+   * @param data the data representing the adaptor nonce
+   */
+  explicit SchnorrPubkey(const ByteData256 &data);
+  /**
    * @brief Construct a new Schnorr Pubkey object from a string
    *
    * @param data the data representing the adaptor nonce
    */
   explicit SchnorrPubkey(const std::string &data);
+  /**
+   * @brief Construct a new Schnorr Pubkey object from a privkey
+   *
+   * @param[in] privkey the private key from which to create the Schnorr public key.
+   */
+  explicit SchnorrPubkey(const Privkey &privkey);
+
+  /**
+   * @brief Construct a new SchnorrPubkey object from ByteData
+   *
+   * @param[in] data the data representing the adaptor nonce
+   * @param[in] parity the parity of the pubkey.
+   */
+  explicit SchnorrPubkey(const ByteData &data, bool parity);
+  /**
+   * @brief Construct a new SchnorrPubkey object from ByteData256
+   *
+   * @param[in] data the data representing the adaptor nonce
+   * @param[in] parity the parity of the pubkey.
+   */
+  explicit SchnorrPubkey(const ByteData256 &data, bool parity);
+  /**
+   * @brief Construct a new Schnorr Pubkey object from a string
+   *
+   * @param[in] data the data representing the adaptor nonce
+   * @param[in] parity the parity of the pubkey.
+   */
+  explicit SchnorrPubkey(const std::string &data, bool parity);
 
   /**
    * @brief Get the underlying ByteData object
@@ -47,22 +88,91 @@ class CFD_CORE_EXPORT SchnorrPubkey {
    * @return ByteData
    */
   ByteData GetData() const;
+  /**
+   * @brief Get the hex string.
+   *
+   * @return hex string.
+   */
+  std::string GetHex() const;
+  /**
+   * @brief Equals a key.
+   * @param[in] pubkey  a key to compare
+   * @retval true   equal.
+   * @retval false  not equal.
+   */
+  bool Equals(const SchnorrPubkey &pubkey) const;
+  /**
+   * @brief Verify format.
+   * @retval true   valid
+   * @retval false  invalid
+   */
+  bool IsValid() const;
+
+  /**
+   * @brief Get y-parity flag.
+   * @return parity
+   */
+  bool IsParity() const;
+  /**
+   * @brief Set y-parity flag.
+   * @param[in] parity   the parity of the pubkey.
+   */
+  void SetParity(bool parity);
+
+  /**
+   * @brief Create new public key with tweak added.
+   * @details This function doesn't have no side-effect.
+   *     It always returns new instance of Privkey.
+   * @param[in] tweak     tweak to be added
+   * @return new instance of pubkey key with tweak added.
+   */
+  SchnorrPubkey CreateTweakAdd(const ByteData256 &tweak) const;
+  /**
+   * @brief Is tweaked pubkey from a based pubkey.
+   *
+   * @param base_pubkey the base pubkey.
+   * @param tweak the tweak bytes.
+   * @param parity the parity of the tweaked pubkey.
+   * @retval true   tweak from based pubkey
+   * @retval false  other
+   */
+  bool IsTweaked(
+      const SchnorrPubkey &base_pubkey, const ByteData256 &tweak,
+      bool *parity = nullptr) const;
+  /**
+   * @brief Verify a Schnorr signature.
+   *
+   * @param signature the signature to verify.
+   * @param msg the message to verify the signature against.
+   * @retval true if the signature is valid
+   * @retval false if the signature is invalid
+   */
+  bool Verify(const SchnorrSignature &signature, const ByteData256 &msg) const;
 
   /**
    * @brief
    *
-   * @param privkey the private key from which to create the Schnorr public key.
+   * @param[in] privkey the private key from which to create the Schnorr public key.
    * @return SchnorrPubkey the public key associated with the given private key
    * generated according to BIP340.
    */
   static SchnorrPubkey FromPrivkey(const Privkey &privkey);
+  /**
+   * @brief Create tweak add pubkey from base privkey.
+   *
+   * @param[in] privkey the private key from which to create the Schnorr public key.
+   * @param[in] tweak the tweak to be added
+   * @param[out] tweaked_privkey the tweaked private key.
+   * @return SchnorrPubkey the tweaked public key associated with the given private key
+   * generated according to BIP340.
+   */
+  static SchnorrPubkey CreateTweakAddFromPrivkey(
+      const Privkey &privkey, const ByteData256 &tweak,
+      Privkey *tweaked_privkey);
 
  private:
-  /**
-   * @brief The underlying data
-   *
-   */
-  ByteData data_;
+  ByteData256 data_;  //!< The underlying data
+  bool parity_;       //!< parity
 };
 
 /**
@@ -76,6 +186,11 @@ class CFD_CORE_EXPORT SchnorrSignature {
   *
   */
   static constexpr uint32_t kSchnorrSignatureSize = 64;
+
+  /**
+   * @brief Default constructor.
+   */
+  SchnorrSignature();
 
   /**
    * @brief Construct a new Schnorr Signature object from ByteData
@@ -97,6 +212,12 @@ class CFD_CORE_EXPORT SchnorrSignature {
    * @return ByteData
    */
   ByteData GetData() const;
+  /**
+   * @brief Get the hex string.
+   *
+   * @return hex string.
+   */
+  std::string GetHex() const;
 
   /**
    * @brief Return the nonce part of the signature.
