@@ -53,34 +53,6 @@ class CFD_CORE_EXPORT SchnorrPubkey {
    * @param data the data representing the adaptor nonce
    */
   explicit SchnorrPubkey(const std::string &data);
-  /**
-   * @brief Construct a new Schnorr Pubkey object from a privkey
-   *
-   * @param[in] privkey the private key from which to create the Schnorr public key.
-   */
-  explicit SchnorrPubkey(const Privkey &privkey);
-
-  /**
-   * @brief Construct a new SchnorrPubkey object from ByteData
-   *
-   * @param[in] data the data representing the adaptor nonce
-   * @param[in] parity the parity of the pubkey.
-   */
-  explicit SchnorrPubkey(const ByteData &data, bool parity);
-  /**
-   * @brief Construct a new SchnorrPubkey object from ByteData256
-   *
-   * @param[in] data the data representing the adaptor nonce
-   * @param[in] parity the parity of the pubkey.
-   */
-  explicit SchnorrPubkey(const ByteData256 &data, bool parity);
-  /**
-   * @brief Construct a new Schnorr Pubkey object from a string
-   *
-   * @param[in] data the data representing the adaptor nonce
-   * @param[in] parity the parity of the pubkey.
-   */
-  explicit SchnorrPubkey(const std::string &data, bool parity);
 
   /**
    * @brief Get the underlying ByteData object
@@ -109,24 +81,25 @@ class CFD_CORE_EXPORT SchnorrPubkey {
   bool IsValid() const;
 
   /**
-   * @brief Get y-parity flag.
-   * @return parity
+   * @brief Create new public key with tweak added.
+   * @details This function doesn't have no side-effect.
+   *     It always returns new instance of Privkey.
+   * @param[in] tweak     tweak to be added
+   * @param[out] parity   the parity of the tweaked pubkey.
+   * @return new instance of pubkey key with tweak added.
    */
-  bool IsParity() const;
-  /**
-   * @brief Set y-parity flag.
-   * @param[in] parity   the parity of the pubkey.
-   */
-  void SetParity(bool parity);
-
+  SchnorrPubkey CreateTweakAdd(
+      const ByteData256 &tweak, bool *parity = nullptr) const;
   /**
    * @brief Create new public key with tweak added.
    * @details This function doesn't have no side-effect.
    *     It always returns new instance of Privkey.
    * @param[in] tweak     tweak to be added
+   * @param[out] parity   the parity of the tweaked pubkey.
    * @return new instance of pubkey key with tweak added.
    */
-  SchnorrPubkey CreateTweakAdd(const ByteData256 &tweak) const;
+  SchnorrPubkey CreateTweakAdd(
+      const SchnorrPubkey &tweak, bool *parity = nullptr) const;
   /**
    * @brief Is tweaked pubkey from a based pubkey.
    *
@@ -138,7 +111,7 @@ class CFD_CORE_EXPORT SchnorrPubkey {
    */
   bool IsTweaked(
       const SchnorrPubkey &base_pubkey, const ByteData256 &tweak,
-      bool *parity = nullptr) const;
+      bool parity) const;
   /**
    * @brief Verify a Schnorr signature.
    *
@@ -150,29 +123,74 @@ class CFD_CORE_EXPORT SchnorrPubkey {
   bool Verify(const SchnorrSignature &signature, const ByteData256 &msg) const;
 
   /**
-   * @brief
+   * @brief Create public key.
+   * @details This function is need set the parity.
+   * @param[in] parity  the parity of the pubkey.
+   * @return pubkey
+   */
+  Pubkey CreatePubkey(bool parity) const;
+
+  /**
+   * @brief get schnorr public key from private key.
    *
    * @param[in] privkey the private key from which to create the Schnorr public key.
+   * @param[out] parity the parity of the tweaked pubkey.
    * @return SchnorrPubkey the public key associated with the given private key
    * generated according to BIP340.
    */
-  static SchnorrPubkey FromPrivkey(const Privkey &privkey);
+  static SchnorrPubkey FromPrivkey(
+      const Privkey &privkey, bool *parity = nullptr);
+  /**
+   * @brief get schnorr public key from public key.
+   *
+   * @param[in] pubkey the public key from which to create the Schnorr public key.
+   * @param[out] parity the parity of the tweaked pubkey.
+   * @return SchnorrPubkey the public key associated with the given private key
+   * generated according to BIP340.
+   */
+  static SchnorrPubkey FromPubkey(
+      const Pubkey &pubkey, bool *parity = nullptr);
   /**
    * @brief Create tweak add pubkey from base privkey.
    *
    * @param[in] privkey the private key from which to create the Schnorr public key.
    * @param[in] tweak the tweak to be added
    * @param[out] tweaked_privkey the tweaked private key.
+   * @param[out] parity the parity of the tweaked pubkey.
    * @return SchnorrPubkey the tweaked public key associated with the given private key
    * generated according to BIP340.
    */
   static SchnorrPubkey CreateTweakAddFromPrivkey(
       const Privkey &privkey, const ByteData256 &tweak,
-      Privkey *tweaked_privkey);
+      Privkey *tweaked_privkey, bool *parity = nullptr);
+
+  /**
+   * @brief tweak add pubkey.
+   * @param[in] right   tweak pubkey
+   * @return tweaked pubkey
+   */
+  SchnorrPubkey operator+=(const SchnorrPubkey &right);
+  /**
+   * @brief tweak add pubkey.
+   * @param[in] right   tweak data
+   * @return tweaked pubkey
+   */
+  SchnorrPubkey operator+=(const ByteData256 &right);
+  /**
+   * @brief negate and tweak add for pubkey.
+   * @param[in] right   tweak pubkey (before negate)
+   * @return tweaked pubkey
+   */
+  SchnorrPubkey operator-=(const SchnorrPubkey &right);
+  /**
+   * @brief negate and tweak add for pubkey.
+   * @param[in] right   tweak data (before negate)
+   * @return tweaked pubkey
+   */
+  SchnorrPubkey operator-=(const ByteData256 &right);
 
  private:
   ByteData256 data_;  //!< The underlying data
-  bool parity_;       //!< parity
 };
 
 /**
@@ -295,6 +313,41 @@ class CFD_CORE_EXPORT SchnorrUtil {
       const SchnorrSignature &signature, const ByteData256 &msg,
       const SchnorrPubkey &pubkey);
 };
+
+// global operator overloading
+
+/**
+ * @brief tweak add privkey.
+ * @param[in] left    base privkey
+ * @param[in] right   tweak privkey
+ * @return tweaked privkey
+ */
+CFD_CORE_EXPORT SchnorrPubkey
+operator+(const SchnorrPubkey &left, const SchnorrPubkey &right);
+/**
+ * @brief tweak add privkey.
+ * @param[in] left    base privkey
+ * @param[in] right   tweak data
+ * @return tweaked privkey
+ */
+CFD_CORE_EXPORT SchnorrPubkey
+operator+(const SchnorrPubkey &left, const ByteData256 &right);
+/**
+ * @brief negate and tweak add for privkey.
+ * @param[in] left    base privkey
+ * @param[in] right   tweak privkey (before negate)
+ * @return tweaked privkey
+ */
+CFD_CORE_EXPORT SchnorrPubkey
+operator-(const SchnorrPubkey &left, const SchnorrPubkey &right);
+/**
+ * @brief negate and tweak add for privkey.
+ * @param[in] left    base privkey
+ * @param[in] right   tweak data (before negate)
+ * @return tweaked privkey
+ */
+CFD_CORE_EXPORT SchnorrPubkey
+operator-(const SchnorrPubkey &left, const ByteData256 &right);
 
 }  // namespace core
 }  // namespace cfd

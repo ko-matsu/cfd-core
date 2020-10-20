@@ -299,3 +299,34 @@ TEST(Privkey, CalculateEcSignature) {
       CfdException);
   EXPECT_STREQ(err_sig.GetHex().c_str(), "");
 }
+
+TEST(Privkey, TweakTest) {
+  // https://planethouki.wordpress.com/2018/03/15/pubkey-add-ecdsa/
+  Privkey sk_a("1d52f68124c59c3125d5c2e043cabf01cef46fafaf45be3132fc1f52ff0ec434");
+  Privkey sk_b("353a88e3c404380d9970d9b2d8ee9f6051b3d817ab32aabc12f5c3c65086e659");
+  ByteData256 tweak("353a88e3c404380d9970d9b2d8ee9f6051b3d817ab32aabc12f5c3c65086e659");
+
+  auto pk_a = sk_a.GetPubkey();
+  auto pk_b = sk_b.GetPubkey();
+
+  auto sk_c1 = sk_a + sk_b;
+  auto sk_c2 = sk_a - sk_b;
+  auto sk_c3 = sk_a + tweak;
+  auto sk_c4 = sk_a - tweak;
+  auto sk_m1 = sk_a * sk_b;
+  auto sk_m2 = sk_a * tweak;
+
+  std::string exp_sk_c1 = "528d7f64e8c9d43ebf469c931cb95e6220a847c75a7868ed45f1e3194f95aa8d";
+  std::string exp_sk_c2 = "e8186d9d60c164238c64e92d6adc1fa037ef747eb35bb3b0dfd8ba197ebe1f1c";
+  std::string exp_sk_c3 = "528d7f64e8c9d43ebf469c931cb95e6220a847c75a7868ed45f1e3194f95aa8d";
+  std::string exp_sk_c4 = "e8186d9d60c164238c64e92d6adc1fa037ef747eb35bb3b0dfd8ba197ebe1f1c";
+  std::string exp_sk_m1 = "5ef544d2eb21fcabf9d31d103631fd6da8a653a118e086b5c16b27baa4b1efa0";
+  std::string exp_sk_m2 = "5ef544d2eb21fcabf9d31d103631fd6da8a653a118e086b5c16b27baa4b1efa0";
+
+  EXPECT_EQ(exp_sk_c1, sk_c1.GetHex());
+  EXPECT_EQ(exp_sk_c2, sk_c2.GetHex());
+  EXPECT_EQ(exp_sk_c3, sk_c3.GetHex());
+  EXPECT_EQ(exp_sk_c4, sk_c4.GetHex());
+  EXPECT_EQ(exp_sk_m1, sk_m1.GetHex());
+  EXPECT_EQ(exp_sk_m2, sk_m2.GetHex());
+}
