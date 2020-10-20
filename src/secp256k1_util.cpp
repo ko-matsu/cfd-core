@@ -3,6 +3,7 @@
 #include "secp256k1_util.h"  // NOLINT
 
 #include <string.h>
+
 #include <vector>
 
 #include "cfdcore/cfdcore_exception.h"

@@ -57,40 +57,36 @@ Privkey SchnorrSignature::GetPrivkey() const {
 // ----------------------------------------------------------------------------
 SchnorrPubkey::SchnorrPubkey() : data_() {}
 
-SchnorrPubkey::SchnorrPubkey(const ByteData &data)
-    : SchnorrPubkey(data, false) {}
-SchnorrPubkey::SchnorrPubkey(const ByteData256 &data)
-    : SchnorrPubkey(data, false) {}
-SchnorrPubkey::SchnorrPubkey(const std::string &data)
-    : SchnorrPubkey(data, false) {}
-
-SchnorrPubkey::SchnorrPubkey(const ByteData &data, bool parity)
-    : data_(), parity_(parity) {
-  if (data.GetDataSize() != SchnorrPubkey::kSchnorrPubkeySize) {
-    throw CfdException(
-        CfdError::kCfdIllegalArgumentError, "Invalid Schnorr pubkey data.");
+SchnorrPubkey::SchnorrPubkey(const ByteData &data) : data_() {
+  if (Pubkey::IsValid(data)) {
+    auto pk = SchnorrPubkey::FromPubkey(Pubkey(data));
+    data_ = pk.data_;
+  } else {
+    if (data.GetDataSize() != SchnorrPubkey::kSchnorrPubkeySize) {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Invalid Schnorr pubkey length.");
+    }
+    data_ = ByteData256(data);
+    if (data_.IsEmpty()) {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Invalid Schnorr pubkey data.");
+    }
   }
-  data_ = ByteData256(data);
 }
 
-SchnorrPubkey::SchnorrPubkey(const ByteData256 &data, bool parity)
-    : data_(data), parity_(parity) {
+SchnorrPubkey::SchnorrPubkey(const ByteData256 &data) : data_(data) {
   if (data.IsEmpty()) {
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "Invalid Schnorr pubkey data.");
   }
 }
 
-SchnorrPubkey::SchnorrPubkey(const std::string &data, bool parity)
-    : SchnorrPubkey(ByteData(data), parity) {}
+SchnorrPubkey::SchnorrPubkey(const std::string &data)
+    : SchnorrPubkey(ByteData(data)) {}
 
-SchnorrPubkey::SchnorrPubkey(const Privkey &privkey) : data_() {
-  auto pk = SchnorrPubkey::FromPrivkey(privkey);
-  data_ = pk.data_;
-  parity_ = pk.parity_;
-}
-
-SchnorrPubkey SchnorrPubkey::FromPrivkey(const Privkey &privkey) {
+SchnorrPubkey SchnorrPubkey::FromPrivkey(
+    const Privkey &privkey, bool *parity) {
   auto ctx = wally_get_secp_context();
   secp256k1_keypair keypair;
   auto ret = secp256k1_keypair_create(
@@ -103,21 +99,24 @@ SchnorrPubkey SchnorrPubkey::FromPrivkey(const Privkey &privkey) {
 
   secp256k1_xonly_pubkey x_only_pubkey;
   int pk_parity = 0;
-
   ret = secp256k1_keypair_xonly_pub(ctx, &x_only_pubkey, &pk_parity, &keypair);
 
   if (ret != 1) {
     throw CfdException(CfdError::kCfdInternalError);
   }
 
-  auto obj = SchnorrPubkey(ConvertSchnorrPubkey(x_only_pubkey));
-  obj.parity_ = (pk_parity != 0);
-  return obj;
+  if (parity != nullptr) *parity = (pk_parity != 0);
+  return SchnorrPubkey(ConvertSchnorrPubkey(x_only_pubkey));
+}
+
+SchnorrPubkey SchnorrPubkey::FromPubkey(const Pubkey &pubkey, bool *parity) {
+  auto xpk = GetXOnlyPubkeyFromPubkey(ParsePubkey(pubkey), parity);
+  return SchnorrPubkey(ConvertSchnorrPubkey(xpk));
 }
 
 SchnorrPubkey SchnorrPubkey::CreateTweakAddFromPrivkey(
-    const Privkey &privkey, const ByteData256 &tweak,
-    Privkey *tweaked_privkey) {
+    const Privkey &privkey, const ByteData256 &tweak, Privkey *tweaked_privkey,
+    bool *parity) {
   std::vector<uint8_t> tweak_bytes = tweak.GetBytes();
   auto ctx = wally_get_secp_context();
 
@@ -142,13 +141,11 @@ SchnorrPubkey SchnorrPubkey::CreateTweakAddFromPrivkey(
     throw CfdException(CfdError::kCfdInternalError);
   }
 
-  auto obj = SchnorrPubkey(ConvertSchnorrPubkey(x_only_pubkey));
-  obj.parity_ = (pk_parity != 0);
   if (tweaked_privkey != nullptr) {
-    *tweaked_privkey = Privkey(ByteData(
-        keypair.data, Privkey::kPrivkeySize));
+    *tweaked_privkey = Privkey(ByteData(keypair.data, Privkey::kPrivkeySize));
   }
-  return obj;
+  if (parity != nullptr) *parity = (pk_parity != 0);
+  return SchnorrPubkey(ConvertSchnorrPubkey(x_only_pubkey));
 }
 
 ByteData SchnorrPubkey::GetData() const { return data_.GetData(); }
@@ -160,25 +157,82 @@ bool SchnorrPubkey::Equals(const SchnorrPubkey &pubkey) const {
 }
 
 bool SchnorrPubkey::IsValid() const { return !data_.IsEmpty(); }
-bool SchnorrPubkey::IsParity() const { return parity_; }
-void SchnorrPubkey::SetParity(bool parity) { parity_ = parity; }
 
-SchnorrPubkey SchnorrPubkey::CreateTweakAdd(const ByteData256 &tweak) const {
-  bool pk_parity = false;
-  auto obj = SchnorrPubkey(TweakAddXonlyPubkey(*this, tweak, &pk_parity));
-  obj.SetParity(pk_parity);
-  return obj;
+SchnorrPubkey SchnorrPubkey::CreateTweakAdd(
+    const ByteData256 &tweak, bool *parity) const {
+  return SchnorrPubkey(TweakAddXonlyPubkey(*this, tweak, parity));
 }
 
-bool SchnorrPubkey::IsTweaked(const SchnorrPubkey &base_pubkey,
-    const ByteData256 &tweak, bool *parity) const {
-  bool pk_parity = (parity != nullptr) ? *parity : parity_;
-  return CheckTweakAddXonlyPubkey(*this, base_pubkey, tweak, pk_parity);
+SchnorrPubkey SchnorrPubkey::CreateTweakAdd(
+    const SchnorrPubkey &tweak, bool *parity) const {
+  return CreateTweakAdd(tweak.data_, parity);
+}
+
+bool SchnorrPubkey::IsTweaked(
+    const SchnorrPubkey &base_pubkey, const ByteData256 &tweak,
+    bool parity) const {
+  return CheckTweakAddXonlyPubkey(*this, base_pubkey, tweak, parity);
 }
 
 bool SchnorrPubkey::Verify(
     const SchnorrSignature &signature, const ByteData256 &msg) const {
   return SchnorrUtil::Verify(signature, msg, *this);
+}
+
+Pubkey SchnorrPubkey::CreatePubkey(bool parity) const {
+  uint8_t head = (parity) ? 3 : 2;
+  ByteData data = ByteData(&head, 1).Concat(data_);
+  return Pubkey(data);
+}
+
+SchnorrPubkey SchnorrPubkey::operator+=(const SchnorrPubkey &right) {
+  SchnorrPubkey key = CreateTweakAdd(right);
+  *this = key;
+  return *this;
+}
+
+SchnorrPubkey SchnorrPubkey::operator+=(const ByteData256 &right) {
+  SchnorrPubkey key = CreateTweakAdd(right);
+  *this = key;
+  return *this;
+}
+
+SchnorrPubkey SchnorrPubkey::operator-=(const SchnorrPubkey &right) {
+  Privkey sk(right.data_);
+  auto neg = sk.CreateNegate();
+  SchnorrPubkey key = CreateTweakAdd(ByteData256(neg.GetData()));
+  *this = key;
+  return *this;
+}
+
+SchnorrPubkey SchnorrPubkey::operator-=(const ByteData256 &right) {
+  Privkey sk(right);
+  auto neg = sk.CreateNegate();
+  SchnorrPubkey key = CreateTweakAdd(ByteData256(neg.GetData()));
+  *this = key;
+  return *this;
+}
+
+SchnorrPubkey operator+(
+    const SchnorrPubkey &left, const SchnorrPubkey &right) {
+  return left.CreateTweakAdd(right);
+}
+
+SchnorrPubkey operator+(const SchnorrPubkey &left, const ByteData256 &right) {
+  return left.CreateTweakAdd(right);
+}
+
+SchnorrPubkey operator-(
+    const SchnorrPubkey &left, const SchnorrPubkey &right) {
+  SchnorrPubkey key = left;
+  key -= right;
+  return key;
+}
+
+SchnorrPubkey operator-(const SchnorrPubkey &left, const ByteData256 &right) {
+  SchnorrPubkey key = left;
+  key -= right;
+  return key;
 }
 
 // ----------------------------------------------------------------------------

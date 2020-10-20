@@ -87,28 +87,61 @@ TEST(SchnorrSig, Constructor) {
   EXPECT_EQ(0, empty_obj.GetData().GetDataSize());
 }
 
+TEST(SchnorrPubkey, FromPubkey) {
+  bool is_parity = false;
+  auto actual_pubkey = SchnorrPubkey::FromPubkey(sk.GetPubkey(), &is_parity);
+  EXPECT_EQ(pubkey.GetHex(), actual_pubkey.GetHex());
+  EXPECT_EQ(pubkey_parity, is_parity);
+
+  Pubkey pk_a1("024d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d");
+  Pubkey pk_a2("034d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d");
+  Pubkey pk_b1("02dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54");
+  Pubkey pk_b2("03dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54");
+  std::string exp_pk_a = "4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d";
+  std::string exp_pk_b = "dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54";
+  std::string exp_pk_c2 = "03417885176062c3ae707af06059e7b5e65f733938f818da509eb3e5c4074b8124";
+  std::string exp_pk_c2p = "02417885176062c3ae707af06059e7b5e65f733938f818da509eb3e5c4074b8124";
+
+  bool parity[4];
+  auto spk_a1 = SchnorrPubkey::FromPubkey(pk_a1, &parity[0]);
+  auto spk_a2 = SchnorrPubkey::FromPubkey(pk_a2, &parity[1]);
+  auto spk_b1 = SchnorrPubkey::FromPubkey(pk_b1, &parity[2]);
+  auto spk_b2 = SchnorrPubkey::FromPubkey(pk_b2, &parity[3]);
+
+  EXPECT_EQ(exp_pk_a, spk_a1.GetHex());
+  EXPECT_FALSE(parity[0]);
+  EXPECT_EQ(exp_pk_a, spk_a2.GetHex());
+  EXPECT_TRUE(parity[1]);
+  EXPECT_EQ(exp_pk_b, spk_b1.GetHex());
+  EXPECT_FALSE(parity[2]);
+  EXPECT_EQ(exp_pk_b, spk_b2.GetHex());
+  EXPECT_TRUE(parity[3]);
+}
+
 TEST(SchnorrPubkey, FromPrivkey) {
-  auto actual_pubkey = SchnorrPubkey::FromPrivkey(sk);
+  bool parity = false;
+  auto actual_pubkey = SchnorrPubkey::FromPrivkey(sk, &parity);
 
   EXPECT_EQ(pubkey.GetHex(), actual_pubkey.GetHex());
-  EXPECT_EQ(pubkey_parity, actual_pubkey.IsParity());
+  EXPECT_EQ(pubkey_parity, parity);
 }
 
 TEST(SchnorrPubkey, TweakAddFromPrivkey) {
   ByteData256 tweak1("45cfe14923541d2908a64f32aaf09b703dbd2cfb256830b0eebc5573b15a4476");
   Privkey tweaked_sk;
+  bool parity = false;
   auto actual_pubkey = SchnorrPubkey::CreateTweakAddFromPrivkey(
-      sk, tweak1, &tweaked_sk);
+      sk, tweak1, &tweaked_sk, &parity);
 
   std::string exp_pubkey1 = "ac52f50b28cdd4d3bcb7f0d5cb533f232e4c4ef12fbf3e718420b84d4e3c3440";
   std::string exp_privkey1 = "dd43698cf5f96d33bf895c28d67b5ffbd736c2d4cef91e1f8ce0e38c31a709c8";
 
   EXPECT_EQ(exp_pubkey1, actual_pubkey.GetHex());
   EXPECT_EQ(exp_privkey1, tweaked_sk.GetHex());
-  EXPECT_EQ(pubkey_parity, actual_pubkey.IsParity());
+  EXPECT_EQ(pubkey_parity, parity);
 
   Privkey key = sk;
-  if (actual_pubkey.IsParity()) key = key.CreateNegate();
+  if (parity) key = key.CreateNegate();
   key = key.CreateTweakAdd(tweak1);
   EXPECT_EQ(exp_privkey1, key.GetHex());
 }
@@ -119,7 +152,7 @@ TEST(SchnorrPubkey, Constructor) {
 
   EXPECT_FALSE(empty_obj.IsValid());
 
-  SchnorrPubkey sk_obj(sk);
+  auto sk_obj = SchnorrPubkey::FromPrivkey(sk);
   SchnorrPubkey b256_obj(ByteData256(sk_pubkey.GetData()));
 
   EXPECT_EQ(sk_pubkey.GetHex(), sk_obj.GetHex());
@@ -134,25 +167,24 @@ TEST(SchnorrPubkey, TweakAdd) {
   ByteData256 tweak2("0daf700e00c25a75feb3b747a5f31ba58f4a7c3c7b36eaceef7cb882a06a9bf1");
   SchnorrPubkey tweak_pubkey1;
   SchnorrPubkey tweak_pubkey2;
+  bool is_parity1 = false;
+  bool is_parity2 = false;
 
   std::string exp_pubkey1 = "ac52f50b28cdd4d3bcb7f0d5cb533f232e4c4ef12fbf3e718420b84d4e3c3440";
   std::string exp_pubkey2 = "943203db3a9a8845a4aee1af81b76cb9ec60ab08d700df59a32426a4e6e1557b";
 
-  EXPECT_NO_THROW(tweak_pubkey1 = pubkey.CreateTweakAdd(tweak1));
+  EXPECT_NO_THROW(tweak_pubkey1 = pubkey.CreateTweakAdd(tweak1, &is_parity1));
   EXPECT_EQ(exp_pubkey1, tweak_pubkey1.GetHex());
-  EXPECT_TRUE(tweak_pubkey1.IsParity());
+  EXPECT_TRUE(is_parity1);
 
-  EXPECT_NO_THROW(tweak_pubkey2 = pubkey.CreateTweakAdd(tweak2));
+  EXPECT_NO_THROW(tweak_pubkey2 = pubkey.CreateTweakAdd(tweak2, &is_parity2));
   EXPECT_EQ(exp_pubkey2, tweak_pubkey2.GetHex());
-  EXPECT_FALSE(tweak_pubkey2.IsParity());
+  EXPECT_FALSE(is_parity2);
 
-  EXPECT_TRUE(tweak_pubkey1.IsTweaked(pubkey, tweak1));
-  EXPECT_TRUE(tweak_pubkey2.IsTweaked(pubkey, tweak2));
-  EXPECT_FALSE(tweak_pubkey1.IsTweaked(pubkey, tweak2));
-  bool is_parity = !tweak_pubkey2.IsParity();
-  EXPECT_FALSE(tweak_pubkey2.IsTweaked(pubkey, tweak2, &is_parity));
-  is_parity = !is_parity;
-  EXPECT_TRUE(tweak_pubkey2.IsTweaked(pubkey, tweak2, &is_parity));
+  EXPECT_TRUE(tweak_pubkey1.IsTweaked(pubkey, tweak1, is_parity1));
+  EXPECT_TRUE(tweak_pubkey2.IsTweaked(pubkey, tweak2, is_parity2));
+  EXPECT_FALSE(tweak_pubkey1.IsTweaked(pubkey, tweak2, !is_parity1));
+  EXPECT_FALSE(tweak_pubkey2.IsTweaked(pubkey, tweak2, !is_parity2));
 
   Privkey tweak_sk1;
   Privkey tweak_sk2;
@@ -161,8 +193,33 @@ TEST(SchnorrPubkey, TweakAdd) {
   EXPECT_NO_THROW(tweak_sk1 = key.CreateTweakAdd(tweak1));
   EXPECT_NO_THROW(tweak_sk2 = key.CreateTweakAdd(tweak2));
 
-  SchnorrPubkey tweak_pubkey21(tweak_sk1);
-  SchnorrPubkey tweak_pubkey22(tweak_sk2);
+  SchnorrPubkey tweak_pubkey21 = SchnorrPubkey::FromPrivkey(tweak_sk1);
+  SchnorrPubkey tweak_pubkey22 = SchnorrPubkey::FromPrivkey(tweak_sk2);
   EXPECT_EQ(exp_pubkey1, tweak_pubkey21.GetHex());
   EXPECT_EQ(exp_pubkey2, tweak_pubkey22.GetHex());
+}
+
+TEST(SchnorrPubkey, TweakTest) {
+  // https://planethouki.wordpress.com/2018/03/15/pubkey-add-ecdsa/
+  Privkey sk_a("1d52f68124c59c3125d5c2e043cabf01cef46fafaf45be3132fc1f52ff0ec434");
+  Privkey sk_b("353a88e3c404380d9970d9b2d8ee9f6051b3d817ab32aabc12f5c3c65086e659");
+  std::string exp_sk_c = "528d7f64e8c9d43ebf469c931cb95e6220a847c75a7868ed45f1e3194f95aa8d";
+  std::string exp_pk_c = "c6cf31d72599553158c6ffed6139946bbd3a1648a6b1ef56bea812878bb2df71";
+  Pubkey pk("03c6cf31d72599553158c6ffed6139946bbd3a1648a6b1ef56bea812878bb2df71");
+
+  auto pk_a = SchnorrPubkey::FromPrivkey(sk_a);
+  auto pk_b = SchnorrPubkey::FromPrivkey(sk_b);
+
+  auto pk_c1 = pk_a + pk_b;
+  auto pk_c2 = pk_b + pk_a;
+
+  auto sk_c = sk_a + sk_b;
+  auto pk_c3 = SchnorrPubkey::FromPrivkey(sk_c);
+  auto pk_c4 = SchnorrPubkey::FromPubkey(pk);
+
+  EXPECT_NE(exp_pk_c, pk_c1.GetHex());  // tweak
+  EXPECT_NE(exp_pk_c, pk_c2.GetHex());  // tweak
+  EXPECT_EQ(exp_pk_c, pk_c3.GetHex());  // combine
+  EXPECT_EQ(exp_pk_c, pk_c4.GetHex());
+  EXPECT_EQ(exp_sk_c, sk_c.GetHex());
 }
