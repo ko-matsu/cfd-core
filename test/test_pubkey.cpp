@@ -230,6 +230,30 @@ TEST(Pubkey, VerifyEcSignature) {
 }
 
 TEST(Pubkey, TweakTest) {
+  ByteData256 tweak1("bd7d5d628f259c5f141519a932fb97e57e03852fd6fc5c42f41eee3df2a09e3a");
+  ByteData256 tweak2("dc66de3b954578f60b68ab5d241c98b24c0b91038d1b5b158a63fbafa7cc9073");
+  std::string exp_pk_t23 = "03ffcfb532fc3131cec229b3be66a1c0b4808b0d0a84468cd0c39caa88aa8a8d58";
+
+  Pubkey pk_a("034d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d");
+  Pubkey pk_b("03dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54");
+
+  Pubkey pk_t11 = pk_a + tweak1;
+  Pubkey pk_t12 = pk_b;
+  pk_t12 += tweak2;
+  Pubkey pk_t13 = pk_a * tweak1;
+
+  Pubkey pk_t21 = pk_t11 - tweak1;
+  Pubkey pk_t22 = pk_t12;
+  pk_t22 -= tweak2;
+  Pubkey pk_t23 = pk_t13;
+  pk_t23 *= tweak1;
+
+  EXPECT_EQ(pk_a.GetHex(), pk_t21.GetHex());
+  EXPECT_EQ(pk_b.GetHex(), pk_t22.GetHex());
+  EXPECT_EQ(exp_pk_t23, pk_t23.GetHex());
+}
+
+TEST(Pubkey, CombineTest) {
   // https://planethouki.wordpress.com/2018/03/15/pubkey-add-ecdsa/
   Privkey sk_a("1d52f68124c59c3125d5c2e043cabf01cef46fafaf45be3132fc1f52ff0ec434");
   Privkey sk_b("353a88e3c404380d9970d9b2d8ee9f6051b3d817ab32aabc12f5c3c65086e659");
@@ -240,7 +264,8 @@ TEST(Pubkey, TweakTest) {
   auto pk_b = sk_b.GetPubkey();
 
   auto pk_c1 = pk_a + pk_b;
-  auto pk_c2 = pk_b + pk_a;
+  Pubkey pk_c2 = pk_b;
+  pk_c2 += pk_a;
 
   auto sk_c = sk_a + sk_b;
   auto pk_c3 = sk_c.GetPubkey();
@@ -249,25 +274,22 @@ TEST(Pubkey, TweakTest) {
   EXPECT_EQ(exp_pk_c, pk_c2.GetHex());
   EXPECT_EQ(exp_pk_c, pk_c3.GetHex());
   EXPECT_EQ(exp_sk_c, sk_c.GetHex());
-}
 
-TEST(Pubkey, CombineTest) {
   Pubkey pk_a1("024d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d");
   Pubkey pk_a2("034d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d");
   Pubkey pk_b1("02dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54");
   Pubkey pk_b2("03dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54");
-  std::string exp_pk_c = "03c6cf31d72599553158c6ffed6139946bbd3a1648a6b1ef56bea812878bb2df71";
   std::string exp_pk_cp = "02c6cf31d72599553158c6ffed6139946bbd3a1648a6b1ef56bea812878bb2df71";
   std::string exp_pk_c2 = "03417885176062c3ae707af06059e7b5e65f733938f818da509eb3e5c4074b8124";
   std::string exp_pk_c2p = "02417885176062c3ae707af06059e7b5e65f733938f818da509eb3e5c4074b8124";
 
-  auto pk_c1 = pk_a1 + pk_b1;
-  auto pk_c2 = pk_a2 + pk_b1;
-  auto pk_c3 = pk_a1 + pk_b2;
-  auto pk_c4 = pk_a2 + pk_b2;
+  auto pk_c11 = pk_a1 + pk_b1;
+  auto pk_c12 = pk_a2 + pk_b1;
+  auto pk_c13 = pk_a1 + pk_b2;
+  auto pk_c14 = pk_a2 + pk_b2;
 
-  EXPECT_EQ(exp_pk_cp, pk_c1.GetHex());
-  EXPECT_EQ(exp_pk_c2, pk_c2.GetHex());
-  EXPECT_EQ(exp_pk_c2p, pk_c3.GetHex());
-  EXPECT_EQ(exp_pk_c, pk_c4.GetHex());
+  EXPECT_EQ(exp_pk_cp, pk_c11.GetHex());
+  EXPECT_EQ(exp_pk_c2, pk_c12.GetHex());
+  EXPECT_EQ(exp_pk_c2p, pk_c13.GetHex());
+  EXPECT_EQ(exp_pk_c, pk_c14.GetHex());
 }

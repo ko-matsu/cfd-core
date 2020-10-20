@@ -185,22 +185,8 @@ Pubkey SchnorrPubkey::CreatePubkey(bool parity) const {
   return Pubkey(data);
 }
 
-SchnorrPubkey SchnorrPubkey::operator+=(const SchnorrPubkey &right) {
-  SchnorrPubkey key = CreateTweakAdd(right);
-  *this = key;
-  return *this;
-}
-
 SchnorrPubkey SchnorrPubkey::operator+=(const ByteData256 &right) {
   SchnorrPubkey key = CreateTweakAdd(right);
-  *this = key;
-  return *this;
-}
-
-SchnorrPubkey SchnorrPubkey::operator-=(const SchnorrPubkey &right) {
-  Privkey sk(right.data_);
-  auto neg = sk.CreateNegate();
-  SchnorrPubkey key = CreateTweakAdd(ByteData256(neg.GetData()));
   *this = key;
   return *this;
 }
@@ -213,20 +199,8 @@ SchnorrPubkey SchnorrPubkey::operator-=(const ByteData256 &right) {
   return *this;
 }
 
-SchnorrPubkey operator+(
-    const SchnorrPubkey &left, const SchnorrPubkey &right) {
-  return left.CreateTweakAdd(right);
-}
-
 SchnorrPubkey operator+(const SchnorrPubkey &left, const ByteData256 &right) {
   return left.CreateTweakAdd(right);
-}
-
-SchnorrPubkey operator-(
-    const SchnorrPubkey &left, const SchnorrPubkey &right) {
-  SchnorrPubkey key = left;
-  key -= right;
-  return key;
 }
 
 SchnorrPubkey operator-(const SchnorrPubkey &left, const ByteData256 &right) {
