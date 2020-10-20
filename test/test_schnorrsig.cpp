@@ -116,6 +116,10 @@ TEST(SchnorrPubkey, FromPubkey) {
   EXPECT_FALSE(parity[2]);
   EXPECT_EQ(exp_pk_b, spk_b2.GetHex());
   EXPECT_TRUE(parity[3]);
+
+  Pubkey pk_aa1 = spk_a1.CreatePubkey(parity[0]);
+  EXPECT_EQ(pk_a1.GetHex(), pk_aa1.GetHex());
+
 }
 
 TEST(SchnorrPubkey, FromPrivkey) {
@@ -209,17 +213,28 @@ TEST(SchnorrPubkey, TweakTest) {
 
   auto pk_a = SchnorrPubkey::FromPrivkey(sk_a);
   auto pk_b = SchnorrPubkey::FromPrivkey(sk_b);
+  ByteData256 tweak1 = ByteData256(pk_b.GetData());
 
-  auto pk_c1 = pk_a + pk_b;
-  auto pk_c2 = pk_b + pk_a;
+  auto pk_c1 = pk_a + tweak1;
+  auto pk_c2 = pk_b;
+  pk_c2 += tweak1;
+
+  auto pk_c3 = pk_a - tweak1;
+  auto pk_c4 = pk_b;
+  pk_c2 -= tweak1;
+
+  auto pk_c5 = pk_a.CreateTweakAdd(pk_b);
 
   auto sk_c = sk_a + sk_b;
-  auto pk_c3 = SchnorrPubkey::FromPrivkey(sk_c);
-  auto pk_c4 = SchnorrPubkey::FromPubkey(pk);
+  auto pk_c11 = SchnorrPubkey::FromPrivkey(sk_c);
+  auto pk_c12 = SchnorrPubkey::FromPubkey(pk);
 
   EXPECT_NE(exp_pk_c, pk_c1.GetHex());  // tweak
   EXPECT_NE(exp_pk_c, pk_c2.GetHex());  // tweak
-  EXPECT_EQ(exp_pk_c, pk_c3.GetHex());  // combine
-  EXPECT_EQ(exp_pk_c, pk_c4.GetHex());
+  EXPECT_NE(exp_pk_c, pk_c3.GetHex());  // tweak
+  EXPECT_NE(exp_pk_c, pk_c4.GetHex());  // tweak
+  EXPECT_NE(exp_pk_c, pk_c5.GetHex());  // tweak
+  EXPECT_EQ(exp_pk_c, pk_c11.GetHex());  // combine
+  EXPECT_EQ(exp_pk_c, pk_c12.GetHex());
   EXPECT_EQ(exp_sk_c, sk_c.GetHex());
 }

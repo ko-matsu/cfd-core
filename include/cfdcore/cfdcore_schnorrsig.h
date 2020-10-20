@@ -166,22 +166,10 @@ class CFD_CORE_EXPORT SchnorrPubkey {
 
   /**
    * @brief tweak add pubkey.
-   * @param[in] right   tweak pubkey
-   * @return tweaked pubkey
-   */
-  SchnorrPubkey operator+=(const SchnorrPubkey &right);
-  /**
-   * @brief tweak add pubkey.
    * @param[in] right   tweak data
    * @return tweaked pubkey
    */
   SchnorrPubkey operator+=(const ByteData256 &right);
-  /**
-   * @brief negate and tweak add for pubkey.
-   * @param[in] right   tweak pubkey (before negate)
-   * @return tweaked pubkey
-   */
-  SchnorrPubkey operator-=(const SchnorrPubkey &right);
   /**
    * @brief negate and tweak add for pubkey.
    * @param[in] right   tweak data (before negate)
@@ -319,27 +307,11 @@ class CFD_CORE_EXPORT SchnorrUtil {
 /**
  * @brief tweak add privkey.
  * @param[in] left    base privkey
- * @param[in] right   tweak privkey
- * @return tweaked privkey
- */
-CFD_CORE_EXPORT SchnorrPubkey
-operator+(const SchnorrPubkey &left, const SchnorrPubkey &right);
-/**
- * @brief tweak add privkey.
- * @param[in] left    base privkey
  * @param[in] right   tweak data
  * @return tweaked privkey
  */
 CFD_CORE_EXPORT SchnorrPubkey
 operator+(const SchnorrPubkey &left, const ByteData256 &right);
-/**
- * @brief negate and tweak add for privkey.
- * @param[in] left    base privkey
- * @param[in] right   tweak privkey (before negate)
- * @return tweaked privkey
- */
-CFD_CORE_EXPORT SchnorrPubkey
-operator-(const SchnorrPubkey &left, const SchnorrPubkey &right);
 /**
  * @brief negate and tweak add for privkey.
  * @param[in] left    base privkey

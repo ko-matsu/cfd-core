@@ -316,6 +316,16 @@ TEST(Privkey, TweakTest) {
   auto sk_m1 = sk_a * sk_b;
   auto sk_m2 = sk_a * tweak;
 
+  Privkey sk_c5 = sk_a;
+  Privkey sk_c6 = sk_a;
+  sk_c5 += sk_b;
+  sk_c6 += tweak;
+
+  Privkey sk_m3 = sk_a;
+  Privkey sk_m4 = sk_a;
+  sk_m3 *= sk_b;
+  sk_m4 *= tweak;
+
   std::string exp_sk_c1 = "528d7f64e8c9d43ebf469c931cb95e6220a847c75a7868ed45f1e3194f95aa8d";
   std::string exp_sk_c2 = "e8186d9d60c164238c64e92d6adc1fa037ef747eb35bb3b0dfd8ba197ebe1f1c";
   std::string exp_sk_c3 = "528d7f64e8c9d43ebf469c931cb95e6220a847c75a7868ed45f1e3194f95aa8d";
@@ -329,4 +339,9 @@ TEST(Privkey, TweakTest) {
   EXPECT_EQ(exp_sk_c4, sk_c4.GetHex());
   EXPECT_EQ(exp_sk_m1, sk_m1.GetHex());
   EXPECT_EQ(exp_sk_m2, sk_m2.GetHex());
+
+  EXPECT_EQ(exp_sk_c1, sk_c5.GetHex());
+  EXPECT_EQ(exp_sk_c3, sk_c6.GetHex());
+  EXPECT_EQ(exp_sk_m1, sk_m3.GetHex());
+  EXPECT_EQ(exp_sk_m2, sk_m4.GetHex());
 }
