@@ -59,9 +59,9 @@ set(LIBWALLY_TARGET_TAG  refs/tags/cfd-0.2.3)
 endif()
 
 if(${USE_GIT_SSH})
-set(LIBWALLY_URL  git@github.com:cryptogarageinc/libwally-core.git)
+set(LIBWALLY_URL  git@github.com:ko-matsu/libwally-core.git)
 else()
-set(LIBWALLY_URL  https://github.com/cryptogarageinc/libwally-core.git)
+set(LIBWALLY_URL  https://github.com/ko-matsu/libwally-core.git)
 endif()
 
 set(TEMPLATE_PROJECT_NAME           libwally-core)
