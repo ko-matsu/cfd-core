@@ -7,6 +7,7 @@
 
 #include "cfdcore/cfdcore_hdwallet.h"
 
+#include <algorithm>
 #include <cstdlib>
 #include <sstream>
 #include <string>

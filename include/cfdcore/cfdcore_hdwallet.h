@@ -864,6 +864,8 @@ class CFD_CORE_EXPORT KeyData {
 
   /**
    * @brief getting bip32 path.
+   * @param[in] hardened_type  hardened string type
+   * @param[in] has_hex  using hex string
    * @return bip32 path
    */
   std::string GetBip32Path(
@@ -871,6 +873,9 @@ class CFD_CORE_EXPORT KeyData {
       bool has_hex = false) const;
   /**
    * @brief get message string.
+   * @param[in] has_pubkey  displays the pubkey string.
+   * @param[in] hardened_type  hardened string type
+   * @param[in] has_hex  using hex string
    * @return message string.
    */
   std::string ToString(
