@@ -28,6 +28,7 @@ TEST_CFDCORE_SOURCES= \
     test_privkey.cpp \
     test_extpubkey.cpp \
     test_extprivkey.cpp \
+    test_keydata.cpp \
     test_descriptor.cpp \
     test_address.cpp \
     test_outpoint.cpp \
