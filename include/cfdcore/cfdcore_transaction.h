@@ -214,7 +214,7 @@ class CFD_CORE_EXPORT Transaction : public AbstractTransaction {
    * @brief コンストラクタ
    * @param[in] transaction   トランザクション情報
    */
-  explicit Transaction(const Transaction& transaction);
+  Transaction(const Transaction& transaction);
   /**
    * @brief デストラクタ
    */

@@ -702,6 +702,13 @@ class CFD_CORE_EXPORT Script {
    */
   bool IsEmpty() const;
   /**
+   * @brief check equal object.
+   * @param[in] object     check target,
+   * @retval true   equal
+   * @retval false  differ
+   */
+  bool Equals(const Script &script) const;
+  /**
    * @brief get element list.
    * @return element list
    */

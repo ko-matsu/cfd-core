@@ -790,6 +790,10 @@ const std::string Script::GetHex() const { return script_data_.GetHex(); }
 
 bool Script::IsEmpty() const { return script_data_.GetBytes().empty(); }
 
+bool Script::Equals(const Script& object) const {
+  return script_data_.Equals(object.script_data_);
+}
+
 std::vector<ScriptElement> Script::GetElementList() const {
   return script_stack_;
 }

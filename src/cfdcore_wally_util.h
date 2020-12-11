@@ -24,6 +24,7 @@
 #include "wally_descriptor.h"   // NOLINT
 #include "wally_script.h"       // NOLINT
 #include "wally_transaction.h"  // NOLINT
+#include "wally_psbt.h"  // NOLINT
 
 namespace cfd {
 namespace core {
