@@ -4,6 +4,8 @@
  *
  * @brief This file is implements Partially Signed Bitcoin Transaction.
  */
+#include "cfdcore/cfdcore_psbt.h"
+
 #include <algorithm>
 #include <limits>
 #include <string>
@@ -16,11 +18,11 @@
 #include "cfdcore/cfdcore_hdwallet.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
-#include "cfdcore/cfdcore_psbt.h"
 #include "cfdcore/cfdcore_transaction.h"
 #include "cfdcore/cfdcore_util.h"
-#include "cfdcore_secp256k1.h"   // NOLINT
-#include "cfdcore_wally_util.h"  // NOLINT
+#include "cfdcore_secp256k1.h"             // NOLINT
+#include "cfdcore_transaction_internal.h"  // NOLINT
+#include "cfdcore_wally_util.h"            // NOLINT
 
 namespace cfd {
 namespace core {
@@ -32,151 +34,45 @@ using logger::warn;
 // File constants
 // -----------------------------------------------------------------------------
 
-/* PSBT Version number */
-#define WALLY_PSBT_HIGHEST_VERSION 0
+static const uint8_t kPsbtGlobalUnsignedTx = 0;  //!< global unsigned tx
+static const uint8_t kPsbtGlobalVersion = 0xfb;  //!< global psbt version
 
-/* Ignore scriptsig and witness when adding an input */
-#define WALLY_PSBT_FLAG_NON_FINAL 0x1
+static const uint8_t kPsbtInputNonWitnessUtxo = 0;  //!< input utxo transaction
+static const uint8_t kPsbtInputWitnessUtxo = 1;  //!< input witness utxo output
+static const uint8_t kPsbtInputPartialSig = 2;   //!< input signature
+static const uint8_t kPsbtInputSigHashType = 3;  //!< input sighash type
+static const uint8_t kPsbtInputRedeemScript = 4;   //!< input redeem script
+static const uint8_t kPsbtInputWitnessScript = 5;  //!< input witness script
+/// input bip32 derivation
+static const uint8_t kPsbtInputBip32Derivation = 6;
+static const uint8_t kPsbtInputFinalScriptSig = 7;  //!< input final scriptsig
+/// input final witness stack
+static const uint8_t kPsbtInputFinalScriptWitness = 8;
 
-/* Key prefix for proprietary keys in our unknown maps */
-#define PSBT_PROPRIETARY_TYPE 0xFC
+static const uint8_t kPsbtOutputRedeemScript = 0;   //!< output redeem script
+static const uint8_t kPsbtOutputWitnessScript = 1;  //!< output witness script
+/// output bip32 derivation
+static const uint8_t kPsbtOutputBip32Derivation = 2;
 
-#if 0
-/*
-- cfd-coreで実装する機能
-  - パラメータ個別でのAdd/Edit/Remove
-  - 結合系の動作
-  - 処理途中でのTX出力
-  - パス情報用のクラス作成
-    - HDWalletに追加。むしろそちら側を拡張したい。
-- cfdで実装する機能
-  - OutPoint指定での登録
-  - UTXO一括登録, 更新（utxoupdatepsbt）
-  - FundRawTransaction
-  - TX情報を直接設定するAPI（ただしOutput側のKey一覧は未設定）
-  - decodepsbt, analyzepsbt
-  - 署名関連
-  - その他、bitcoin-cli相当の動作（converttopsbt、createpsbt）
-
-- usecase
-  - Creator
-    - 初期TXを作成する。（Inputは空）
-  - Updater
-    - Inputを追加する。（各自にPSBTを送付して追加してもらう）
-    - その後、Fund相当の処理を行う。
-    - Base TXはここでFIXする。
-  - Signer
-    - Signを追加する。（各自にPSBTを送付して追加してもらう）
-  - Combiner
-    - Signerが署名したTXを結合する。
-  - Input Finalizer
-    - InputのFinalize処理
-      - ここ、APIにした方が良いかもしれない。★
-  - Transaction Extractor
-    - export
-
-
-{ "rawtransactions",    "decodepsbt",     &decodepsbt,       {"psbt"} },
-{ "rawtransactions",    "analyzepsbt",    &analyzepsbt,      {"psbt"} },
-{ "rawtransactions",    "createpsbt",     &createpsbt,       {"inputs","outputs","locktime","replaceable"} },
-{ "rawtransactions",    "converttopsbt",  &converttopsbt,    {"hexstring","permitsigdata","iswitness"} },
-{ "rawtransactions",    "joinpsbts",      &joinpsbts,        {"txs"} },
-{ "rawtransactions",    "utxoupdatepsbt", &utxoupdatepsbt,   {"psbt"} },
-{ "rawtransactions",    "combinepsbt",    &combinepsbt,      {"txs"} },
-{ "rawtransactions",    "finalizepsbt",   &finalizepsbt,     {"psbt", "extract"} },
-
-{ "wallet",           "walletcreatefundedpsbt", &walletcreatefundedpsbt,  {"inputs","outputs","locktime","options","bip32derivs","solving_data"} }, Creator and Updater
-{ "wallet",           "walletprocesspsbt",      &walletprocesspsbt,       {"psbt","sign","sighashtype","bip32derivs"} },
-{ "wallet",           "walletfillpsbtdata",     &walletfillpsbtdata,      {"psbt","bip32derivs"} },
-{ "wallet",           "walletsignpsbt",         &walletsignpsbt,          {"psbt","sighashtype","imbalance_ok"} },
-
-walletfillpsbtdata: bip32情報を付与してキーの追加？
-
-*/
-#endif
-
-/// Definition of No Witness Transaction version
-static constexpr uint32_t kTransactionVersionNoWitness = 0x40000000;
-
-
-enum PsbtGlobalKey {
-  kUnsignedTx = 0,
-  kXpub = 1,
-  kVersion = 0xfb,
-  kGrobalProprietary = 0xfc,
-};
-
-enum PsbtInputKey {
-  kNonWitnessUtxo = 0,
-  kWitnessUtxo = 1,
-  kPartialSig = 2,
-  kSighashType = 3,
-  kRedeemScript = 4,
-  kWitnessScript = 5,
-  kInputBip32Derivation = 6,
-  kFinalScriptSig = 7,
-  kFinalScriptWitness = 8,
-  kInputProprietary = 0xfc,
-};
-
-enum PsbtOutputKey {
-  kOutputRedeemScript = 0,
-  kOutputWitnessScript = 1,
-  kOutputBip32Derivation = 2,
-  kOutputProprietary = 0xfc,
-};
-
+static const uint8_t kPsbtSeparator = 0;  //!< psbt map separator
 
 // -----------------------------------------------------------------------------
 // Internal
 // -----------------------------------------------------------------------------
-ByteData ConvertTxDataFromWally(struct wally_tx *tx) {
-  size_t witness_count = 0;
-  int ret = wally_tx_get_witness_count(tx, &witness_count);
-  if (ret != WALLY_OK) {
-    wally_tx_free(tx);
-    warn(CFD_LOG_SOURCE, "wally_tx_get_witness_count NG[{}]", ret);
-    throw CfdException(kCfdIllegalStateError, "psbt witness count get error.");
-  }
-
-  uint32_t flags = (witness_count != 0) ? WALLY_TX_FLAG_USE_WITNESS : 0;
-  size_t size = 0;
-  ret = wally_tx_get_length(tx, flags, &size);
-  if (ret != WALLY_OK) {
-    wally_tx_free(tx);
-    warn(CFD_LOG_SOURCE, "wally_tx_get_length NG[{}]", ret);
-    throw CfdException(kCfdIllegalStateError, "psbt tx size get error.");
-  }
-
-  try {
-    std::vector<uint8_t> buf(size);
-    size = 0;
-    ret = wally_tx_to_bytes(tx, flags, buf.data(), buf.size(), &size);
-    wally_tx_free(tx);
-    tx = nullptr;
-    if (ret != WALLY_OK) {
-      warn(CFD_LOG_SOURCE, "wally_tx_to_bytes NG[{}]", ret);
-      throw CfdException(kCfdIllegalStateError, "psbt tx get error.");
-    }
-    return ByteData(buf.data(), static_cast<uint32_t>(size));
-  } catch (const CfdError &except) {
-    throw except;
-  } catch (...) {
-    // from std::vector
-    wally_tx_free(tx);
-    warn(CFD_LOG_SOURCE, "unknown error.");
-    throw CfdException();
-  }
-}
-
-static struct wally_map* CreateKeyPathMap(const std::vector<KeyData>& key_list) {
-  struct wally_map* map_obj = nullptr;
+/**
+ * @brief create psbt bip32 key map
+ * @param[in] key_list bip32 key path list
+ * @return map
+ */
+static struct wally_map *CreateKeyPathMap(
+    const std::vector<KeyData> &key_list) {
+  struct wally_map *map_obj = nullptr;
   int ret = wally_map_init_alloc(key_list.size(), &map_obj);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_map_init_alloc NG[{}]", ret);
     throw CfdException(kCfdMemoryFullError, "psbt alloc map error.");
   }
-  for (auto& key : key_list) {
+  for (auto &key : key_list) {
     auto key_vec = key.GetPubkey().GetData().GetBytes();
     std::vector<uint8_t> fingerprint(4);
     if (key.GetFingerprint().GetDataSize() >= 4) {
@@ -185,8 +81,8 @@ static struct wally_map* CreateKeyPathMap(const std::vector<KeyData>& key_list) 
     auto path = key.GetChildNumArray();
 
     ret = wally_map_add_keypath_item(
-        map_obj, key_vec.data(), key_vec.size(),
-        fingerprint.data(), 4, path.data(), path.size());
+        map_obj, key_vec.data(), key_vec.size(), fingerprint.data(), 4,
+        path.data(), path.size());
     if (ret != WALLY_OK) {
       wally_map_free(map_obj);
       warn(CFD_LOG_SOURCE, "wally_map_add_keypath_item NG[{}]", ret);
@@ -196,36 +92,55 @@ static struct wally_map* CreateKeyPathMap(const std::vector<KeyData>& key_list) 
   return map_obj;
 }
 
-bool ValidateUtxo(const Txid& txid, uint32_t vout, const Script& out_script, const Script& redeem_script, const std::vector<KeyData>& key_list) {
+/**
+ * @brief validate psbt utxo data.
+ * @param[in] txid    utxo txid
+ * @param[in] vout    utxo vout
+ * @param[in] out_script          locking script (script pubkey)
+ * @param[in] redeem_script       redeem script
+ * @param[in] key_list            key list
+ * @param[out] new_redeem_script  output redeem script
+ * @retval true   witness
+ * @retval false  not witness
+ */
+bool ValidatePsbtUtxo(
+    const Txid &txid, uint32_t vout, const Script &out_script,
+    const Script &redeem_script, const std::vector<KeyData> &key_list,
+    Script *new_redeem_script) {
   bool has_check_script = false;
   bool is_witness = false;
 
   if (out_script.IsP2pkhScript() || out_script.IsP2wpkhScript()) {
     if (!redeem_script.IsEmpty()) {
-      warn(CFD_LOG_SOURCE, "pubkey isn't use redeemScript. txid:{},{}",
+      warn(
+          CFD_LOG_SOURCE, "pubkey isn't use redeemScript. txid:{},{}",
           txid.GetHex(), vout);
-      throw CfdException(kCfdIllegalArgumentError, "pubkey isn't use redeemScript.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "pubkey isn't use redeemScript.");
     }
-    
+
     if (key_list.size() > 1) {
-      warn(CFD_LOG_SOURCE, "set many key. using key is one.",
-          txid.GetHex(), vout);
-      throw CfdException(kCfdIllegalArgumentError, "set many key. using key is one.");
+      warn(
+          CFD_LOG_SOURCE, "set many key. using key is one.", txid.GetHex(),
+          vout);
+      throw CfdException(
+          kCfdIllegalArgumentError, "set many key. using key is one.");
     } else if (key_list.size() == 1) {
       auto pubkey = key_list[0].GetPubkey();
       if (out_script.IsP2wpkhScript()) {
         is_witness = true;
-        if (!ScriptUtil::CreateP2wpkhLockingScript(
-            pubkey).Equals(out_script)) {
-          warn(CFD_LOG_SOURCE, "unmatch pubkey. txid:{},{}",
-              txid.GetHex(), vout);
+        if (!ScriptUtil::CreateP2wpkhLockingScript(pubkey).Equals(
+                out_script)) {
+          warn(
+              CFD_LOG_SOURCE, "unmatch pubkey. txid:{},{}", txid.GetHex(),
+              vout);
           throw CfdException(kCfdIllegalArgumentError, "unmatch pubkey.");
         }
       } else {
-        if (!ScriptUtil::CreateP2pkhLockingScript(
-            pubkey).Equals(out_script)) {
-          warn(CFD_LOG_SOURCE, "unmatch pubkey. txid:{},{}",
-              txid.GetHex(), vout);
+        if (!ScriptUtil::CreateP2pkhLockingScript(pubkey).Equals(out_script)) {
+          warn(
+              CFD_LOG_SOURCE, "unmatch pubkey. txid:{},{}", txid.GetHex(),
+              vout);
           throw CfdException(kCfdIllegalArgumentError, "unmatch pubkey.");
         }
       }
@@ -233,57 +148,68 @@ bool ValidateUtxo(const Txid& txid, uint32_t vout, const Script& out_script, con
   } else if (out_script.IsP2shScript()) {
     if (redeem_script.IsEmpty() || redeem_script.IsP2wpkhScript()) {
       if (redeem_script.IsP2wpkhScript()) {
-        auto p2sh_wpkh_script = ScriptUtil::CreateP2shLockingScript(redeem_script);
+        auto p2sh_wpkh_script =
+            ScriptUtil::CreateP2shLockingScript(redeem_script);
         if (!p2sh_wpkh_script.Equals(out_script)) {
-          warn(CFD_LOG_SOURCE, "unmatch scriptPubkey. txid:{},{}",
+          warn(
+              CFD_LOG_SOURCE, "unmatch scriptPubkey. txid:{},{}",
               txid.GetHex(), vout);
-          throw CfdException(kCfdIllegalArgumentError, "unmatch scriptPubkey.");
+          throw CfdException(
+              kCfdIllegalArgumentError, "unmatch scriptPubkey.");
         }
       }
 
       if (key_list.size() > 1) {
-        warn(CFD_LOG_SOURCE, "set many key. using key is one.",
-            txid.GetHex(), vout);
-        throw CfdException(kCfdIllegalArgumentError, "set many key. using key is one.");
+        warn(
+            CFD_LOG_SOURCE, "set many key. using key is one.", txid.GetHex(),
+            vout);
+        throw CfdException(
+            kCfdIllegalArgumentError, "set many key. using key is one.");
       } else if (key_list.size() == 1) {
         auto pubkey = key_list[0].GetPubkey();
         auto wpkh_script = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
         auto sh_script = ScriptUtil::CreateP2shLockingScript(wpkh_script);
         if (!sh_script.Equals(out_script)) {
-          warn(CFD_LOG_SOURCE, "unmatch pubkey. txid:{},{}",
-              txid.GetHex(), vout);
+          warn(
+              CFD_LOG_SOURCE, "unmatch pubkey. txid:{},{}", txid.GetHex(),
+              vout);
           throw CfdException(kCfdIllegalArgumentError, "unmatch pubkey.");
         }
+        if (new_redeem_script != nullptr) *new_redeem_script = wpkh_script;
       }
       is_witness = true;
     } else {
       Address p2sh_addr(NetType::kMainnet, redeem_script);
-      Address p2wsh_addr(NetType::kMainnet, WitnessVersion::kVersion0, redeem_script);
-      auto p2sh_wsh_script = ScriptUtil::CreateP2shLockingScript(
-          p2wsh_addr.GetLockingScript());
+      Address p2wsh_addr(
+          NetType::kMainnet, WitnessVersion::kVersion0, redeem_script);
+      auto wsh_script = p2wsh_addr.GetLockingScript();
+      auto p2sh_wsh_script = ScriptUtil::CreateP2shLockingScript(wsh_script);
       if (p2sh_addr.GetLockingScript().Equals(out_script)) {
         has_check_script = true;
       } else if (p2sh_wsh_script.Equals(out_script)) {
         has_check_script = true;
         is_witness = true;
       } else {
-        warn(CFD_LOG_SOURCE, "unknown scriptPubkey. txid:{},{}",
-            txid.GetHex(), vout);
+        warn(
+            CFD_LOG_SOURCE, "unknown scriptPubkey. txid:{},{}", txid.GetHex(),
+            vout);
         throw CfdException(kCfdIllegalArgumentError, "unknown scriptPubkey.");
       }
     }
   } else if (out_script.IsP2wshScript()) {
     Address addr(NetType::kMainnet, WitnessVersion::kVersion0, redeem_script);
     if (!addr.GetLockingScript().Equals(out_script)) {
-      warn(CFD_LOG_SOURCE, "unmatch scriptPubkey. txid:{},{}",
-          txid.GetHex(), vout);
+      warn(
+          CFD_LOG_SOURCE, "unmatch scriptPubkey. txid:{},{}", txid.GetHex(),
+          vout);
       throw CfdException(kCfdIllegalArgumentError, "unmatch scriptPubkey.");
     }
     has_check_script = true;
     is_witness = true;
   } else {
-    warn(CFD_LOG_SOURCE, "unknown scriptPubkey. txid:{},{}",
-        txid.GetHex(), vout);
+    warn(
+        CFD_LOG_SOURCE, "unknown scriptPubkey. txid:{},{}", txid.GetHex(),
+        vout);
     throw CfdException(kCfdIllegalArgumentError, "unknown scriptPubkey.");
   }
 
@@ -300,52 +226,1181 @@ bool ValidateUtxo(const Txid& txid, uint32_t vout, const Script& out_script, con
         }
       }
     }
-    for (auto key : key_list) {
-      auto cur_pubkey = key.GetPubkey();
-      for (auto pubkey : pubkeys) {
-        if (pubkey.Equals(cur_pubkey)) {
-          ++count;
-          break;
+    if (!key_list.empty()) {
+      for (auto key : key_list) {
+        auto cur_pubkey = key.GetPubkey();
+        for (auto pubkey : pubkeys) {
+          if (pubkey.Equals(cur_pubkey)) {
+            ++count;
+            break;
+          }
         }
       }
-    }
-    if (count != key_list.size()) {
-      warn(CFD_LOG_SOURCE, "unmatch key count. [{}:{}]", count, key_list.size());
-      throw CfdException(kCfdIllegalArgumentError, "psbt key valid error.");
+      if (count != key_list.size()) {
+        warn(
+            CFD_LOG_SOURCE, "unmatch key count. [{}:{}]", count,
+            key_list.size());
+        throw CfdException(kCfdIllegalArgumentError, "psbt key valid error.");
+      }
     }
   }
   return is_witness;
 }
 
-void SetTxInScriptAndKeyList(struct wally_psbt_input* input, bool is_witness, const Script &redeem_script, const std::vector<KeyData>& key_list) {
+/**
+ * @brief set input script and key list.
+ * @param[in,out] input       psbt input
+ * @param[in] is_witness      witness flag
+ * @param[in] redeem_script   redeem script
+ * @param[in] key_list        bip32 key list.
+ */
+void SetPsbtTxInScriptAndKeyList(
+    struct wally_psbt_input *input, bool is_witness,
+    const Script &redeem_script, const std::vector<KeyData> &key_list) {
   int ret;
   if (!redeem_script.IsEmpty()) {
     auto script_val = redeem_script.GetData().GetBytes();
     if (is_witness && (!redeem_script.IsP2wpkhScript())) {
-      ret = wally_psbt_input_set_witness_script(input,
-          script_val.data(), script_val.size());
+      ret = wally_psbt_input_set_witness_script(
+          input, script_val.data(), script_val.size());
       if (ret != WALLY_OK) {
-        warn(CFD_LOG_SOURCE, "wally_psbt_input_set_witness_script NG[{}]", ret);
-        throw CfdException(kCfdIllegalArgumentError, "psbt add witness script error.");
+        warn(
+            CFD_LOG_SOURCE, "wally_psbt_input_set_witness_script NG[{}]", ret);
+        throw CfdException(
+            kCfdIllegalArgumentError, "psbt add witness script error.");
       }
-      script_val = ScriptUtil::CreateP2wshLockingScript(redeem_script).GetData().GetBytes();
+      script_val = ScriptUtil::CreateP2wshLockingScript(redeem_script)
+                       .GetData()
+                       .GetBytes();
     }
-    ret = wally_psbt_input_set_redeem_script(input,
-        script_val.data(), script_val.size());
+    ret = wally_psbt_input_set_redeem_script(
+        input, script_val.data(), script_val.size());
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_psbt_input_set_redeem_script NG[{}]", ret);
-      throw CfdException(kCfdIllegalArgumentError, "psbt add redeem script error.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt add redeem script error.");
     }
   }
 
   if (!key_list.empty()) {
-    struct wally_map* map_obj = CreateKeyPathMap(key_list);
+    struct wally_map *map_obj = CreateKeyPathMap(key_list);
     ret = wally_psbt_input_set_keypaths(input, map_obj);
     wally_map_free(map_obj);
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_psbt_output_set_keypaths NG[{}]", ret);
-      throw CfdException(kCfdIllegalArgumentError, "psbt add output keypaths error.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt add output keypaths error.");
     }
+
+    ret = wally_map_sort(&input->keypaths, 0);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
+      throw CfdException(kCfdInternalError, "psbt input sort keypaths error.");
+    }
+  }
+}
+
+/**
+ * @brief compare psbt data.
+ * @param[in,out] src   source buffer
+ * @param[in] src_len   source buffer length
+ * @param[in] dest      destination buffer
+ * @param[in] dest_len  destination buffer length
+ * @param[in] item_name   field name
+ * @param[in] key         key name
+ * @param[in] ignore_duplicate_error  ignore duplicate error
+ * @retval true   match
+ * @retval false  unmatch
+ */
+bool ComparePsbtData(
+    uint8_t *src, size_t src_len, const uint8_t *dest, size_t dest_len,
+    const std::string &item_name, const std::string &key,
+    bool ignore_duplicate_error) {
+  bool is_compare = false;
+  if ((src_len == dest_len) && (memcmp(src, dest, src_len) == 0)) {
+    is_compare = true;
+  } else if (ignore_duplicate_error) {
+    // do nothing
+  } else {
+    if (key.empty()) {
+      warn(CFD_LOG_SOURCE, "psbt {} already exist.", item_name);
+    } else {
+      warn(CFD_LOG_SOURCE, "psbt {} already exist. key[{}]", item_name, key);
+    }
+    throw CfdException(
+        kCfdIllegalArgumentError, "psbt " + item_name + " duplicated error.");
+  }
+  return is_compare;
+}
+
+/**
+ * @brief match wally tx.
+ * @param[in] src    source
+ * @param[in] dest   destination
+ * @retval true   match
+ * @retval false  unmatch
+ */
+bool MatchWallyTx(struct wally_tx *src, struct wally_tx *dest) {
+  std::vector<uint8_t> src_txid(WALLY_TXHASH_LEN);
+  std::vector<uint8_t> dest_txid(WALLY_TXHASH_LEN);
+  int ret = wally_tx_get_txid(src, src_txid.data(), src_txid.size());
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_tx_get_txid NG[{}]", ret);
+    throw CfdException(kCfdIllegalArgumentError, "psbt get txid error.");
+  }
+  ret = wally_tx_get_txid(dest, dest_txid.data(), dest_txid.size());
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_tx_get_txid NG[{}]", ret);
+    throw CfdException(kCfdIllegalArgumentError, "psbt get txid error.");
+  }
+  return (src_txid == dest_txid);
+}
+
+/**
+ * @brief merge wally map.
+ * @param[in,out] src   source
+ * @param[in] dst       destination
+ * @param[in] item_name   field name
+ * @param[in] ignore_duplicate_error    ignore duplicate error flag.
+ */
+void MergeWallyMap(
+    struct wally_map *src, const struct wally_map *dst,
+    const std::string &item_name, bool ignore_duplicate_error) {
+  bool is_find;
+  int ret;
+  std::vector<size_t> regist_indexes;
+  for (size_t dst_idx = 0; dst_idx < dst->num_items; ++dst_idx) {
+    auto dst_item = &dst->items[dst_idx];
+    is_find = false;
+    for (size_t src_idx = 0; src_idx < src->num_items; ++src_idx) {
+      auto src_item = &src->items[src_idx];
+      if ((src_item->key_len == dst_item->key_len) &&
+          (memcmp(src_item->key, dst_item->key, src_item->key_len) == 0)) {
+        is_find = true;
+        ByteData key(src_item->key, src_item->key_len);
+        ComparePsbtData(
+            src_item->value, src_item->value_len, dst_item->value,
+            dst_item->value_len, item_name, key.GetHex(),
+            ignore_duplicate_error);
+        break;
+      }
+    }
+    if (!is_find) regist_indexes.push_back(dst_idx);
+  }
+  if (!regist_indexes.empty()) {
+    for (auto dst_idx : regist_indexes) {
+      auto dst_item = &dst->items[dst_idx];
+      ret = wally_map_add(
+          src, dst_item->key, dst_item->key_len, dst_item->value,
+          dst_item->value_len);
+      if (ret != WALLY_OK) {
+        warn(CFD_LOG_SOURCE, "wally_map_add NG[{}]", ret);
+        throw CfdException(
+            kCfdMemoryFullError, "psbt add " + item_name + " error.");
+      }
+    }
+
+    ret = wally_map_sort(src, 0);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
+      throw CfdException(kCfdInternalError, "psbt sort map error.");
+    }
+  }
+}
+
+/**
+ * @brief alloc wally buffer.
+ * @param[in] source    source
+ * @param[in] length    source length
+ * @return alloc buffer address
+ */
+uint8_t *AllocWallyBuffer(const uint8_t *source, size_t length) {
+  wally_malloc_t malloc_func = nullptr;
+
+  int ret;
+  if (malloc_func == nullptr) {
+    struct wally_operations ops;
+    ret = wally_get_operations(&ops);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_get_operations NG[{}]", ret);
+      throw CfdException(kCfdInternalError, "OperationFunctions get error.");
+    }
+    malloc_func = ops.malloc_fn;
+  }
+  void *addr = malloc_func(length);
+  if (addr == nullptr) {
+    warn(CFD_LOG_SOURCE, "wally malloc NG.");
+    throw CfdException(kCfdMemoryFullError, "malloc error.");
+  }
+  memcpy(addr, source, length);
+  return static_cast<uint8_t *>(addr);
+}
+
+/**
+ * @brief free wally buffer
+ * @param[in] source   buffer
+ */
+void FreeWallyBuffer(void *source) {
+  wally_free_t free_func = nullptr;
+
+  int ret;
+  if (free_func == nullptr) {
+    struct wally_operations ops;
+    ret = wally_get_operations(&ops);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_get_operations NG[{}]", ret);
+      throw CfdException(kCfdInternalError, "OperationFunctions get error.");
+    }
+    free_func = ops.free_fn;
+  }
+  free_func(source);
+}
+
+/**
+ * @brief merge input item.
+ * @param[in,out] psbt     source psbt input.
+ * @param[in] psbt_dest    destination psbt input.
+ * @param[in] ignore_duplicate_error   ignore duplicate error flag
+ * @param[in] item_name   field name
+ */
+void MergePsbtInputItem(
+    struct wally_psbt_input *psbt, const struct wally_psbt_input *psbt_dest,
+    bool ignore_duplicate_error, const std::string &item_name) {
+  int ret;
+  if (psbt_dest->utxo != nullptr) {
+    if (psbt->utxo == nullptr) {
+      ret = wally_psbt_input_set_utxo(psbt, psbt_dest->utxo);
+      if (ret != WALLY_OK) {
+        warn(CFD_LOG_SOURCE, "wally_psbt_input_set_utxo NG[{}]", ret);
+        throw CfdException(kCfdIllegalArgumentError, "psbt set utxo error.");
+      }
+    } else if (MatchWallyTx(psbt->utxo, psbt_dest->utxo)) {
+      // match
+    } else if (ignore_duplicate_error) {
+      // do nothing
+    } else {
+      warn(CFD_LOG_SOURCE, "psbt txin utxo already exist.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt txin utxo duplicated error.");
+    }
+  }
+  if (psbt_dest->witness_utxo != nullptr) {
+    if (psbt->witness_utxo == nullptr) {
+      ret = wally_psbt_input_set_witness_utxo(psbt, psbt_dest->witness_utxo);
+      if (ret != WALLY_OK) {
+        warn(CFD_LOG_SOURCE, "wally_psbt_input_set_witness_utxo NG[{}]", ret);
+        throw CfdException(
+            kCfdIllegalArgumentError, "psbt set witness utxo error.");
+      }
+    } else if (
+        (psbt->witness_utxo->satoshi == psbt_dest->witness_utxo->satoshi) &&
+        ComparePsbtData(
+            psbt->witness_utxo->script, psbt->witness_utxo->script_len,
+            psbt_dest->witness_utxo->script,
+            psbt_dest->witness_utxo->script_len, item_name, "scriptPubkey",
+            ignore_duplicate_error)) {
+      // match
+    } else if (ignore_duplicate_error) {
+      // do nothing
+    } else {
+      warn(CFD_LOG_SOURCE, "psbt txin witness utxo already exist.");
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt txin witness utxo duplicated error.");
+    }
+  }
+  if (psbt_dest->sighash > 0) {
+    if (psbt->sighash == 0) {
+      psbt->sighash = psbt_dest->sighash;
+    } else if (psbt->sighash == psbt_dest->sighash) {
+      // match
+    } else if (ignore_duplicate_error) {
+      // do nothing
+    } else {
+      std::string item_name = "txin sighashtype";
+      warn(CFD_LOG_SOURCE, "psbt {} already exist.", item_name);
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt " + item_name + " duplicated error.");
+    }
+  }
+  if (psbt_dest->redeem_script_len > 0) {
+    if (psbt->redeem_script_len == 0) {
+      psbt->redeem_script = AllocWallyBuffer(
+          psbt_dest->redeem_script, psbt_dest->redeem_script_len);
+      psbt->redeem_script_len = psbt_dest->redeem_script_len;
+    } else {
+      ComparePsbtData(
+          psbt->redeem_script, psbt->redeem_script_len,
+          psbt_dest->redeem_script, psbt_dest->redeem_script_len,
+          "txin redeem script", "", ignore_duplicate_error);
+    }
+  }
+  if (psbt_dest->witness_script_len > 0) {
+    if (psbt->witness_script_len == 0) {
+      psbt->witness_script = AllocWallyBuffer(
+          psbt_dest->witness_script, psbt_dest->witness_script_len);
+      psbt->witness_script_len = psbt_dest->witness_script_len;
+    } else {
+      ComparePsbtData(
+          psbt->witness_script, psbt->witness_script_len,
+          psbt_dest->witness_script, psbt_dest->witness_script_len,
+          "txin witness script", "", ignore_duplicate_error);
+    }
+  }
+  MergeWallyMap(
+      &psbt->keypaths, &psbt_dest->keypaths, "txin keypaths",
+      ignore_duplicate_error);
+  MergeWallyMap(
+      &psbt->signatures, &psbt_dest->signatures, "txin signatures",
+      ignore_duplicate_error);
+  MergeWallyMap(
+      &psbt->unknowns, &psbt_dest->unknowns, "txin unknowns",
+      ignore_duplicate_error);
+}
+
+/**
+ * @brief merge output item.
+ * @param[in,out] psbt     source psbt output.
+ * @param[in] psbt_dest    destination psbt output.
+ * @param[in] ignore_duplicate_error   ignore duplicate error flag
+ */
+void MergePsbtOutputItem(
+    struct wally_psbt_output *psbt, const struct wally_psbt_output *psbt_dest,
+    bool ignore_duplicate_error) {
+  if (psbt_dest->redeem_script_len > 0) {
+    if (psbt->redeem_script_len == 0) {
+      psbt->redeem_script = AllocWallyBuffer(
+          psbt_dest->redeem_script, psbt_dest->redeem_script_len);
+      psbt->redeem_script_len = psbt_dest->redeem_script_len;
+    } else {
+      ComparePsbtData(
+          psbt->redeem_script, psbt->redeem_script_len,
+          psbt_dest->redeem_script, psbt_dest->redeem_script_len,
+          "txout redeem script", "", ignore_duplicate_error);
+    }
+  }
+  if (psbt_dest->witness_script_len > 0) {
+    if (psbt->witness_script_len == 0) {
+      psbt->witness_script = AllocWallyBuffer(
+          psbt_dest->witness_script, psbt_dest->witness_script_len);
+      psbt->witness_script_len = psbt_dest->witness_script_len;
+    } else {
+      ComparePsbtData(
+          psbt->witness_script, psbt->witness_script_len,
+          psbt_dest->witness_script, psbt_dest->witness_script_len,
+          "txout witness script", "", ignore_duplicate_error);
+    }
+  }
+  MergeWallyMap(
+      &psbt->keypaths, &psbt_dest->keypaths, "txout keypaths",
+      ignore_duplicate_error);
+  MergeWallyMap(
+      &psbt->unknowns, &psbt_dest->unknowns, "txout unknowns",
+      ignore_duplicate_error);
+}
+
+/**
+ * @brief merge input list.
+ * @param[in,out] psbt     source psbt.
+ * @param[in] psbt_dest    destination psbt.
+ * @param[in] ignore_duplicate_error   ignore duplicate error flag
+ */
+void MergePsbtInputs(
+    struct wally_psbt *psbt, const struct wally_psbt *psbt_dest,
+    bool ignore_duplicate_error) {
+  bool is_find;
+  int ret;
+  std::vector<size_t> append_indexes;
+  for (size_t dst_idx = 0; dst_idx < psbt_dest->num_inputs; ++dst_idx) {
+    auto dest_txin = &psbt_dest->tx->inputs[dst_idx];
+    is_find = false;
+    for (size_t src_idx = 0; src_idx < psbt->num_inputs; ++src_idx) {
+      auto src_txin = &psbt->tx->inputs[src_idx];
+      if ((src_txin->index == dest_txin->index) &&
+          (memcmp(
+               src_txin->txhash, dest_txin->txhash,
+               sizeof(src_txin->txhash)) == 0)) {
+        is_find = true;
+        Txid txid(ByteData256(ByteData(
+            src_txin->txhash,
+            static_cast<uint32_t>(sizeof(src_txin->txhash)))));
+        std::string item_key =
+            txid.GetHex() + "," + std::to_string(src_txin->index);
+        if (src_txin->sequence == dest_txin->sequence) {
+          // do nothing
+        } else if (ignore_duplicate_error) {
+          // do nothing
+        } else {
+          warn(CFD_LOG_SOURCE, "psbt sequence duplicate. [{}]", item_key);
+          throw CfdException(
+              kCfdIllegalArgumentError, "psbt sequence duplicate error.");
+        }
+        MergePsbtInputItem(
+            &psbt->inputs[src_idx], &psbt_dest->inputs[dst_idx],
+            ignore_duplicate_error, item_key);
+        break;
+      }
+    }
+    if (!is_find) append_indexes.push_back(dst_idx);
+  }
+
+  uint32_t index;
+  for (auto dst_idx : append_indexes) {
+    index = psbt->num_inputs;
+    ret = wally_psbt_add_input_at(
+        psbt, index, WALLY_PSBT_FLAG_NON_FINAL,
+        &psbt_dest->tx->inputs[dst_idx]);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_psbt_add_input_at NG[{}]", ret);
+      throw CfdException(
+          kCfdMemoryFullError, "psbt add global unkonwns error.");
+    }
+    auto dest_txin = &psbt_dest->tx->inputs[dst_idx];
+    Txid txid(ByteData256(ByteData(
+        dest_txin->txhash, static_cast<uint32_t>(sizeof(dest_txin->txhash)))));
+    std::string item_key =
+        txid.GetHex() + "," + std::to_string(dest_txin->index);
+    MergePsbtInputItem(
+        &psbt->inputs[index], &psbt_dest->inputs[dst_idx],
+        ignore_duplicate_error, item_key);
+  }
+}
+
+/**
+ * @brief merge output list.
+ * @param[in,out] psbt     source psbt.
+ * @param[in] psbt_dest    destination psbt.
+ * @param[in] ignore_duplicate_error   ignore duplicate error flag
+ */
+void MergePsbtOutputs(
+    struct wally_psbt *psbt, const struct wally_psbt *psbt_dest,
+    bool ignore_duplicate_error) {
+  bool is_find;
+  int ret;
+  std::vector<size_t> append_indexes;
+  size_t start_idx = 0;
+  for (size_t dst_idx = 0; dst_idx < psbt_dest->num_outputs; ++dst_idx) {
+    auto dest_txout = &psbt_dest->tx->outputs[dst_idx];
+    is_find = false;
+    for (size_t src_idx = start_idx; src_idx < psbt->num_outputs; ++src_idx) {
+      auto src_txout = &psbt->tx->outputs[src_idx];
+      if ((src_txout->satoshi == dest_txout->satoshi) &&
+          (src_txout->script_len == dest_txout->script_len) &&
+          (memcmp(
+               src_txout->script, dest_txout->script,
+               sizeof(src_txout->script_len)) == 0)) {
+        is_find = true;
+        start_idx = src_idx + 1;
+        MergePsbtOutputItem(
+            &psbt->outputs[src_idx], &psbt_dest->outputs[dst_idx],
+            ignore_duplicate_error);
+        break;
+      }
+    }
+    if (!is_find) append_indexes.push_back(dst_idx);
+  }
+
+  uint32_t index;
+  for (auto dst_idx : append_indexes) {
+    index = psbt->num_outputs;
+    ret = wally_psbt_add_output_at(
+        psbt, index, 0, &psbt_dest->tx->outputs[dst_idx]);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_psbt_add_output_at NG[{}]", ret);
+      throw CfdException(
+          kCfdMemoryFullError, "psbt add global unkonwns error.");
+    }
+    MergePsbtOutputItem(
+        &psbt->outputs[index], &psbt_dest->outputs[dst_idx],
+        ignore_duplicate_error);
+  }
+}
+
+/**
+ * @brief merge psbt.
+ * @param[in] src   source psbt
+ * @param[in] dest  destination psbt
+ * @param[in] ignore_duplicate_error  ignore duplicate error
+ * @return merged psbt
+ */
+struct wally_psbt *MergePsbt(
+    const void *src, const void *dest, bool ignore_duplicate_error) {
+  const struct wally_psbt *psbt_src =
+      static_cast<const struct wally_psbt *>(src);
+  const struct wally_psbt *psbt_dest =
+      static_cast<const struct wally_psbt *>(dest);
+
+  if ((psbt_src->tx == nullptr) ||
+      (psbt_src->num_inputs != psbt_src->tx->num_inputs) ||
+      (psbt_src->num_outputs != psbt_src->tx->num_outputs)) {
+    warn(CFD_LOG_SOURCE, "psbt src format error.");
+    throw CfdException(kCfdIllegalArgumentError, "psbt src format error.");
+  }
+  if ((psbt_dest->tx == nullptr) ||
+      (psbt_dest->num_inputs != psbt_dest->tx->num_inputs) ||
+      (psbt_dest->num_outputs != psbt_dest->tx->num_outputs)) {
+    warn(CFD_LOG_SOURCE, "psbt dest format error.");
+    throw CfdException(kCfdIllegalArgumentError, "psbt dest format error.");
+  }
+
+  struct wally_psbt *psbt = nullptr;
+  int ret = wally_psbt_clone_alloc(psbt_src, 0, &psbt);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_psbt_clone_alloc NG[{}]", ret);
+    throw CfdException(kCfdMemoryFullError, "psbt clone error.");
+  }
+
+  try {
+    if (memcmp(psbt->magic, psbt_dest->magic, sizeof(psbt->magic)) != 0) {
+      warn(CFD_LOG_SOURCE, "psbt unmatch magic.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt unmatch magic error.");
+    }
+    if (psbt->version != psbt_dest->version) {
+      warn(
+          CFD_LOG_SOURCE, "psbt unmatch version: [{},{}]", psbt->version,
+          psbt_dest->version);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt unmatch version error.");
+    }
+    MergeWallyMap(
+        &psbt->unknowns, &psbt_dest->unknowns, "global unknowns",
+        ignore_duplicate_error);
+
+    MergePsbtInputs(psbt, psbt_dest, ignore_duplicate_error);
+    MergePsbtOutputs(psbt, psbt_dest, ignore_duplicate_error);
+  } catch (const CfdException &except) {
+    wally_psbt_free(psbt);
+    throw except;
+  }
+  return psbt;
+}
+
+/**
+ * @brief write psbt output.
+ * @param[in,out] builder   serialize object
+ * @param[in] output        psbt output
+ */
+static void WritePsbtOutput(
+    Serializer *builder, const struct wally_psbt_output *output) {
+  if (output->redeem_script_len != 0) {
+    builder->AddPrefixBuffer(
+        kPsbtOutputRedeemScript, output->redeem_script,
+        output->redeem_script_len);
+  }
+  if (output->witness_script_len != 0) {
+    builder->AddPrefixBuffer(
+        kPsbtOutputWitnessScript, output->witness_script,
+        output->witness_script_len);
+  }
+  for (size_t i = 0; i < output->keypaths.num_items; ++i) {
+    auto *item = &output->keypaths.items[i];
+    builder->AddPrefixBuffer(
+        kPsbtOutputBip32Derivation, item->key, item->key_len);
+    builder->AddVariableBuffer(item->value, item->value_len);
+  }
+  for (size_t i = 0; i < output->unknowns.num_items; ++i) {
+    auto *item = &output->unknowns.items[i];
+    builder->AddVariableBuffer(item->key, item->key_len);
+    builder->AddVariableBuffer(item->value, item->value_len);
+  }
+  builder->AddDirectByte(kPsbtSeparator);
+}
+
+/**
+ * @brief create psbt output only object.
+ * @param[in] psbt   psbt object
+ * @return psbt binary data.
+ */
+ByteData CreatePsbtOutputOnlyData(const struct wally_psbt *psbt) {
+  Serializer builder;
+  builder.AddDirectBytes(psbt->magic, sizeof(psbt->magic));
+
+  builder.AddDirectByte(1);
+  builder.AddVariableInt(kPsbtGlobalUnsignedTx);
+  auto tx = ConvertBitcoinTxFromWally(psbt->tx, false).GetBytes();
+  builder.AddVariableBuffer(tx.data(), tx.size());
+
+  if (psbt->version > 0) {
+    builder.AddDirectByte(1);
+    builder.AddVariableInt(kPsbtGlobalVersion);
+    std::vector<uint8_t> data(sizeof(psbt->version));
+    memcpy(data.data(), &psbt->version, data.size());
+    // TODO(k-matsuzawa) need endian support.
+    builder.AddVariableBuffer(data.data(), sizeof(psbt->version));
+  }
+
+  for (size_t i = 0; i < psbt->unknowns.num_items; ++i) {
+    auto *item = &psbt->unknowns.items[i];
+    builder.AddVariableBuffer(item->key, item->key_len);
+    builder.AddVariableBuffer(item->value, item->value_len);
+  }
+  builder.AddDirectByte(kPsbtSeparator);
+
+  // input is unsupport.
+
+  for (size_t i = 0; i < psbt->num_outputs; ++i) {
+    WritePsbtOutput(&builder, &psbt->outputs[i]);
+  }
+  return builder.Output();
+}
+
+/**
+ * @brief find psbt map data.
+ * @param[in] map_object    map
+ * @param[in] key           key data
+ * @param[in] field_name    field name
+ */
+static void FindPsbtMap(
+    const struct wally_map *map_object, const std::vector<uint8_t> &key,
+    const std::string &field_name) {
+  size_t exist = 0;
+  int ret = wally_map_find(map_object, key.data(), key.size(), &exist);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
+    throw CfdException(
+        kCfdIllegalArgumentError, "psbt find " + field_name + " error.");
+  }
+  if (exist != 0) {
+    warn(CFD_LOG_SOURCE, "{} duplicates.", field_name);
+    throw CfdException(
+        kCfdIllegalArgumentError, "psbt " + field_name + " duplicates error.");
+  }
+}
+
+/**
+ * @brief set psbt global data.
+ * @param[in] key     key
+ * @param[in] value   value
+ * @param[in,out] psbt  psbt object
+ * @return key type
+ */
+static uint8_t SetPsbtGlobal(
+    const std::vector<uint8_t> &key, const std::vector<uint8_t> &value,
+    struct wally_psbt *psbt) {
+  int ret;
+  bool has_key_1byte = (key.size() == 1);
+  if (key[0] == kPsbtGlobalUnsignedTx) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    warn(CFD_LOG_SOURCE, "setting global tx is not supported.");
+    throw CfdException(
+        kCfdIllegalArgumentError,
+        "psbt setting global tx is not supported error.");
+  } else if (key[0] == kPsbtGlobalVersion) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    warn(CFD_LOG_SOURCE, "setting global version is not supported.");
+    throw CfdException(
+        kCfdIllegalArgumentError,
+        "psbt setting global version is not supported error.");
+  } else {
+    FindPsbtMap(&psbt->unknowns, key, "global unknowns");
+    ret = wally_map_add(
+        &psbt->unknowns, key.data(), key.size(), value.data(), value.size());
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_map_add NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt add global unknowns error.");
+    }
+  }
+  return key[0];
+}
+
+/**
+ * @brief set psbt input data.
+ * @param[in] key     key
+ * @param[in] value   value
+ * @param[in,out] input  psbt input
+ * @return key type
+ */
+static uint8_t SetPsbtInput(
+    const std::vector<uint8_t> &key, const std::vector<uint8_t> &value,
+    struct wally_psbt_input *input) {
+  int ret;
+  bool has_key_1byte = (key.size() == 1);
+  if (key[0] == kPsbtInputNonWitnessUtxo) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    Transaction tx(value);
+    struct wally_tx *wally_tx_obj = nullptr;
+    ret = wally_tx_from_hex(tx.GetHex().c_str(), 0, &wally_tx_obj);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_tx_from_hex NG[{}]", ret);
+      throw CfdException(kCfdIllegalArgumentError, "psbt tx from hex error.");
+    }
+
+    ret = wally_psbt_input_set_utxo(input, wally_tx_obj);
+    wally_tx_free(wally_tx_obj);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_psbt_input_set_utxo NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set input utxo error.");
+    }
+  } else if (key[0] == kPsbtInputWitnessUtxo) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    // TODO(k-matsuzawa) need endian support.
+    Deserializer parser(value);
+    uint64_t amount = parser.ReadUint64();
+    auto script = parser.ReadVariableBuffer();
+    struct wally_tx_output txout;
+    memset(&txout, 0, sizeof(txout));
+    txout.satoshi = static_cast<uint64_t>(amount);
+    txout.script = script.data();
+    txout.script_len = script.size();
+    ret = wally_psbt_input_set_witness_utxo(input, &txout);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_psbt_input_set_witness_utxo NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set output witnessUtxo error.");
+    }
+  } else if (key[0] == kPsbtInputPartialSig) {
+    std::vector<uint8_t> pubkey(key.size() - 1);
+    if (pubkey.size() != 0) {
+      memcpy(pubkey.data(), &key.data()[1], pubkey.size());
+    }
+    Pubkey pk(pubkey);
+    auto pk_bytes = pk.GetData().GetBytes();
+    FindPsbtMap(&input->signatures, pk_bytes, "input signatures");
+
+    ret = wally_map_add(
+        &input->signatures, pk_bytes.data(), pk_bytes.size(), value.data(),
+        value.size());
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_map_add NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set input signatures error.");
+    }
+  } else if (key[0] == kPsbtInputSigHashType) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (value.size() < 4) {
+      warn(CFD_LOG_SOURCE, "psbt invalid value format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid value format error.");
+    }
+    // TODO(k-matsuzawa) need endian support.
+    uint32_t sighash = 0;
+    memcpy(&sighash, value.data(), sizeof(sighash));
+    ret = wally_psbt_input_set_sighash(input, sighash);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_psbt_input_set_sighash NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set input sighash error.");
+    }
+  } else if (key[0] == kPsbtInputRedeemScript) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    ret =
+        wally_psbt_input_set_redeem_script(input, value.data(), value.size());
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_psbt_input_set_redeem_script NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set input redeemScript error.");
+    }
+  } else if (key[0] == kPsbtInputWitnessScript) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    ret =
+        wally_psbt_input_set_witness_script(input, value.data(), value.size());
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_psbt_input_set_witness_script NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set input witnessScript error.");
+    }
+  } else if (key[0] == kPsbtInputBip32Derivation) {
+    std::vector<uint8_t> pubkey(key.size() - 1);
+    if (pubkey.size() != 0) {
+      memcpy(pubkey.data(), &key.data()[1], pubkey.size());
+    }
+    Pubkey pk(pubkey);
+    auto pk_bytes = pk.GetData().GetBytes();
+    FindPsbtMap(&input->keypaths, pk_bytes, "input bip32 pubkey");
+
+    if (value.size() < 4) {
+      warn(CFD_LOG_SOURCE, "psbt invalid value format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid value format error.");
+    }
+    size_t path_len = value.size() - 4;
+    std::vector<uint32_t> path(path_len / 4);
+    if (path_len != 0) {
+      // TODO(k-matsuzawa) need endian support.
+      memcpy(path.data(), &value.data()[4], path_len);
+    }
+    ret = wally_map_add_keypath_item(
+        &input->keypaths, pk_bytes.data(), pk_bytes.size(), value.data(), 4,
+        path.data(), path.size());
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_map_add_keypath_item NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set input pubkey error.");
+    }
+  } else if (key[0] == kPsbtInputFinalScriptSig) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    ret = wally_psbt_input_set_final_scriptsig(
+        input, value.data(), value.size());
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_psbt_input_set_final_scriptsig NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set input final scriptsig error.");
+    }
+  } else if (key[0] == kPsbtInputFinalScriptWitness) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    Deserializer parser(value);
+    uint64_t num = parser.ReadVariableInt();
+    std::vector<std::vector<uint8_t>> stack_list(num);
+    for (uint64_t idx = 0; idx < num; ++idx) {
+      stack_list[idx] = parser.ReadVariableBuffer();
+    }
+
+    struct wally_tx_witness_stack *stack = nullptr;
+    ret = wally_tx_witness_stack_init_alloc(num, &stack);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_tx_witness_stack_init_alloc NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt alloc witness stack error.");
+    }
+    for (const auto &stack_data : stack_list) {
+      ret = wally_tx_witness_stack_add(
+          stack, stack_data.data(), stack_data.size());
+      if (ret != WALLY_OK) {
+        wally_tx_witness_stack_free(stack);
+        warn(CFD_LOG_SOURCE, "wally_tx_witness_stack_add NG[{}]", ret);
+        throw CfdException(
+            kCfdIllegalArgumentError, "psbt add witness stack error.");
+      }
+    }
+    ret = wally_psbt_input_set_final_witness(input, stack);
+    wally_tx_witness_stack_free(stack);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_psbt_input_set_final_witness NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt set input final witnessStack error.");
+    }
+  } else {
+    FindPsbtMap(&input->unknowns, key, "input unknowns");
+    ret = wally_map_add(
+        &input->unknowns, key.data(), key.size(), value.data(), value.size());
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_map_add NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt add input unknowns error.");
+    }
+  }
+  return key[0];
+}
+
+/**
+ * @brief set psbt output data.
+ * @param[in] key     key
+ * @param[in] value   value
+ * @param[in,out] output  psbt output
+ * @return key type
+ */
+static uint8_t SetPsbtOutput(
+    const std::vector<uint8_t> &key, const std::vector<uint8_t> &value,
+    struct wally_psbt_output *output) {
+  int ret;
+  bool has_key_1byte = (key.size() == 1);
+  if (key[0] == kPsbtOutputRedeemScript) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (output->redeem_script != nullptr) {
+      warn(CFD_LOG_SOURCE, "output redeemScript duplicates.");
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt output redeemScript duplicates error.");
+    }
+    ret = wally_psbt_output_set_redeem_script(
+        output, value.data(), value.size());
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_psbt_output_set_redeem_script NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set output redeemScript error.");
+    }
+  } else if (key[0] == kPsbtOutputWitnessScript) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (output->redeem_script != nullptr) {
+      warn(CFD_LOG_SOURCE, "output witnessScript duplicates.");
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt output witnessScript duplicates error.");
+    }
+    ret = wally_psbt_output_set_witness_script(
+        output, value.data(), value.size());
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_psbt_output_set_witness_script NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set output witnessScript error.");
+    }
+  } else if (key[0] == kPsbtOutputBip32Derivation) {
+    std::vector<uint8_t> pubkey(key.size() - 1);
+    if (pubkey.size() != 0) {
+      memcpy(pubkey.data(), &key.data()[1], pubkey.size());
+    }
+    Pubkey pk(pubkey);
+    auto pk_bytes = pk.GetData().GetBytes();
+    FindPsbtMap(&output->keypaths, pk_bytes, "output bip32 pubkey");
+
+    if (value.size() < 4) {
+      warn(CFD_LOG_SOURCE, "psbt invalid value format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid value format error.");
+    }
+    size_t path_len = value.size() - 4;
+    std::vector<uint32_t> path(path_len / 4);
+    if (path_len != 0) {
+      // TODO(k-matsuzawa) need endian support.
+      memcpy(path.data(), &value.data()[4], path_len);
+    }
+    ret = wally_map_add_keypath_item(
+        &output->keypaths, pk_bytes.data(), pk_bytes.size(), value.data(), 4,
+        path.data(), path.size());
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_map_add_keypath_item NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set output pubkey error.");
+    }
+  } else {
+    FindPsbtMap(&output->unknowns, key, "output unknowns");
+    ret = wally_map_add(
+        &output->unknowns, key.data(), key.size(), value.data(), value.size());
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_map_add NG[{}]", ret);
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt add output unknowns error.");
+    }
+  }
+  return key[0];
+}
+
+/**
+ * @brief parse psbt output data.
+ * @param[in] parser     deserialize object
+ * @param[in,out] output  psbt output
+ */
+static void ParsePsbtOutput(
+    Deserializer *parser, struct wally_psbt_output *output) {
+  int ret;
+  std::vector<uint8_t> key;
+  do {
+    key = parser->ReadVariableBuffer();
+    if (!key.empty()) {
+      std::vector<uint8_t> buf = parser->ReadVariableBuffer();
+      SetPsbtOutput(key, buf, output);
+    }
+  } while (!key.empty());
+
+  ret = wally_map_sort(&output->keypaths, 0);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
+    throw CfdException(kCfdInternalError, "psbt output sort keypaths error.");
+  }
+
+  ret = wally_map_sort(&output->unknowns, 0);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
+    throw CfdException(kCfdInternalError, "psbt output sort unknowns error.");
+  }
+}
+
+/**
+ * @brief parse psbt data.
+ * @param[in] data     psbt binary data
+ * @return psbt object
+ */
+struct wally_psbt *ParsePsbtData(const ByteData &data) {
+  static const uint8_t kPsbtMagic[] = {'p', 's', 'b', 't', 0xff};
+
+  struct wally_psbt *psbt = nullptr;
+  std::vector<uint8_t> bytes = data.GetBytes();
+  int ret = wally_psbt_from_bytes(bytes.data(), bytes.size(), &psbt);
+  if (ret == WALLY_OK) {
+    return psbt;
+  } else if (ret != WALLY_EINVAL) {
+    warn(CFD_LOG_SOURCE, "wally_psbt_from_bytes NG[{}]", ret);
+    throw CfdException(kCfdInternalError, "psbt from bytes error.");
+  }
+
+  Deserializer parser(data);
+  uint8_t magic[sizeof(kPsbtMagic)];
+  memset(magic, 0, sizeof(magic));
+  if (bytes.size() > 5) parser.ReadArray(magic, sizeof(magic));
+  if (memcmp(magic, kPsbtMagic, sizeof(magic)) != 0) {
+    warn(CFD_LOG_SOURCE, "psbt unmatch magic.");
+    throw CfdException(kCfdInternalError, "psbt unmatch magic error.");
+  }
+  ret = wally_psbt_init_alloc(0, 0, 0, 0, &psbt);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_psbt_init_alloc NG[{}]", ret);
+    throw CfdException(kCfdInternalError, "psbt alloc error.");
+  }
+
+  try {
+    memcpy(psbt->magic, magic, sizeof(psbt->magic));
+
+    std::vector<uint8_t> key;
+    do {
+      key = parser.ReadVariableBuffer();
+      if (!key.empty()) {
+        std::vector<uint8_t> buf = parser.ReadVariableBuffer();
+        bool has_key_1byte = (key.size() == 1);
+        if (key[0] == kPsbtGlobalUnsignedTx) {
+          if (!has_key_1byte) {
+            warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+            throw CfdException(
+                kCfdIllegalArgumentError, "psbt invalid key format error.");
+          }
+          if (psbt->tx != nullptr) {
+            warn(CFD_LOG_SOURCE, "global tx duplicates.");
+            throw CfdException(
+                kCfdIllegalArgumentError, "psbt global tx duplicates error.");
+          }
+
+          Transaction transaction(buf);
+          if (transaction.GetTxInCount() != 0) {
+            // failed to psbt format check on libwally-core.
+            warn(CFD_LOG_SOURCE, "psbt format error.");
+            throw CfdException(kCfdIllegalArgumentError, "psbt format error.");
+          }
+          auto txouts = transaction.GetTxOutList();
+          struct wally_tx tx;
+          memset(&tx, 0, sizeof(tx));
+          tx.version = transaction.GetVersion();
+          tx.locktime = transaction.GetLockTime();
+          ret = wally_psbt_set_global_tx(psbt, &tx);
+          if (ret != WALLY_OK) {
+            warn(CFD_LOG_SOURCE, "wally_psbt_set_global_tx NG[{}]", ret);
+            throw CfdException(kCfdInternalError, "psbt set tx error.");
+          }
+          for (uint32_t index = 0; index < txouts.size(); ++index) {
+            const auto &txout = txouts[index];
+            auto script_val = txout.GetLockingScript().GetData().GetBytes();
+            struct wally_tx_output output;
+            memset(&output, 0, sizeof(output));
+            output.satoshi =
+                static_cast<uint64_t>(txout.GetValue().GetSatoshiValue());
+            output.script = script_val.data();
+            output.script_len = script_val.size();
+            ret = wally_psbt_add_output_at(psbt, index, 0, &output);
+            if (ret != WALLY_OK) {
+              warn(CFD_LOG_SOURCE, "wally_psbt_add_output_at NG[{}]", ret);
+              throw CfdException(kCfdInternalError, "psbt set txout error.");
+            }
+          }
+        } else if (key[0] == kPsbtGlobalVersion) {
+          if (!has_key_1byte) {
+            warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+            throw CfdException(
+                kCfdIllegalArgumentError, "psbt invalid key format error.");
+          }
+          if (psbt->version > 0) {
+            warn(CFD_LOG_SOURCE, "psbt version duplicates.");
+            throw CfdException(
+                kCfdIllegalArgumentError, "psbt version duplicates error.");
+          }
+          if (buf.size() != sizeof(psbt->version)) {
+            warn(CFD_LOG_SOURCE, "psbt invlid version size.");
+            throw CfdException(
+                kCfdIllegalArgumentError, "psbt invlid version size error.");
+          }
+          memcpy(&psbt->version, buf.data(), sizeof(psbt->version));
+          if (psbt->version > WALLY_PSBT_HIGHEST_VERSION) {
+            warn(
+                CFD_LOG_SOURCE, "psbt unsupported version[{}]", psbt->version);
+            throw CfdException(
+                kCfdIllegalArgumentError, "psbt unsupported version error.");
+          }
+        } else {
+          ret = wally_map_add(
+              &psbt->unknowns, key.data(), key.size(), buf.data(), buf.size());
+          if (ret != WALLY_OK) {
+            warn(CFD_LOG_SOURCE, "wally_map_add NG[{}]", ret);
+            throw CfdException(
+                kCfdIllegalArgumentError, "psbt add unknowns error.");
+          }
+        }
+      }
+    } while (!key.empty());
+
+    if (psbt->tx == nullptr) {
+      warn(CFD_LOG_SOURCE, "psbt global tx not found.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt global tx not found error.");
+    }
+
+    ret = wally_map_sort(&psbt->unknowns, 0);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
+      throw CfdException(kCfdInternalError, "psbt sort unknowns error.");
+    }
+
+    if (psbt->tx->num_inputs != 0) {
+      warn(CFD_LOG_SOURCE, "psbt exist input. please use libwally-core.");
+      throw CfdException(kCfdIllegalArgumentError, "psbt exist input.");
+    }
+
+    for (size_t i = 0; i < psbt->tx->num_outputs; ++i) {
+      ParsePsbtOutput(&parser, &psbt->outputs[i]);
+    }
+
+    uint32_t offset = parser.GetReadSize();
+    if (bytes.size() != offset) {
+      warn(CFD_LOG_SOURCE, "psbt analyze error.");
+      throw CfdException(kCfdIllegalArgumentError, "psbt analyze error.");
+    }
+    return psbt;
+  } catch (const CfdError &except) {
+    wally_psbt_free(psbt);
+    throw except;
+  } catch (const std::exception &except) {
+    wally_psbt_free(psbt);
+    warn(CFD_LOG_SOURCE, "unknown exception.");
+    throw CfdException(kCfdUnknownError, std::string(except.what()));
+  } catch (...) {
+    wally_psbt_free(psbt);
+    warn(CFD_LOG_SOURCE, "unknown error.");
+    throw CfdException();
   }
 }
 
@@ -356,12 +1411,16 @@ Psbt::Psbt() : Psbt(WALLY_PSBT_HIGHEST_VERSION, 2, static_cast<uint32_t>(0)) {
   // do nothing
 }
 
+Psbt::Psbt(uint32_t version, uint32_t lock_time)
+    : Psbt(WALLY_PSBT_HIGHEST_VERSION, version, lock_time) {
+  // constructor
+}
+
 Psbt::Psbt(uint32_t psbt_version, uint32_t version, uint32_t lock_time) {
   struct wally_psbt *psbt_pointer = nullptr;
-  int ret = wally_psbt_elements_init_alloc(
-      psbt_version, 0, 0, 0, &psbt_pointer);
+  int ret = wally_psbt_init_alloc(psbt_version, 0, 0, 0, &psbt_pointer);
   if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_psbt_elements_init_alloc NG[{}]", ret);
+    warn(CFD_LOG_SOURCE, "wally_psbt_init_alloc NG[{}]", ret);
     throw CfdException(kCfdInternalError, "psbt data generate error.");
   }
 
@@ -379,34 +1438,39 @@ Psbt::Psbt(uint32_t psbt_version, uint32_t version, uint32_t lock_time) {
   base_tx_ = RebuildTransaction(wally_psbt_pointer_);
 }
 
-Psbt::Psbt(const std::string &base64) {
-  struct wally_psbt *psbt_pointer = nullptr;
-  int ret = wally_psbt_from_base64(base64.c_str(), &psbt_pointer);
+Psbt::Psbt(const std::string &base64)
+    : Psbt(CryptoUtil::DecodeBase64(base64)) {
+  // do nothing
+}
+
+Psbt::Psbt(const ByteData &byte_data) {
+  struct wally_psbt *psbt_pointer = ParsePsbtData(byte_data);
+  size_t is_elements = 0;
+  int ret = wally_psbt_is_elements(psbt_pointer, &is_elements);
   if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_psbt_from_base64 NG[{}]", ret);
-    throw CfdException(kCfdInternalError, "psbt from base64 error.");
+    wally_psbt_free(psbt_pointer);
+    warn(CFD_LOG_SOURCE, "wally_psbt_is_elements NG[{}]", ret);
+    throw CfdException(kCfdInternalError, "psbt elements check error.");
+  }
+  if (is_elements != 0) {
+    wally_psbt_free(psbt_pointer);
+    warn(CFD_LOG_SOURCE, "psbt elements format.");
+    throw CfdException(kCfdInternalError, "psbt bitcoin tx format error.");
   }
   wally_psbt_pointer_ = psbt_pointer;
   base_tx_ = RebuildTransaction(wally_psbt_pointer_);
 }
 
-Psbt::Psbt(const ByteData &byte_data) {
-  std::vector<uint8_t> bytes = byte_data.GetBytes();
-  struct wally_psbt *psbt_pointer = nullptr;
-  int ret = wally_psbt_from_bytes(bytes.data(), bytes.size(), &psbt_pointer);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_psbt_from_bytes NG[{}]", ret);
-    throw CfdException(kCfdInternalError, "psbt from bytes error.");
-  }
-  wally_psbt_pointer_ = psbt_pointer;
-  base_tx_ = RebuildTransaction(wally_psbt_pointer_);
+Psbt::Psbt(const Transaction &transaction)
+    : Psbt(WALLY_PSBT_HIGHEST_VERSION, transaction) {
+  // constructor
 }
 
 Psbt::Psbt(uint32_t psbt_version, const Transaction &transaction) {
   std::string tx_hex = transaction.GetHex();
   auto txin_list = transaction.GetTxInList();
   auto txout_list = transaction.GetTxOutList();
-  struct wally_tx* tx = nullptr;
+  struct wally_tx *tx = nullptr;
   int ret = wally_tx_from_hex(tx_hex.data(), 0, &tx);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_tx_from_hex NG[{}]", ret);
@@ -418,18 +1482,17 @@ Psbt::Psbt(uint32_t psbt_version, const Transaction &transaction) {
   }
 
   struct wally_psbt *psbt_pointer = nullptr;
-  ret = wally_psbt_elements_init_alloc(
-      psbt_version, txin_list.size(),
-      txout_list.size(), 0, &psbt_pointer);
+  ret = wally_psbt_init_alloc(
+      psbt_version, txin_list.size(), txout_list.size(), 0, &psbt_pointer);
   if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_psbt_elements_init_alloc NG[{}]", ret);
+    warn(CFD_LOG_SOURCE, "wally_psbt_init_alloc NG[{}]", ret);
     throw CfdException(kCfdInternalError, "psbt data generate error.");
   }
 
   if (tx == nullptr) {
     ret = wally_tx_init_alloc(
-      transaction.GetVersion(), transaction.GetLockTime(),
-      txin_list.size(), txout_list.size(), &tx);
+        transaction.GetVersion(), transaction.GetLockTime(), txin_list.size(),
+        txout_list.size(), &tx);
     if (ret != WALLY_OK) {
       wally_psbt_free(psbt_pointer);  // free
       warn(CFD_LOG_SOURCE, "wally_psbt_set_global_tx NG[{}]", ret);
@@ -439,8 +1502,8 @@ Psbt::Psbt(uint32_t psbt_version, const Transaction &transaction) {
     for (auto txin : txin_list) {
       auto txid_val = txin.GetTxid().GetData().GetBytes();
       ret = wally_tx_add_raw_input(
-        tx, txid_val.data(), txid_val.size(), txin.GetVout(),
-        txin.GetSequence(), nullptr, 0, nullptr, 0);
+          tx, txid_val.data(), txid_val.size(), txin.GetVout(),
+          txin.GetSequence(), nullptr, 0, nullptr, 0);
       if (ret != WALLY_OK) {
         wally_tx_free(tx);
         wally_psbt_free(psbt_pointer);  // free
@@ -473,17 +1536,19 @@ Psbt::Psbt(uint32_t psbt_version, const Transaction &transaction) {
   base_tx_ = RebuildTransaction(wally_psbt_pointer_);
 }
 
-Psbt::Psbt(const Psbt &transaction) : Psbt(transaction.GetData()) {
+Psbt::Psbt(const Psbt &psbt) : Psbt(psbt.GetData()) {
   // copy constructor
 }
 
-Psbt &Psbt::operator=(const Psbt &transaction) & {
-  std::vector<uint8_t> bytes = transaction.GetData().GetBytes();
+Psbt &Psbt::operator=(const Psbt &psbt) & {
   struct wally_psbt *psbt_pointer = nullptr;
-  int ret = wally_psbt_from_bytes(bytes.data(), bytes.size(), &psbt_pointer);
+  struct wally_psbt *psbt_src_pointer = nullptr;
+  psbt_src_pointer =
+      static_cast<struct wally_psbt *>(psbt.wally_psbt_pointer_);
+  int ret = wally_psbt_clone_alloc(psbt_src_pointer, 0, &psbt_pointer);
   if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_psbt_from_bytes NG[{}]", ret);
-    throw CfdException(kCfdInternalError, "psbt from bytes error.");
+    warn(CFD_LOG_SOURCE, "wally_psbt_clone_alloc NG[{}]", ret);
+    throw CfdException(kCfdInternalError, "psbt clone error.");
   }
   FreeWallyPsbtAddress(wally_psbt_pointer_);  // free
   wally_psbt_pointer_ = psbt_pointer;
@@ -500,34 +1565,79 @@ void Psbt::FreeWallyPsbtAddress(const void *wally_psbt_pointer) {
   }
 }
 
-Transaction Psbt::RebuildTransaction(const void* wally_psbt_pointer) {
+Transaction Psbt::RebuildTransaction(const void *wally_psbt_pointer) {
   Transaction tx;
-    if (wally_psbt_pointer != nullptr) {
+  if (wally_psbt_pointer != nullptr) {
     const struct wally_psbt *psbt_pointer;
     psbt_pointer = static_cast<const struct wally_psbt *>(wally_psbt_pointer);
     if (psbt_pointer->tx != nullptr) {
-      tx = Transaction(ConvertTxDataFromWally(psbt_pointer->tx));
+      tx = Transaction(ConvertBitcoinTxFromWally(psbt_pointer->tx, false));
     }
   }
   return tx;
 }
 
+ByteData Psbt::CreateRecordKey(uint8_t type) { return ByteData(&type, 1); }
+
+ByteData Psbt::CreateRecordKey(uint8_t type, const ByteData &key_bytes) {
+  return ByteData(&type, 1).Concat(key_bytes.Serialize());
+}
+
+ByteData Psbt::CreateRecordKey(uint8_t type, const std::string &key) {
+  return CreateRecordKey(
+      type, ByteData(
+                reinterpret_cast<const uint8_t *>(key.data()),
+                static_cast<uint32_t>(strlen(key.c_str()))));
+}
+
+ByteData Psbt::CreateRecordKey(
+    uint8_t type, const ByteData &prefix, uint8_t sub_type) {
+  return ByteData(&type, 1).Concat(prefix.Serialize(), ByteData(&sub_type, 1));
+}
+
+ByteData Psbt::CreateRecordKey(
+    uint8_t type, const std::string &prefix, uint8_t sub_type) {
+  return CreateRecordKey(
+      type,
+      ByteData(
+          reinterpret_cast<const uint8_t *>(prefix.data()),
+          static_cast<uint32_t>(strlen(prefix.c_str()))),
+      sub_type);
+}
+
+ByteData Psbt::CreateRecordKey(
+    uint8_t type, const ByteData &prefix, uint8_t sub_type,
+    const ByteData &sub_key_bytes) {
+  return ByteData(&type, 1).Concat(
+      prefix.Serialize(), ByteData(&sub_type, 1), sub_key_bytes.Serialize());
+}
+
+ByteData Psbt::CreateRecordKey(
+    uint8_t type, const std::string &prefix, uint8_t sub_type,
+    const std::string &sub_key) {
+  return CreateRecordKey(
+      type,
+      ByteData(
+          reinterpret_cast<const uint8_t *>(prefix.data()),
+          static_cast<uint32_t>(strlen(prefix.c_str()))),
+      sub_type,
+      ByteData(
+          reinterpret_cast<const uint8_t *>(sub_key.data()),
+          static_cast<uint32_t>(strlen(sub_key.c_str()))));
+}
+
 std::string Psbt::GetBase64() const {
-  struct wally_psbt *psbt_pointer;
-  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  char *output = nullptr;
-  int ret = wally_psbt_to_base64(psbt_pointer, 0, &output);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_psbt_to_base64 NG[{}]", ret);
-    throw CfdException(kCfdIllegalStateError, "psbt to base64 error.");
-  }
-  return WallyUtil::ConvertStringAndFree(output);
+  return CryptoUtil::EncodeBase64(GetData());
 }
 
 ByteData Psbt::GetData() const {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
   size_t size = 0;
+
+  if ((psbt_pointer != nullptr) && (psbt_pointer->num_inputs == 0)) {
+    return CreatePsbtOutputOnlyData(psbt_pointer);
+  }
 
   std::vector<uint8_t> bytes(GetDataSize());
   int ret =
@@ -543,6 +1653,11 @@ uint32_t Psbt::GetDataSize() const {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
   size_t size = 0;
+
+  if ((psbt_pointer != nullptr) && (psbt_pointer->num_inputs == 0)) {
+    auto data = CreatePsbtOutputOnlyData(psbt_pointer);
+    return data.GetDataSize();
+  }
 
   int ret = wally_psbt_get_length(psbt_pointer, 0, &size);
   if (ret != WALLY_OK) {
@@ -574,7 +1689,7 @@ bool Psbt::IsFinalizedInput(uint32_t index) const {
   }
 
   if ((psbt_pointer->inputs == nullptr) ||
-      ((psbt_pointer->num_inputs <= index))) {
+      (psbt_pointer->num_inputs <= index)) {
     warn(CFD_LOG_SOURCE, "psbt input out-of-range.");
     throw CfdException(kCfdOutOfRangeError, "psbt input out-of-range.");
   }
@@ -587,55 +1702,6 @@ bool Psbt::IsFinalizedInput(uint32_t index) const {
   }
   return (data == 1);
 }
-
-#if 0
-// FIXME cfdに移動
-void Psbt::FinalizeInput(uint32_t index) {
-  struct wally_psbt *psbt_pointer;
-  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  if (psbt_pointer == nullptr) {
-    warn(CFD_LOG_SOURCE, "psbt pointer is null");
-    throw CfdException(kCfdIllegalStateError, "psbt pointer is null.");
-  } else if (psbt_pointer->num_inputs <= index) {
-    warn(CFD_LOG_SOURCE, "psbt index out of range");
-    throw CfdException(kCfdOutOfRangeError, "psbt index out of range.");
-  }
-
-  size_t is_finalized = 0;
-  int ret = wally_psbt_input_is_finalized(
-      &psbt_pointer->inputs[index], &is_finalized);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_psbt_input_is_finalized NG[{}]", ret);
-    throw CfdException(
-        kCfdIllegalStateError, "psbt input finalize check error.");
-  } else if (is_finalized == 0) {
-    // verify
-    // set script
-  }
-}
-
-void Psbt::FinalizeInputAll() {
-  struct wally_psbt *psbt_pointer;
-  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  if ((psbt_pointer == nullptr) || (psbt_pointer->tx == nullptr)) {
-    warn(CFD_LOG_SOURCE, "psbt pointer is null");
-    throw CfdException(kCfdIllegalStateError, "psbt pointer is null.");
-  } else if (psbt_pointer->num_inputs == 0) {
-    warn(CFD_LOG_SOURCE, "psbt unset input.");
-    throw CfdException(kCfdIllegalStateError, "psbt unset input.");
-  }
-
-  size_t tx_input_num = psbt_pointer->tx->num_inputs;
-  if (psbt_pointer->num_inputs != tx_input_num) {
-    warn(CFD_LOG_SOURCE, "psbt unmatch input num.");
-    throw CfdException(kCfdIllegalStateError, "psbt unmatch input num.");
-  }
-
-  for (size_t index=0; index<psbt_pointer->num_inputs; ++index) {
-    FinalizeInput(static_cast<uint32_t>(index));
-  }
-}
-#endif
 
 void Psbt::Finalize() {
   if (!IsFinalized()) {
@@ -658,10 +1724,19 @@ ByteData Psbt::Extract() const {
     warn(CFD_LOG_SOURCE, "wally_psbt_extract NG[{}]", ret);
     throw CfdException(kCfdIllegalStateError, "psbt extract error.");
   }
-  return ConvertTxDataFromWally(tx);
+  try {
+    auto tx_bytes = ConvertBitcoinTxFromWally(tx, false);
+    wally_tx_free(tx);
+    return tx_bytes;
+  } catch (const CfdException &except) {
+    wally_tx_free(tx);
+    throw except;
+  }
 }
 
 Transaction Psbt::ExtractTransaction() const { return Transaction(Extract()); }
+
+Transaction Psbt::GetTransaction() const { return base_tx_; }
 
 void Psbt::Combine(const Psbt &transaction) {
   std::vector<uint8_t> bytes = transaction.GetData().GetBytes();
@@ -695,11 +1770,13 @@ void Psbt::Sign(const Privkey &privkey, bool has_grind_r) {
   }
 }
 
-void Psbt::Join(const Psbt& transaction, bool ignore_duplicate_error) {
-  // FIXME 実装する。（もしくはcfdへ）
-  // 重複していない情報を追加する。（TxInのみ。TxOutは検知不能→前方一致で探索していって、異なるOutputがあれば追加という方針にする）
-  // 重複は想定外のためエラーにするべきか？
-  // 個人的には重複エラー無視のオプション指定つけたい。
+void Psbt::Join(const Psbt &transaction, bool ignore_duplicate_error) {
+  struct wally_psbt *psbt_pointer = MergePsbt(
+      wally_psbt_pointer_, transaction.wally_psbt_pointer_,
+      ignore_duplicate_error);
+  FreeWallyPsbtAddress(wally_psbt_pointer_);  // free
+  wally_psbt_pointer_ = psbt_pointer;
+  base_tx_ = RebuildTransaction(wally_psbt_pointer_);
 }
 
 uint32_t Psbt::AddTxIn(const TxIn &txin) {
@@ -717,15 +1794,16 @@ uint32_t Psbt::AddTxIn(const Txid &txid, uint32_t vout, uint32_t sequence) {
   struct wally_tx_input *input = nullptr;
   std::vector<uint8_t> txhash = txid.GetData().GetBytes();
 
-  int ret = wally_tx_input_init_alloc(txhash.data(), txhash.size(),
-      vout, sequence, nullptr, 0, nullptr, &input);
+  int ret = wally_tx_input_init_alloc(
+      txhash.data(), txhash.size(), vout, sequence, nullptr, 0, nullptr,
+      &input);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_tx_input_init_alloc NG[{}]", ret);
     throw CfdException(kCfdIllegalArgumentError, "psbt alloc input error.");
   }
 
   ret = wally_psbt_add_input_at(
-    psbt_pointer, index, WALLY_PSBT_FLAG_NON_FINAL, input);
+      psbt_pointer, index, WALLY_PSBT_FLAG_NON_FINAL, input);
   wally_tx_input_free(input);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_psbt_add_input_at NG[{}]", ret);
@@ -734,37 +1812,42 @@ uint32_t Psbt::AddTxIn(const Txid &txid, uint32_t vout, uint32_t sequence) {
   return index;
 }
 
-void Psbt::SetTxInUtxo(uint32_t index, const Transaction& tx,
-    const KeyData& key) {
-  std::vector<KeyData> list(1);
-  list[0] = key;
-  SetTxInUtxo(index, tx, Script(), list);
+void Psbt::SetTxInUtxo(
+    uint32_t index, const Transaction &tx, const KeyData &key) {
+  SetTxInUtxo(index, tx, Script(), key);
 }
 
-void Psbt::SetTxInUtxo(uint32_t index, const Transaction& tx,
-    const Script &redeem_script, const KeyData& key) {
-  std::vector<KeyData> list(1);
-  list[0] = key;
+void Psbt::SetTxInUtxo(
+    uint32_t index, const Transaction &tx, const Script &redeem_script,
+    const KeyData &key) {
+  std::vector<KeyData> list;
+  if (key.IsValid()) list.push_back(key);
   SetTxInUtxo(index, tx, redeem_script, list);
 }
 
-void Psbt::SetTxInUtxo(uint32_t index, const Transaction& tx, const Script &redeem_script, const std::vector<KeyData>& key_list) {
+void Psbt::SetTxInUtxo(
+    uint32_t index, const Transaction &tx, const Script &redeem_script,
+    const std::vector<KeyData> &key_list) {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  uint8_t* txhash = psbt_pointer->tx->inputs[index].txhash;
+  uint8_t *txhash = psbt_pointer->tx->inputs[index].txhash;
   uint32_t vout = psbt_pointer->tx->inputs[index].index;
   auto txid = tx.GetTxid();
   auto tx_txid = txid.GetData().GetBytes();
-  if ((memcmp(txhash, tx_txid.data(), tx_txid.size()) != 0) || (vout >= tx.GetTxOutCount())) {
+  if ((memcmp(txhash, tx_txid.data(), tx_txid.size()) != 0) ||
+      (vout >= tx.GetTxOutCount())) {
     warn(CFD_LOG_SOURCE, "unmatch outpoint.");
     throw CfdException(kCfdIllegalArgumentError, "unmatch outpoint.");
   }
 
   auto txout = tx.GetTxOut(vout);
-  bool is_witness = ValidateUtxo(txid, vout, txout.GetLockingScript(), redeem_script, key_list);
+  Script new_redeem_script = redeem_script;
+  bool is_witness = ValidatePsbtUtxo(
+      txid, vout, txout.GetLockingScript(), redeem_script, key_list,
+      &new_redeem_script);
 
-  struct wally_tx* wally_tx_obj = nullptr;
+  struct wally_tx *wally_tx_obj = nullptr;
   int ret = wally_tx_from_hex(tx.GetHex().c_str(), 0, &wally_tx_obj);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_tx_from_hex NG[{}]", ret);
@@ -778,43 +1861,49 @@ void Psbt::SetTxInUtxo(uint32_t index, const Transaction& tx, const Script &rede
     throw CfdException(kCfdIllegalArgumentError, "psbt add utxo error.");
   }
   if (is_witness) {
-    ret = wally_psbt_input_set_witness_utxo(&psbt_pointer->inputs[index],
-        &wally_tx_obj->outputs[vout]);
+    ret = wally_psbt_input_set_witness_utxo(
+        &psbt_pointer->inputs[index], &wally_tx_obj->outputs[vout]);
     if (ret != WALLY_OK) {
       wally_tx_free(wally_tx_obj);
       warn(CFD_LOG_SOURCE, "wally_psbt_input_set_witness_utxo NG[{}]", ret);
-      throw CfdException(kCfdIllegalArgumentError, "psbt add witness utxo error.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt add witness utxo error.");
     }
   }
   wally_tx_free(wally_tx_obj);
 
-  SetTxInScriptAndKeyList(&psbt_pointer->inputs[index],
-      is_witness, redeem_script, key_list);
+  SetPsbtTxInScriptAndKeyList(
+      &psbt_pointer->inputs[index], is_witness, new_redeem_script, key_list);
 }
 
-void Psbt::SetTxInUtxo(uint32_t index, const TxOutReference& txout, const KeyData& key) {
-  std::vector<KeyData> list(1);
-  list[0] = key;
-  SetTxInUtxo(index, txout, Script(), list);
+void Psbt::SetTxInUtxo(
+    uint32_t index, const TxOutReference &txout, const KeyData &key) {
+  SetTxInUtxo(index, txout, Script(), key);
 }
 
-void Psbt::SetTxInUtxo(uint32_t index, const TxOutReference& txout, const Script &redeem_script, const KeyData& key) {
-  std::vector<KeyData> list(1);
-  list[0] = key;
+void Psbt::SetTxInUtxo(
+    uint32_t index, const TxOutReference &txout, const Script &redeem_script,
+    const KeyData &key) {
+  std::vector<KeyData> list;
+  if (key.IsValid()) list.push_back(key);
   SetTxInUtxo(index, txout, redeem_script, list);
 }
 
-void Psbt::SetTxInUtxo(uint32_t index, const TxOutReference& txout, const Script &redeem_script, const std::vector<KeyData>& key_list) {
+void Psbt::SetTxInUtxo(
+    uint32_t index, const TxOutReference &txout, const Script &redeem_script,
+    const std::vector<KeyData> &key_list) {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  uint8_t* txhash = psbt_pointer->tx->inputs[index].txhash;
+  uint8_t *txhash = psbt_pointer->tx->inputs[index].txhash;
   uint32_t vout = psbt_pointer->tx->inputs[index].index;
-  Txid txid(ByteData256(ByteData(txhash,
-    sizeof(psbt_pointer->tx->inputs[index].txhash))));
+  Txid txid(ByteData256(
+      ByteData(txhash, sizeof(psbt_pointer->tx->inputs[index].txhash))));
 
   auto script = txout.GetLockingScript();
-  bool is_witness = ValidateUtxo(txid, vout, script, redeem_script, key_list);
+  Script new_redeem_script = redeem_script;
+  bool is_witness = ValidatePsbtUtxo(
+      txid, vout, script, redeem_script, key_list, &new_redeem_script);
   if (!is_witness) {
     warn(CFD_LOG_SOURCE, "non witness output is not supported.");
     throw CfdException(kCfdIllegalArgumentError, "psbt utxo type error.");
@@ -830,18 +1919,21 @@ void Psbt::SetTxInUtxo(uint32_t index, const TxOutReference& txout, const Script
     throw CfdException(kCfdIllegalArgumentError, "psbt alloc output error.");
   }
 
-  ret = wally_psbt_input_set_witness_utxo(&psbt_pointer->inputs[index], output);
+  ret =
+      wally_psbt_input_set_witness_utxo(&psbt_pointer->inputs[index], output);
   wally_tx_output_free(output);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_psbt_input_set_witness_utxo NG[{}]", ret);
-    throw CfdException(kCfdIllegalArgumentError, "psbt add witness utxo error.");
+    throw CfdException(
+        kCfdIllegalArgumentError, "psbt add witness utxo error.");
   }
 
-  SetTxInScriptAndKeyList(&psbt_pointer->inputs[index],
-      is_witness, redeem_script, key_list);
+  SetPsbtTxInScriptAndKeyList(
+      &psbt_pointer->inputs[index], is_witness, new_redeem_script, key_list);
 }
 
-void Psbt::SetTxInSignature(uint32_t index, const KeyData& key, const ByteData& signature) {
+void Psbt::SetTxInSignature(
+    uint32_t index, const KeyData &key, const ByteData &signature) {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
@@ -849,36 +1941,40 @@ void Psbt::SetTxInSignature(uint32_t index, const KeyData& key, const ByteData& 
   auto sig = signature.GetBytes();
 
   int ret = wally_psbt_input_add_signature(
-    &psbt_pointer->inputs[index], pubkey.data(), pubkey.size(),
-    sig.data(), sig.size());
+      &psbt_pointer->inputs[index], pubkey.data(), pubkey.size(), sig.data(),
+      sig.size());
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_psbt_input_add_signature NG[{}]", ret);
     throw CfdException(kCfdIllegalArgumentError, "psbt add input sig error.");
   }
 }
 
-void Psbt::SetTxInSighashType(uint32_t index, const SigHashType& sighash_type) {
+void Psbt::SetTxInSighashType(
+    uint32_t index, const SigHashType &sighash_type) {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
   uint32_t sighash = sighash_type.GetSigHashFlag();
 
-  int ret = wally_psbt_input_set_sighash(
-    &psbt_pointer->inputs[index], sighash);
+  int ret =
+      wally_psbt_input_set_sighash(&psbt_pointer->inputs[index], sighash);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_psbt_input_set_sighash NG[{}]", ret);
-    throw CfdException(kCfdIllegalArgumentError, "psbt set input sighash error.");
+    throw CfdException(
+        kCfdIllegalArgumentError, "psbt set input sighash error.");
   }
 }
 
-void Psbt::SetTxInFinalScript(uint32_t index, const std::vector<ByteData>& unlocking_script) {
+void Psbt::SetTxInFinalScript(
+    uint32_t index, const std::vector<ByteData> &unlocking_script) {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
 
   if (unlocking_script.empty()) {
     warn(CFD_LOG_SOURCE, "unlocking script is empty.");
-    throw CfdException(kCfdIllegalArgumentError, "psbt unlocking script is empty.");
+    throw CfdException(
+        kCfdIllegalArgumentError, "psbt unlocking script is empty.");
   }
   bool is_witness = false;
   auto redeem_script = GetTxInRedeemScript(index, true);
@@ -894,30 +1990,36 @@ void Psbt::SetTxInFinalScript(uint32_t index, const std::vector<ByteData>& unloc
       // p2wpkh
     } else {
       warn(CFD_LOG_SOURCE, "invalid unlocking_script.");
-      throw CfdException(kCfdIllegalArgumentError, "psbt invalid unlocking_script error.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid unlocking_script error.");
     }
 
-    struct wally_tx_witness_stack* stacks = nullptr;
+    struct wally_tx_witness_stack *stacks = nullptr;
     ret = wally_tx_witness_stack_init_alloc(unlocking_script.size(), &stacks);
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_tx_witness_stack_init_alloc NG[{}]", ret);
-      throw CfdException(kCfdIllegalArgumentError, "psbt init witness stack error.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt init witness stack error.");
     }
     for (auto script : unlocking_script) {
       auto script_val = script.GetBytes();
-      ret = wally_tx_witness_stack_add(stacks, script_val.data(), script_val.size());
+      ret = wally_tx_witness_stack_add(
+          stacks, script_val.data(), script_val.size());
       if (ret != WALLY_OK) {
         wally_tx_witness_stack_free(stacks);
         warn(CFD_LOG_SOURCE, "wally_tx_witness_stack_add NG[{}]", ret);
-        throw CfdException(kCfdIllegalArgumentError, "psbt add witness stack error.");
+        throw CfdException(
+            kCfdIllegalArgumentError, "psbt add witness stack error.");
       }
     }
 
-    ret = wally_psbt_input_set_final_witness(&psbt_pointer->inputs[index], stacks);
+    ret = wally_psbt_input_set_final_witness(
+        &psbt_pointer->inputs[index], stacks);
     wally_tx_witness_stack_free(stacks);
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_psbt_input_set_final_witness NG[{}]", ret);
-      throw CfdException(kCfdIllegalArgumentError, "psbt set witness script error.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set witness script error.");
     }
   } else {
     Script script_sig;
@@ -936,11 +2038,12 @@ void Psbt::SetTxInFinalScript(uint32_t index, const std::vector<ByteData>& unloc
       script_sig = build.Build();
     }
     auto sig_val = script_sig.GetData().GetBytes();
-    ret = wally_psbt_input_set_final_scriptsig(&psbt_pointer->inputs[index],
-        sig_val.data(), sig_val.size());
+    ret = wally_psbt_input_set_final_scriptsig(
+        &psbt_pointer->inputs[index], sig_val.data(), sig_val.size());
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_psbt_input_set_final_scriptsig NG[{}]", ret);
-      throw CfdException(kCfdIllegalArgumentError, "psbt set scriptsig error.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set scriptsig error.");
     }
   }
 
@@ -954,48 +2057,70 @@ void Psbt::SetTxInFinalScript(uint32_t index, const std::vector<ByteData>& unloc
     } else {
       locking_script = redeem_script;  // p2wpkh locking script
     }
-    auto p2sh_script = ScriptUtil::CreateP2shLockingScript(locking_script);
-    auto sig_val = p2sh_script.GetData().GetBytes();
-    ret = wally_psbt_input_set_final_scriptsig(&psbt_pointer->inputs[index],
-        sig_val.data(), sig_val.size());
+    ScriptBuilder builder;
+    builder.AppendData(locking_script.GetData());
+    auto sig_val = builder.Build().GetData().GetBytes();
+    ret = wally_psbt_input_set_final_scriptsig(
+        &psbt_pointer->inputs[index], sig_val.data(), sig_val.size());
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_psbt_input_set_final_scriptsig NG[{}]", ret);
-      throw CfdException(kCfdIllegalArgumentError, "psbt set scriptsig error.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt set scriptsig error.");
     }
   }
 }
 
-void Psbt::SetTxInProprietary(uint32_t index, const ByteData& key, const ByteData& value) {
+void Psbt::SetTxInRecord(
+    uint32_t index, const ByteData &key, const ByteData &value) {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-
-  struct wally_map* map_obj = nullptr;
-  int ret = wally_map_init_alloc(1, &map_obj);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_map_init_alloc NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt alloc map error.");
+  if (key.IsEmpty()) {
+    warn(CFD_LOG_SOURCE, "psbt empty key error.");
+    throw CfdException(kCfdIllegalArgumentError, "psbt empty key error.");
   }
 
   auto key_vec = key.GetBytes();
   auto val_vec = value.GetBytes();
-  ret = wally_map_add(map_obj,
-      key_vec.data(), key_vec.size(), val_vec.data(), val_vec.size());
-  if (ret != WALLY_OK) {
-    wally_map_free(map_obj);
-    warn(CFD_LOG_SOURCE, "wally_map_add NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt add map error.");
-  }
+  uint8_t type = SetPsbtInput(key_vec, val_vec, &psbt_pointer->inputs[index]);
 
-  ret = wally_psbt_input_set_unknowns(&psbt_pointer->inputs[index], map_obj);
-  wally_map_free(map_obj);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_psbt_input_set_unknowns NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt set unknown error.");
+  struct wally_map *map_ptr = nullptr;
+  switch (type) {
+    case kPsbtInputNonWitnessUtxo:
+      // fall-through
+    case kPsbtInputWitnessUtxo:
+      // fall-through
+    case kPsbtInputSigHashType:
+      // fall-through
+    case kPsbtInputRedeemScript:
+      // fall-through
+    case kPsbtInputWitnessScript:
+      // fall-through
+    case kPsbtInputFinalScriptSig:
+      // fall-through
+    case kPsbtInputFinalScriptWitness:
+      break;
+    case kPsbtInputPartialSig:
+      map_ptr = &psbt_pointer->inputs[index].signatures;
+      break;
+    case kPsbtInputBip32Derivation:
+      map_ptr = &psbt_pointer->inputs[index].keypaths;
+      break;
+    default:
+      map_ptr = &psbt_pointer->inputs[index].unknowns;
+      break;
+  }
+  if (map_ptr != nullptr) {
+    int ret = wally_map_sort(map_ptr, 0);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
+      throw CfdException(kCfdInternalError, "psbt input sort unknowns error.");
+    }
   }
 }
 
-Transaction Psbt::GetTxInUtxoFull(uint32_t index, bool ignore_error, bool* is_witness) const {
+Transaction Psbt::GetTxInUtxoFull(
+    uint32_t index, bool ignore_error, bool *is_witness) const {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
@@ -1004,18 +2129,19 @@ Transaction Psbt::GetTxInUtxoFull(uint32_t index, bool ignore_error, bool* is_wi
     if (is_witness != nullptr) {
       *is_witness = (psbt_pointer->inputs[index].witness_utxo != nullptr);
     }
-    return Transaction(ConvertTxDataFromWally(
-        psbt_pointer->inputs[index].utxo));
+    return Transaction(
+        ConvertBitcoinTxFromWally(psbt_pointer->inputs[index].utxo, false));
   } else if (ignore_error) {
     return Transaction();
   } else {
     warn(CFD_LOG_SOURCE, "utxo full data not found.");
-    throw CfdException(kCfdIllegalStateError,
-        "psbt utxo full data not found error.");
+    throw CfdException(
+        kCfdIllegalStateError, "psbt utxo full data not found error.");
   }
 }
 
-TxOut Psbt::GetTxInUtxo(uint32_t index, bool ignore_error, bool* is_witness) const {
+TxOut Psbt::GetTxInUtxo(
+    uint32_t index, bool ignore_error, bool *is_witness) const {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
@@ -1023,22 +2149,22 @@ TxOut Psbt::GetTxInUtxo(uint32_t index, bool ignore_error, bool* is_witness) con
   if (psbt_pointer->inputs[index].witness_utxo != nullptr) {
     if (is_witness != nullptr) *is_witness = true;
     return TxOut(
-      Amount(static_cast<int64_t>(
-        psbt_pointer->inputs[index].witness_utxo->satoshi)),
-      Script(ByteData(
-        psbt_pointer->inputs[index].witness_utxo->script,
-        psbt_pointer->inputs[index].witness_utxo->script_len)));
+        Amount(static_cast<int64_t>(
+            psbt_pointer->inputs[index].witness_utxo->satoshi)),
+        Script(ByteData(
+            psbt_pointer->inputs[index].witness_utxo->script,
+            psbt_pointer->inputs[index].witness_utxo->script_len)));
   } else if (psbt_pointer->inputs[index].utxo != nullptr) {
     if (is_witness != nullptr) {
       *is_witness = (psbt_pointer->inputs[index].witness_utxo != nullptr);
     }
     uint32_t vout = psbt_pointer->tx->inputs[index].index;
     return TxOut(
-      Amount(static_cast<int64_t>(
-        psbt_pointer->inputs[index].utxo->outputs[vout].satoshi)),
-      Script(ByteData(
-        psbt_pointer->inputs[index].utxo->outputs[vout].script,
-        psbt_pointer->inputs[index].utxo->outputs[vout].script_len)));
+        Amount(static_cast<int64_t>(
+            psbt_pointer->inputs[index].utxo->outputs[vout].satoshi)),
+        Script(ByteData(
+            psbt_pointer->inputs[index].utxo->outputs[vout].script,
+            psbt_pointer->inputs[index].utxo->outputs[vout].script_len)));
   } else if (ignore_error) {
     return TxOut();
   } else {
@@ -1047,7 +2173,8 @@ TxOut Psbt::GetTxInUtxo(uint32_t index, bool ignore_error, bool* is_witness) con
   }
 }
 
-Script Psbt::GetTxInRedeemScript(uint32_t index, bool ignore_error, bool* is_witness) const {
+Script Psbt::GetTxInRedeemScript(
+    uint32_t index, bool ignore_error, bool *is_witness) const {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
@@ -1079,7 +2206,7 @@ std::vector<KeyData> Psbt::GetTxInKeyDataList(uint32_t index) const {
   std::vector<KeyData> arr;
   arr.reserve(key_max);
   struct wally_map_item *item;
-  for (size_t key_index=0; key_index < key_max; ++key_index) {
+  for (size_t key_index = 0; key_index < key_max; ++key_index) {
     item = &psbt_pointer->inputs[index].keypaths.items[key_index];
     ByteData key(item->key, item->key_len);
     Pubkey pubkey(key);
@@ -1090,8 +2217,8 @@ std::vector<KeyData> Psbt::GetTxInKeyDataList(uint32_t index) const {
 
       // TODO(k-matsuzawa) Need endian support.
       size_t arr_max = item->value_len / 4;
-      uint32_t* val_arr = reinterpret_cast<uint32_t*>(item->value);
-      for (size_t arr_index=1; arr_index < arr_max; ++arr_index) {
+      uint32_t *val_arr = reinterpret_cast<uint32_t *>(item->value);
+      for (size_t arr_index = 1; arr_index < arr_max; ++arr_index) {
         path.push_back(val_arr[arr_index]);
       }
     }
@@ -1121,7 +2248,7 @@ std::vector<Pubkey> Psbt::GetTxInSignaturePubkeyList(uint32_t index) const {
   std::vector<Pubkey> arr;
   arr.reserve(key_max);
   struct wally_map_item *item;
-  for (size_t key_index=0; key_index < key_max; ++key_index) {
+  for (size_t key_index = 0; key_index < key_max; ++key_index) {
     item = &psbt_pointer->inputs[index].signatures.items[key_index];
     ByteData key(item->key, item->key_len);
     Pubkey pubkey(key);
@@ -1130,36 +2257,38 @@ std::vector<Pubkey> Psbt::GetTxInSignaturePubkeyList(uint32_t index) const {
   return arr;
 }
 
-ByteData Psbt::GetTxInSignature(uint32_t index, const Pubkey& pubkey) const {
+ByteData Psbt::GetTxInSignature(uint32_t index, const Pubkey &pubkey) const {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
   auto key_vec = pubkey.GetData().GetBytes();
   size_t exist = 0;
-  int ret = wally_map_find(&psbt_pointer->inputs[index].signatures,
-      key_vec.data(), key_vec.size(), &exist);
+  int ret = wally_map_find(
+      &psbt_pointer->inputs[index].signatures, key_vec.data(), key_vec.size(),
+      &exist);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
     throw CfdException(kCfdMemoryFullError, "psbt find signature key error.");
   }
   if (exist == 0) {
     warn(CFD_LOG_SOURCE, "target key not found.");
-    throw CfdException(kCfdIllegalStateError,
-        "psbt signature target key not found.");
+    throw CfdException(
+        kCfdIllegalStateError, "psbt signature target key not found.");
   }
   uint32_t map_index = static_cast<uint32_t>(exist) - 1;
   return ByteData(
-    psbt_pointer->unknowns.items[map_index].value,
-    psbt_pointer->unknowns.items[map_index].value_len);
+      psbt_pointer->inputs[index].signatures.items[map_index].value,
+      psbt_pointer->inputs[index].signatures.items[map_index].value_len);
 }
 
-bool Psbt::IsFindTxInSignature(uint32_t index, const Pubkey& pubkey) const {
+bool Psbt::IsFindTxInSignature(uint32_t index, const Pubkey &pubkey) const {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
   auto key_vec = pubkey.GetData().GetBytes();
   size_t exist = 0;
-  int ret = wally_map_find(&psbt_pointer->inputs[index].signatures,
-      key_vec.data(), key_vec.size(), &exist);
+  int ret = wally_map_find(
+      &psbt_pointer->inputs[index].signatures, key_vec.data(), key_vec.size(),
+      &exist);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
     throw CfdException(kCfdMemoryFullError, "psbt find signature key error.");
@@ -1174,8 +2303,8 @@ SigHashType Psbt::GetTxInSighashType(uint32_t index) const {
 
   if (psbt_pointer->inputs[index].sighash != 0) {
     SigHashType sighash_type;
-    sighash_type.SetFromSigHashFlag(static_cast<uint8_t>(
-        psbt_pointer->inputs[index].sighash));
+    sighash_type.SetFromSigHashFlag(
+        static_cast<uint8_t>(psbt_pointer->inputs[index].sighash));
     return sighash_type;
   } else {
     warn(CFD_LOG_SOURCE, "sighash not found.");
@@ -1190,7 +2319,8 @@ bool Psbt::IsFindTxInSighashType(uint32_t index) const {
   return psbt_pointer->inputs[index].sighash != 0;
 }
 
-std::vector<ByteData> Psbt::GetTxInFinalScript(uint32_t index, bool is_witness_stack) const {
+std::vector<ByteData> Psbt::GetTxInFinalScript(
+    uint32_t index, bool is_witness_stack) const {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
@@ -1198,55 +2328,86 @@ std::vector<ByteData> Psbt::GetTxInFinalScript(uint32_t index, bool is_witness_s
 
   if (is_witness_stack) {
     auto stacks = psbt_pointer->inputs[index].final_witness;
-    for (size_t index=0; index<stacks->num_items; ++index) {
+    for (size_t index = 0; index < stacks->num_items; ++index) {
       result.emplace_back(
-        stacks->items[index].witness,
-        stacks->items[index].witness_len);
+          stacks->items[index].witness, stacks->items[index].witness_len);
     }
   } else {
     result.emplace_back(
-      psbt_pointer->inputs[index].final_scriptsig,
-      psbt_pointer->inputs[index].final_scriptsig_len);
+        psbt_pointer->inputs[index].final_scriptsig,
+        psbt_pointer->inputs[index].final_scriptsig_len);
   }
   return result;
 }
 
-ByteData Psbt::GetTxInProprietary(uint32_t index, const ByteData& key) const {
+ByteData Psbt::GetTxInRecord(uint32_t index, const ByteData &key) const {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
   auto key_vec = key.GetBytes();
   size_t exist = 0;
-  int ret = wally_map_find(&psbt_pointer->inputs[index].unknowns,
-      key_vec.data(), key_vec.size(), &exist);
+  int ret = wally_map_find(
+      &psbt_pointer->inputs[index].unknowns, key_vec.data(), key_vec.size(),
+      &exist);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
     throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
   }
   if (exist == 0) {
     warn(CFD_LOG_SOURCE, "target key not found.");
-    throw CfdException(kCfdIllegalStateError,
-        "psbt global target key not found.");
+    throw CfdException(
+        kCfdIllegalStateError, "psbt global target key not found.");
   }
   uint32_t map_index = static_cast<uint32_t>(exist) - 1;
   return ByteData(
-    psbt_pointer->inputs[index].unknowns.items[map_index].value,
-    psbt_pointer->inputs[index].unknowns.items[map_index].value_len);
+      psbt_pointer->inputs[index].unknowns.items[map_index].value,
+      psbt_pointer->inputs[index].unknowns.items[map_index].value_len);
 }
 
-bool Psbt::IsFindTxInProprietary(uint32_t index, const ByteData& key) const {
+bool Psbt::IsFindTxInRecord(uint32_t index, const ByteData &key) const {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
   auto key_vec = key.GetBytes();
   size_t exist = 0;
-  int ret = wally_map_find(&psbt_pointer->inputs[index].unknowns,
-      key_vec.data(), key_vec.size(), &exist);
+  int ret = wally_map_find(
+      &psbt_pointer->inputs[index].unknowns, key_vec.data(), key_vec.size(),
+      &exist);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
     throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
   }
   return (exist == 0) ? false : true;
+}
+
+void Psbt::ClearTxInSignData(uint32_t index) {
+  CheckTxInIndex(index, __LINE__, __FUNCTION__);
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+  struct wally_psbt_input *input = &psbt_pointer->inputs[index];
+
+  if (input->redeem_script != nullptr) {
+    memset(input->redeem_script, 0, input->redeem_script_len);
+    FreeWallyBuffer(input->redeem_script);
+    input->redeem_script_len = 0;
+    input->redeem_script = nullptr;
+  }
+  if (input->witness_script != nullptr) {
+    memset(input->witness_script, 0, input->witness_script_len);
+    FreeWallyBuffer(input->witness_script);
+    input->witness_script_len = 0;
+    input->witness_script = nullptr;
+  }
+  for (size_t idx = 0; idx < input->signatures.num_items; ++idx) {
+    auto sig = &input->signatures.items[idx];
+    memset(sig->key, 0, sig->key_len);
+    memset(sig->value, 0, sig->value_len);
+    FreeWallyBuffer(sig->key);
+    FreeWallyBuffer(sig->value);
+    memset(sig, 0, sizeof(*sig));
+  }
+  input->signatures.num_items = 0;
+  input->sighash = 0;
 }
 
 uint32_t Psbt::AddTxOut(const TxOut &txout) {
@@ -1265,8 +2426,8 @@ uint32_t Psbt::AddTxOut(const Script &locking_script, const Amount &amount) {
   struct wally_tx_output *output = nullptr;
 
   int ret = wally_tx_output_init_alloc(
-      static_cast<uint64_t>(amount.GetSatoshiValue()),
-      script.data(), script.size(), &output);
+      static_cast<uint64_t>(amount.GetSatoshiValue()), script.data(),
+      script.size(), &output);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_tx_output_init_alloc NG[{}]", ret);
     throw CfdException(kCfdIllegalArgumentError, "psbt alloc output error.");
@@ -1281,18 +2442,18 @@ uint32_t Psbt::AddTxOut(const Script &locking_script, const Amount &amount) {
   return index;
 }
 
-void Psbt::SetTxOutData(uint32_t index, const KeyData& key) {
+void Psbt::SetTxOutData(uint32_t index, const KeyData &key) {
   CheckTxOutIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
 
   std::vector<KeyData> arr = GetTxOutKeyDataList(index);
   Pubkey pubkey = key.GetPubkey();
-  for (auto& item : arr) {
+  for (auto &item : arr) {
     if (pubkey.Equals(item.GetPubkey())) return;
   }
 
-  struct wally_tx_output* txout = &psbt_pointer->tx->outputs[index];
+  struct wally_tx_output *txout = &psbt_pointer->tx->outputs[index];
   Script locking_script(ByteData(txout->script, txout->script_len));
   Script redeem_script;
   Script script;
@@ -1312,86 +2473,115 @@ void Psbt::SetTxOutData(uint32_t index, const KeyData& key) {
   }
 
   if (!GetTxOutScript(index, true).IsEmpty()) redeem_script = Script();
+  SetTxOutData(index, redeem_script, key);
+}
+
+void Psbt::SetTxOutData(
+    uint32_t index, const Script &redeem_script, const KeyData &key) {
   SetTxOutData(index, redeem_script, std::vector<KeyData>{key});
 }
 
-void Psbt::SetTxOutData(uint32_t index, const Script &redeem_script, const KeyData& key) {
-  SetTxOutData(index, redeem_script, std::vector<KeyData>{key});
-}
-
-void Psbt::SetTxOutData(uint32_t index, const Script &redeem_script, const std::vector<KeyData>& key_list) {
+void Psbt::SetTxOutData(
+    uint32_t index, const Script &redeem_script,
+    const std::vector<KeyData> &key_list) {
   CheckTxOutIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
 
-  struct wally_tx_output* txout = &psbt_pointer->tx->outputs[index];
+  struct wally_tx_output *txout = &psbt_pointer->tx->outputs[index];
   Script script(ByteData(txout->script, txout->script_len));
   ByteData256 empty_bytes;
   Txid txid(empty_bytes);
-  bool is_witness = ValidateUtxo(txid, index, script, redeem_script, key_list);
+  Script new_redeem_script = redeem_script;
+  bool is_witness = ValidatePsbtUtxo(
+      txid, index, script, redeem_script, key_list, &new_redeem_script);
 
   int ret;
-  if (!redeem_script.IsEmpty()) {
-    auto script_val = redeem_script.GetData().GetBytes();
-    if (is_witness && (!redeem_script.IsP2wpkhScript())) {
-      ret = wally_psbt_output_set_witness_script(&psbt_pointer->outputs[index],
-          script_val.data(), script_val.size());
+  if (!new_redeem_script.IsEmpty()) {
+    auto script_val = new_redeem_script.GetData().GetBytes();
+    if (is_witness && (!new_redeem_script.IsP2wpkhScript())) {
+      ret = wally_psbt_output_set_witness_script(
+          &psbt_pointer->outputs[index], script_val.data(), script_val.size());
       if (ret != WALLY_OK) {
-        warn(CFD_LOG_SOURCE, "wally_psbt_output_set_witness_script NG[{}]", ret);
-        throw CfdException(kCfdIllegalArgumentError, "psbt add output witness script error.");
+        warn(
+            CFD_LOG_SOURCE, "wally_psbt_output_set_witness_script NG[{}]",
+            ret);
+        throw CfdException(
+            kCfdIllegalArgumentError, "psbt add output witness script error.");
       }
-      script_val = ScriptUtil::CreateP2wshLockingScript(redeem_script).GetData().GetBytes();
+      script_val = ScriptUtil::CreateP2wshLockingScript(new_redeem_script)
+                       .GetData()
+                       .GetBytes();
     }
-    ret = wally_psbt_output_set_redeem_script(&psbt_pointer->outputs[index],
-        script_val.data(), script_val.size());
+    ret = wally_psbt_output_set_redeem_script(
+        &psbt_pointer->outputs[index], script_val.data(), script_val.size());
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_psbt_output_set_redeem_script NG[{}]", ret);
-      throw CfdException(kCfdIllegalArgumentError, "psbt add output redeem script error.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt add output redeem script error.");
     }
   }
 
   if (!key_list.empty()) {
-    struct wally_map* map_obj = CreateKeyPathMap(key_list);
-    ret = wally_psbt_output_set_keypaths(&psbt_pointer->outputs[index], map_obj);
+    struct wally_map *map_obj = CreateKeyPathMap(key_list);
+    ret =
+        wally_psbt_output_set_keypaths(&psbt_pointer->outputs[index], map_obj);
     wally_map_free(map_obj);
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_psbt_output_set_keypaths NG[{}]", ret);
-      throw CfdException(kCfdIllegalArgumentError, "psbt add output keypaths error.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt add output keypaths error.");
+    }
+
+    ret = wally_map_sort(&psbt_pointer->outputs[index].keypaths, 0);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
+      throw CfdException(
+          kCfdInternalError, "psbt output sort keypaths error.");
     }
   }
 }
 
-void Psbt::SetTxOutProprietary(uint32_t index, const ByteData& key, const ByteData& value) {
+void Psbt::SetTxOutRecord(
+    uint32_t index, const ByteData &key, const ByteData &value) {
   CheckTxOutIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-
-  struct wally_map* map_obj = nullptr;
-  int ret = wally_map_init_alloc(1, &map_obj);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_map_init_alloc NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt alloc map error.");
+  if (key.IsEmpty()) {
+    warn(CFD_LOG_SOURCE, "psbt empty key error.");
+    throw CfdException(kCfdIllegalArgumentError, "psbt empty key error.");
   }
 
   auto key_vec = key.GetBytes();
   auto val_vec = value.GetBytes();
-  ret = wally_map_add(map_obj,
-      key_vec.data(), key_vec.size(), val_vec.data(), val_vec.size());
-  if (ret != WALLY_OK) {
-    wally_map_free(map_obj);
-    warn(CFD_LOG_SOURCE, "wally_map_add NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt add map error.");
-  }
+  uint8_t type =
+      SetPsbtOutput(key_vec, val_vec, &psbt_pointer->outputs[index]);
 
-  ret = wally_psbt_output_set_unknowns(&psbt_pointer->outputs[index], map_obj);
-  wally_map_free(map_obj);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_psbt_output_set_unknowns NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt set unknown error.");
+  struct wally_map *map_ptr = nullptr;
+  switch (type) {
+    case kPsbtOutputRedeemScript:
+      // fall-through
+    case kPsbtOutputWitnessScript:
+      break;
+    case kPsbtOutputBip32Derivation:
+      map_ptr = &psbt_pointer->outputs[index].keypaths;
+      break;
+    default:
+      map_ptr = &psbt_pointer->outputs[index].unknowns;
+      break;
+  }
+  if (map_ptr != nullptr) {
+    int ret = wally_map_sort(map_ptr, 0);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
+      throw CfdException(
+          kCfdInternalError, "psbt output sort unknowns error.");
+    }
   }
 }
 
-Script Psbt::GetTxOutScript(uint32_t index, bool ignore_error, bool* is_witness) const {
+Script Psbt::GetTxOutScript(
+    uint32_t index, bool ignore_error, bool *is_witness) const {
   CheckTxOutIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
@@ -1435,7 +2625,7 @@ std::vector<KeyData> Psbt::GetTxOutKeyDataList(uint32_t index) const {
   std::vector<KeyData> arr;
   arr.reserve(key_max);
   struct wally_map_item *item;
-  for (size_t key_index=0; key_index < key_max; ++key_index) {
+  for (size_t key_index = 0; key_index < key_max; ++key_index) {
     item = &psbt_pointer->outputs[index].keypaths.items[key_index];
     ByteData key(item->key, item->key_len);
     Pubkey pubkey(key);
@@ -1446,8 +2636,8 @@ std::vector<KeyData> Psbt::GetTxOutKeyDataList(uint32_t index) const {
 
       // TODO(k-matsuzawa) Need endian support.
       size_t arr_max = item->value_len / 4;
-      uint32_t* val_arr = reinterpret_cast<uint32_t*>(item->value);
-      for (size_t arr_index=1; arr_index < arr_max; ++arr_index) {
+      uint32_t *val_arr = reinterpret_cast<uint32_t *>(item->value);
+      for (size_t arr_index = 1; arr_index < arr_max; ++arr_index) {
         path.push_back(val_arr[arr_index]);
       }
     }
@@ -1456,37 +2646,39 @@ std::vector<KeyData> Psbt::GetTxOutKeyDataList(uint32_t index) const {
   return arr;
 }
 
-ByteData Psbt::GetTxOutProprietary(uint32_t index, const ByteData& key) const {
+ByteData Psbt::GetTxOutRecord(uint32_t index, const ByteData &key) const {
   CheckTxOutIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
   auto key_vec = key.GetBytes();
   size_t exist = 0;
-  int ret = wally_map_find(&psbt_pointer->outputs[index].unknowns,
-      key_vec.data(), key_vec.size(), &exist);
+  int ret = wally_map_find(
+      &psbt_pointer->outputs[index].unknowns, key_vec.data(), key_vec.size(),
+      &exist);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
     throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
   }
   if (exist == 0) {
     warn(CFD_LOG_SOURCE, "target key not found.");
-    throw CfdException(kCfdIllegalStateError,
-        "psbt global target key not found.");
+    throw CfdException(
+        kCfdIllegalStateError, "psbt global target key not found.");
   }
   uint32_t map_index = static_cast<uint32_t>(exist) - 1;
   return ByteData(
-    psbt_pointer->outputs[index].unknowns.items[map_index].value,
-    psbt_pointer->outputs[index].unknowns.items[map_index].value_len);
+      psbt_pointer->outputs[index].unknowns.items[map_index].value,
+      psbt_pointer->outputs[index].unknowns.items[map_index].value_len);
 }
 
-bool Psbt::IsFindTxOutProprietary(uint32_t index, const ByteData& key) const {
+bool Psbt::IsFindTxOutRecord(uint32_t index, const ByteData &key) const {
   CheckTxOutIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
   auto key_vec = key.GetBytes();
   size_t exist = 0;
-  int ret = wally_map_find(&psbt_pointer->outputs[index].unknowns,
-      key_vec.data(), key_vec.size(), &exist);
+  int ret = wally_map_find(
+      &psbt_pointer->outputs[index].unknowns, key_vec.data(), key_vec.size(),
+      &exist);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
     throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
@@ -1494,48 +2686,54 @@ bool Psbt::IsFindTxOutProprietary(uint32_t index, const ByteData& key) const {
   return (exist == 0) ? false : true;
 }
 
-void Psbt::SetGlobalProprietary(const ByteData& key, const ByteData& value) {
+void Psbt::SetGlobalRecord(const ByteData &key, const ByteData &value) {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+  if (key.IsEmpty()) {
+    warn(CFD_LOG_SOURCE, "psbt empty key error.");
+    throw CfdException(kCfdIllegalArgumentError, "psbt empty key error.");
+  }
   auto key_vec = key.GetBytes();
   auto val_vec = value.GetBytes();
-  int ret = wally_map_add(&psbt_pointer->unknowns,
-    key_vec.data(), key_vec.size(), val_vec.data(), val_vec.size());
+
+  SetPsbtGlobal(key_vec, val_vec, psbt_pointer);
+
+  int ret = wally_map_sort(&psbt_pointer->unknowns, 0);
   if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_map_add NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt add unknown map error.");
+    warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
+    throw CfdException(kCfdInternalError, "psbt sort unknowns error.");
   }
 }
 
-ByteData Psbt::GetGlobalProprietary(const ByteData& key) const {
+ByteData Psbt::GetGlobalRecord(const ByteData &key) const {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
   auto key_vec = key.GetBytes();
   size_t exist = 0;
   int ret = wally_map_find(
-    &psbt_pointer->unknowns, key_vec.data(), key_vec.size(), &exist);
+      &psbt_pointer->unknowns, key_vec.data(), key_vec.size(), &exist);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
     throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
   }
   if (exist == 0) {
     warn(CFD_LOG_SOURCE, "target key not found.");
-    throw CfdException(kCfdIllegalStateError,
-        "psbt global target key not found.");
+    throw CfdException(
+        kCfdIllegalStateError, "psbt global target key not found.");
   }
   uint32_t map_index = static_cast<uint32_t>(exist) - 1;
   return ByteData(
-    psbt_pointer->unknowns.items[map_index].value,
-    psbt_pointer->unknowns.items[map_index].value_len);
+      psbt_pointer->unknowns.items[map_index].value,
+      psbt_pointer->unknowns.items[map_index].value_len);
 }
 
-bool Psbt::IsFindGlobalProprietary(const ByteData& key) const {
+bool Psbt::IsFindGlobalRecord(const ByteData &key) const {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
   auto key_vec = key.GetBytes();
   size_t exist = 0;
   int ret = wally_map_find(
-    &psbt_pointer->unknowns, key_vec.data(), key_vec.size(), &exist);
+      &psbt_pointer->unknowns, key_vec.data(), key_vec.size(), &exist);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
     throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
@@ -1543,8 +2741,7 @@ bool Psbt::IsFindGlobalProprietary(const ByteData& key) const {
   return (exist == 0) ? false : true;
 }
 
-void Psbt::CheckTxInIndex(
-    uint32_t index, int line, const char *caller) const {
+void Psbt::CheckTxInIndex(uint32_t index, int line, const char *caller) const {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
   if (psbt_pointer == nullptr) {
