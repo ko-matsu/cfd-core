@@ -889,6 +889,20 @@ bool Script::IsWitnessProgram() const {
       script_stack_[1].IsBinary());
 }
 
+WitnessVersion Script::GetWitnessVersion() const {
+  if (IsWitnessProgram()) {
+    auto val = script_stack_[0].GetOpCode().GetDataType();
+    if (kOp_0 == val) {
+      return WitnessVersion::kVersion0;
+    } else if ((kOp_1 <= val) && (val <= kOp_16)) {
+      auto num = val - kOp_1;
+      auto version = WitnessVersion::kVersion1 + num;
+      return static_cast<WitnessVersion>(version);
+    }
+  }
+  return WitnessVersion::kVersionNone;
+}
+
 bool Script::IsP2wpkhScript() const {
   return (
       script_data_.GetDataSize() == kScriptHashP2wpkhLength &&

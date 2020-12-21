@@ -20,6 +20,7 @@ using cfd::core::ByteData;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
 using cfd::core::NetType;
+using cfd::core::WitnessVersion;
 
 TEST(Script, Script) {
   size_t size = 0;
@@ -38,6 +39,7 @@ TEST(Script, Script_hex) {
                "76a91498e977b2259a85278aa51188bd863a3df0ad31ba88ac");
   EXPECT_EQ(script.IsEmpty(), false);
   EXPECT_EQ(script.GetElementList().size(), size);
+  EXPECT_EQ(script.GetWitnessVersion(), WitnessVersion::kVersionNone);
 }
 
 TEST(Script, Script_hex_exception) {
@@ -79,6 +81,7 @@ TEST(Script, SetStackData_OP0) {
   EXPECT_STREQ(
       script.ToString().c_str(),
       "0 96376230fbeec4d1e703c3a2d1efe975ccf650a40f6ca2ec2d6cce44fc6bb2b3");
+  EXPECT_EQ(script.GetWitnessVersion(), WitnessVersion::kVersion0);
 }
 
 TEST(Script, SetStackData_kUseScriptNum1) {
