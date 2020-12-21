@@ -50,7 +50,7 @@ class IteratorWrapper {
   /**
    * @brief 次の要素が取得可能であるかを返却する.
    * @retval true 次の要素が取得可能であるとき
-   * @retval true 次の要素が取得できないとき（イテレータが末端を指しているとき）
+   * @retval false 次の要素が取得できないとき（イテレータが末端を指しているとき）
    */
   bool hasNext() const {
     if (reverse_) {
@@ -61,7 +61,7 @@ class IteratorWrapper {
   /**
    * @brief 前の要素が取得可能であるかを返却する.
    * @retval true 前の要素が取得可能であるとき
-   * @retval true 前の要素が取得できないとき（イテレータが始端を指しているとき）
+   * @retval false 前の要素が取得できないとき（イテレータが始端を指しているとき）
    */
   bool hasBack() const {
     if (reverse_) {

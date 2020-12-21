@@ -206,7 +206,7 @@ class CFD_CORE_EXPORT HDWallet {
    * @param[in] mnemonic                mnemonic vector to check valid
    * @param[in] language                language to verify
    * @retval true   mnemonic checksum is valid
-   * @retval true   mnemonic checksum is invalid
+   * @retval false  mnemonic checksum is invalid
    */
   static bool CheckValidMnemonic(
       const std::vector<std::string>& mnemonic, const std::string& language);
