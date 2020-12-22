@@ -2398,6 +2398,14 @@ void Psbt::ClearTxInSignData(uint32_t index) {
     input->witness_script_len = 0;
     input->witness_script = nullptr;
   }
+  for (size_t idx = 0; idx < input->keypaths.num_items; ++idx) {
+    auto keypath = &input->keypaths.items[idx];
+    memset(keypath->key, 0, keypath->key_len);
+    memset(keypath->value, 0, keypath->value_len);
+    FreeWallyBuffer(keypath->key);
+    FreeWallyBuffer(keypath->value);
+    memset(keypath, 0, sizeof(*keypath));
+  }
   for (size_t idx = 0; idx < input->signatures.num_items; ++idx) {
     auto sig = &input->signatures.items[idx];
     memset(sig->key, 0, sig->key_len);
