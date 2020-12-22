@@ -20,6 +20,7 @@ CFDCORE_PKGINCLUDE_FILES = \
   cfdcore_key.h \
   cfdcore_script.h \
   cfdcore_descriptor.h \
+  cfdcore_psbt.h \
   cfdcore_exception.h \
   cfdcore_iterator.h \
   cfdcore_logger_interface.h \

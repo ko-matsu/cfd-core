@@ -15,7 +15,8 @@
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_util.h"
-#include "cfdcore_wally_util.h"  // NOLINT
+#include "cfdcore_transaction_internal.h"  // NOLINT
+#include "cfdcore_wally_util.h"            // NOLINT
 
 namespace cfd {
 namespace core {
@@ -797,6 +798,8 @@ bool Transaction::HasWitness() const {
 ByteData Transaction::GetByteData(bool has_witness) const {
   struct wally_tx *tx_pointer =
       static_cast<struct wally_tx *>(wally_tx_pointer_);
+  return ConvertBitcoinTxFromWally(tx_pointer, !has_witness);
+#if 0
   size_t size = 0;
   uint32_t flag = 0;
   if (has_witness) {
@@ -929,6 +932,7 @@ ByteData Transaction::GetByteData(bool has_witness) const {
   }
 
   return ByteData(buffer);
+#endif
 }
 
 uint32_t Transaction::GetWallyFlag() const {
@@ -950,6 +954,133 @@ void Transaction::CheckTxOutIndex(
     spdlog::source_loc location = {CFD_LOG_FILE, line, caller};
     warn(location, "vout[{}] out_of_range.", index);
     throw CfdException(kCfdOutOfRangeError, "vin out_of_range error.");
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Internal API
+// -----------------------------------------------------------------------------
+ByteData ConvertBitcoinTxFromWally(
+    const struct wally_tx *tx, bool force_exclude_witness) {
+  int ret;
+  size_t witness_count = 0;
+  ret = wally_tx_get_witness_count(tx, &witness_count);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_tx_get_witness_count NG[{}]", ret);
+    throw CfdException(kCfdIllegalStateError, "psbt witness count get error.");
+  }
+
+  uint32_t flags = (witness_count != 0) ? WALLY_TX_FLAG_USE_WITNESS : 0;
+  if (force_exclude_witness) flags = 0;
+
+  size_t size = 0;
+  ret = wally_tx_get_length(tx, flags, &size);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_tx_get_length NG[{}]", ret);
+    throw CfdException(kCfdIllegalStateError, "psbt tx size get error.");
+  }
+
+  try {
+    std::vector<uint8_t> buf(size);
+    size_t tx_size = 0;
+
+    if (size < kTransactionMinimumHexSize) {
+      ret = WALLY_EINVAL;
+    } else {
+      ret = wally_tx_to_bytes(tx, flags, buf.data(), buf.size(), &tx_size);
+    }
+
+    if (ret == WALLY_OK) {
+      return ByteData(buf.data(), static_cast<uint32_t>(tx_size));
+    } else if (ret == WALLY_EINVAL) {
+      /* TODO: About conversion to the object.
+      * In libwally, txin / txout does not allow empty data.
+      * Therefore, if txin / txout is empty, object to byte is an error.
+      * Therefore, it performs its own processing under certain circumstances.
+      */
+      if ((tx->num_inputs == 0) || (tx->num_outputs == 0)) {
+        info(CFD_LOG_SOURCE, "wally_tx_get_length size[{}]", size);
+        // Necessary size calculation because wally_tx_get_length may be
+        // an invalid value (reserved more)
+        size_t need_size = sizeof(struct wally_tx);
+        need_size += tx->num_inputs * sizeof(struct wally_tx_input);
+        need_size += tx->num_outputs * sizeof(struct wally_tx_output);
+        for (uint32_t i = 0; i < tx->num_inputs; ++i) {
+          const struct wally_tx_input *input = tx->inputs + i;
+          need_size += input->script_len + 10;
+        }
+        for (uint32_t i = 0; i < tx->num_outputs; ++i) {
+          const struct wally_tx_output *output = tx->outputs + i;
+          need_size += output->script_len + 10;
+        }
+        if (flags != 0) {
+          for (uint32_t i = 0; i < tx->num_inputs; ++i) {
+            const struct wally_tx_input *input = tx->inputs + i;
+            size_t num_items = input->witness ? input->witness->num_items : 0;
+            for (uint32_t j = 0; j < num_items; ++j) {
+              const struct wally_tx_witness_item *stack;
+              stack = input->witness->items + j;
+              need_size += stack->witness_len + 10;
+            }
+            need_size += 10;
+          }
+        }
+
+        Serializer builder(need_size);
+        builder.AddDirectNumber(tx->version);
+        if ((flags != 0) && (tx->num_inputs != 0)) {  // witness
+          builder.AddDirectByte(0);                   // marker is 0
+          builder.AddDirectByte(1);                   // flag is 1(witness)
+        }
+
+        builder.AddVariableInt(tx->num_inputs);
+        for (uint32_t i = 0; i < tx->num_inputs; ++i) {
+          const struct wally_tx_input *input = tx->inputs + i;
+          builder.AddDirectBytes(input->txhash, sizeof(input->txhash));
+          builder.AddDirectNumber(input->index);
+          builder.AddVariableBuffer(input->script, input->script_len);
+          builder.AddDirectNumber(input->sequence);
+        }
+
+        builder.AddVariableInt(tx->num_outputs);
+        for (uint32_t i = 0; i < tx->num_outputs; ++i) {
+          const struct wally_tx_output *output = tx->outputs + i;
+          builder.AddDirectNumber(output->satoshi);
+          builder.AddVariableBuffer(output->script, output->script_len);
+        }
+
+        if (flags != 0) {  // witness
+          for (uint32_t i = 0; i < tx->num_inputs; ++i) {
+            const struct wally_tx_input *input = tx->inputs + i;
+            uint32_t num_items =
+                input->witness ? input->witness->num_items : 0;
+            builder.AddVariableInt(num_items);
+            for (uint32_t j = 0; j < num_items; ++j) {
+              const struct wally_tx_witness_item *stack;
+              stack = input->witness->items + j;
+              builder.AddVariableBuffer(stack->witness, stack->witness_len);
+            }
+          }
+        }
+
+        builder.AddDirectNumber(tx->locktime);
+        return builder.Output();
+      } else {
+        warn(CFD_LOG_SOURCE, "wally_tx_to_bytes NG[{}].", ret);
+        throw CfdException(kCfdIllegalStateError, "tx hex convert error.");
+      }
+    } else {
+      warn(CFD_LOG_SOURCE, "wally_tx_to_bytes NG[{}].", ret);
+      throw CfdException(kCfdIllegalStateError, "psbt tx hex convert error.");
+    }
+  } catch (const CfdError &except) {
+    throw except;
+  } catch (const std::exception &except) {
+    warn(CFD_LOG_SOURCE, "unknown exception.");
+    throw CfdException(kCfdUnknownError, std::string(except.what()));
+  } catch (...) {
+    warn(CFD_LOG_SOURCE, "unknown error.");
+    throw CfdException();
   }
 }
 

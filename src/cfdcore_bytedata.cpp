@@ -20,31 +20,6 @@ namespace core {
 
 using logger::warn;
 
-// -----------------------------------------------------------------------------
-// inner file
-// -----------------------------------------------------------------------------
-static constexpr uint8_t kViTag16 = 253;  //!< VarInt16
-static constexpr uint8_t kViTag32 = 254;  //!< VarInt32
-static constexpr uint8_t kViTag64 = 255;  //!< VarInt64
-static constexpr uint8_t kViMax8 = 252;   //!< VarInt8
-
-/**
- * @brief serialize from buffer.
- * @param[in] data    buffer
- * @result serialize buffer
- */
-static std::vector<uint8_t> SerializeFromBuffer(
-    const std::vector<uint8_t>& data) {
-  std::vector<uint8_t> result;
-  std::vector<uint8_t> count_buffer =
-      ByteData::GetVariableInt(data.size()).GetBytes();
-  result.insert(result.end(), count_buffer.begin(), count_buffer.end());
-  if (data.size() != 0) {
-    result.insert(result.end(), data.begin(), data.end());
-  }
-  return result;
-}
-
 //////////////////////////////////
 /// ByteData
 //////////////////////////////////
@@ -95,36 +70,19 @@ uint8_t ByteData::GetHeadData() const {
 }
 
 ByteData ByteData::Serialize() const {
-  return ByteData(SerializeFromBuffer(data_));
+  Serializer obj(data_.size());
+  obj.AddVariableBuffer(data_.data(), data_.size());
+  return obj.Output();
 }
 
 size_t ByteData::GetSerializeSize() const {
-  ByteData size_buffer = GetVariableInt(data_.size());
-  return size_buffer.GetDataSize() + data_.size();
+  return Serializer::GetVariableIntSize(data_.size()) + data_.size();
 }
 
 ByteData ByteData::GetVariableInt(uint64_t v) {
-  std::vector<uint8_t> size_byte;
-  if (v <= kViMax8) {
-    uint8_t v8 = static_cast<uint8_t>(v);
-    size_byte.push_back(v8);
-  } else if (v <= std::numeric_limits<uint16_t>::max()) {
-    uint16_t v16 = static_cast<uint16_t>(v);
-    size_byte.resize(sizeof(v16) + 1);
-    size_byte[0] = kViTag16;
-    memcpy(size_byte.data() + 1, &v16, sizeof(v16));
-  } else if (v <= std::numeric_limits<uint32_t>::max()) {
-    uint32_t v32 = static_cast<uint32_t>(v);
-    size_byte.resize(sizeof(v32) + 1);
-    size_byte[0] = kViTag32;
-    memcpy(size_byte.data() + 1, &v32, sizeof(v32));
-  } else {
-    size_byte.resize(sizeof(v) + 1);
-    size_byte[0] = kViTag64;
-    memcpy(size_byte.data() + 1, &v, sizeof(v));
-  }
-
-  return ByteData(size_byte);
+  Serializer obj(sizeof(v) + 1);
+  obj.AddVariableInt(v);
+  return obj.Output();
 }
 
 bool ByteData::IsLarge(const ByteData& source, const ByteData& destination) {
@@ -203,7 +161,9 @@ ByteData ByteData160::GetData() const { return ByteData(data_); }
 uint8_t ByteData160::GetHeadData() const { return data_[0]; }
 
 ByteData ByteData160::Serialize() const {
-  return ByteData(SerializeFromBuffer(data_));
+  Serializer obj(data_.size());
+  obj.AddVariableBuffer(data_.data(), data_.size());
+  return obj.Output();
 }
 
 //////////////////////////////////
@@ -263,7 +223,244 @@ ByteData ByteData256::GetData() const { return ByteData(data_); }
 uint8_t ByteData256::GetHeadData() const { return data_[0]; }
 
 ByteData ByteData256::Serialize() const {
-  return ByteData(SerializeFromBuffer(data_));
+  Serializer obj(data_.size());
+  obj.AddVariableBuffer(data_.data(), data_.size());
+  return obj.Output();
+}
+
+//////////////////////////////////
+/// Serializer
+//////////////////////////////////
+Serializer::Serializer() : offset_(0) {
+  // do nothing
+}
+
+Serializer::Serializer(uint32_t initial_size)
+    : buffer_(initial_size + 9), offset_(0) {
+  // do nothing
+}
+
+void Serializer::CheckNeedSize(uint32_t need_size) {
+  size_t size = buffer_.size() - static_cast<size_t>(offset_);
+  if (size < need_size) {
+    size_t cap = buffer_.capacity() - static_cast<size_t>(offset_);
+    if (cap < (need_size * 2)) {
+      buffer_.reserve(buffer_.capacity() + (need_size * 10));
+    }
+    buffer_.resize(buffer_.size() + (need_size * 2));
+  }
+}
+
+uint32_t Serializer::GetVariableIntSize(uint64_t value) {
+  if (value <= kViMax8)
+    return 1;
+  else if (value <= std::numeric_limits<uint16_t>::max())
+    return 3;
+  else if (value <= std::numeric_limits<uint32_t>::max())
+    return 5;
+  else
+    return 9;
+}
+
+void Serializer::AddVariableInt(uint64_t value) {
+  // TODO(k-matsuzawa) need endian support.
+  CheckNeedSize(9);
+  uint8_t* buf = &buffer_.data()[offset_];
+  if (value <= kViMax8) {
+    *buf = static_cast<uint8_t>(value);
+    ++offset_;
+  } else if (value <= std::numeric_limits<uint16_t>::max()) {
+    *buf = kViTag16;
+    ++buf;
+    uint16_t v16 = static_cast<uint16_t>(value);
+    memcpy(buf, &v16, sizeof(v16));
+    offset_ += sizeof(v16) + 1;
+  } else if (value <= std::numeric_limits<uint32_t>::max()) {
+    *buf = kViTag32;
+    ++buf;
+    uint32_t v32 = static_cast<uint32_t>(value);
+    memcpy(buf, &v32, sizeof(v32));
+    offset_ += sizeof(v32) + 1;
+  } else {
+    *buf = kViTag64;
+    ++buf;
+    uint64_t v64 = value;
+    memcpy(buf, &v64, sizeof(v64));
+    offset_ += sizeof(v64) + 1;
+  }
+}
+
+void Serializer::AddVariableBuffer(const ByteData& buffer) {
+  auto buf = buffer.GetBytes();
+  AddVariableBuffer(buf.data(), buf.size());
+}
+
+void Serializer::AddPrefixBuffer(uint64_t prefix, const ByteData& buffer) {
+  auto buf = buffer.GetBytes();
+  AddPrefixBuffer(prefix, buf.data(), buf.size());
+}
+
+void Serializer::AddDirectBytes(const ByteData& buffer) {
+  auto buf = buffer.GetBytes();
+  AddDirectBytes(buf.data(), buf.size());
+}
+
+void Serializer::AddVariableBuffer(
+    const uint8_t* buffer, uint32_t buffer_size) {
+  AddVariableInt(buffer_size);
+  AddDirectBytes(buffer, buffer_size);
+}
+
+void Serializer::AddPrefixBuffer(
+    uint64_t prefix, const uint8_t* buffer, uint32_t buffer_size) {
+  uint32_t size = GetVariableIntSize(prefix) + buffer_size;
+  AddVariableInt(size);
+  AddVariableInt(prefix);
+  AddDirectBytes(buffer, buffer_size);
+}
+
+void Serializer::AddDirectBytes(const uint8_t* buffer, uint32_t buffer_size) {
+  if ((buffer != nullptr) && (buffer_size != 0)) {
+    CheckNeedSize(buffer_size);
+    uint8_t* buf = &buffer_.data()[offset_];
+    memcpy(buf, buffer, buffer_size);
+    offset_ += buffer_size;
+  }
+}
+
+void Serializer::AddDirectByte(uint8_t byte_data) {
+  CheckNeedSize(4);
+  uint8_t* buf = &buffer_.data()[offset_];
+  *buf = byte_data;
+  ++offset_;
+}
+
+void Serializer::AddDirectNumber(uint32_t number) {
+  CheckNeedSize(sizeof(number));
+  uint8_t* buf = &buffer_.data()[offset_];
+  // TODO(k-matsuzawa) need endian support.
+  memcpy(buf, &number, sizeof(number));
+  offset_ += sizeof(number);
+}
+
+void Serializer::AddDirectNumber(uint64_t number) {
+  CheckNeedSize(sizeof(number));
+  uint8_t* buf = &buffer_.data()[offset_];
+  // TODO(k-matsuzawa) need endian support.
+  memcpy(buf, &number, sizeof(number));
+  offset_ += sizeof(number);
+}
+
+ByteData Serializer::Output() { return ByteData(buffer_.data(), offset_); }
+
+Deserializer::Deserializer(const std::vector<uint8_t>& buffer)
+    : buffer_(buffer), offset_(0) {
+  // do nothing
+}
+
+Deserializer::Deserializer(const ByteData& buffer)
+    : Deserializer(buffer.GetBytes()) {
+  // do nothing
+}
+
+uint64_t Deserializer::ReadUint64() {
+  uint64_t result = 0;
+  CheckReadSize(sizeof(result));
+  memcpy(&result, &buffer_.data()[offset_], sizeof(result));
+  offset_ += sizeof(result);
+  return result;
+}
+
+uint32_t Deserializer::ReadUint32() {
+  uint32_t result = 0;
+  CheckReadSize(sizeof(result));
+  memcpy(&result, &buffer_.data()[offset_], sizeof(result));
+  offset_ += sizeof(result);
+  return result;
+}
+
+uint8_t Deserializer::ReadUint8() {
+  uint8_t result = 0;
+  CheckReadSize(sizeof(result));
+  memcpy(&result, &buffer_.data()[offset_], sizeof(result));
+  offset_ += sizeof(result);
+  return result;
+}
+
+uint64_t Deserializer::ReadVariableInt() {
+  CheckReadSize(1);
+  const uint8_t* buf = buffer_.data() + offset_;
+  uint64_t value = 0;
+  if (*buf <= Serializer::kViMax8) {
+    value = *buf;
+    offset_ += 1;
+  } else if (*buf == Serializer::kViTag16) {
+    CheckReadSize(3);
+    ++buf;
+    uint16_t num;
+    memcpy(&num, buf, sizeof(num));
+    value = num;
+    offset_ += 1 + sizeof(num);
+  } else if (*buf == Serializer::kViTag32) {
+    CheckReadSize(5);
+    ++buf;
+    uint32_t num;
+    memcpy(&num, buf, sizeof(num));
+    value = num;
+    offset_ += 1 + sizeof(num);
+  } else {
+    CheckReadSize(9);
+    ++buf;
+    uint64_t num;
+    memcpy(&num, buf, sizeof(num));
+    value = num;
+    offset_ += 1 + sizeof(num);
+  }
+  return value;
+}
+
+std::vector<uint8_t> Deserializer::ReadBuffer(uint32_t size) {
+  CheckReadSize(size);
+  std::vector<uint8_t> result(size);
+  memcpy(result.data(), &buffer_.data()[offset_], size);
+  offset_ += size;
+  return result;
+}
+
+void Deserializer::ReadArray(uint8_t* output, size_t size) {
+  if (output != nullptr) {
+    CheckReadSize(size);
+    memcpy(output, &buffer_.data()[offset_], size);
+    offset_ += size;
+  }
+}
+
+std::vector<uint8_t> Deserializer::ReadVariableBuffer() {
+  // TODO(k-matsuzawa) need endian support.
+  uint64_t data_size = ReadVariableInt();
+  if (data_size == 0) {
+    return std::vector<uint8_t>();
+  }
+  CheckReadSize(data_size);
+
+  uint8_t* buf = buffer_.data() + offset_;
+  std::vector<uint8_t> result(data_size);
+  memcpy(result.data(), buf, data_size);
+  offset_ += data_size;
+  return result;
+}
+
+ByteData Deserializer::ReadVariableData() {
+  return ByteData(ReadVariableBuffer());
+}
+
+uint32_t Deserializer::GetReadSize() { return offset_; }
+
+void Deserializer::CheckReadSize(uint32_t size) {
+  if (buffer_.size() < (offset_ + size)) {
+    warn(CFD_LOG_SOURCE, "deserialize buffer EOF.");
+    throw CfdException(kCfdIllegalStateError, "deserialize buffer EOF.");
+  }
 }
 
 }  // namespace core

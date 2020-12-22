@@ -790,6 +790,10 @@ const std::string Script::GetHex() const { return script_data_.GetHex(); }
 
 bool Script::IsEmpty() const { return script_data_.GetBytes().empty(); }
 
+bool Script::Equals(const Script& object) const {
+  return script_data_.Equals(object.script_data_);
+}
+
 std::vector<ScriptElement> Script::GetElementList() const {
   return script_stack_;
 }
@@ -883,6 +887,20 @@ bool Script::IsWitnessProgram() const {
        script_data_.GetDataSize() <= kMaxWitnessProgramLength) &&
       script_stack_[0].GetOpCode() == ScriptOperator::OP_0 &&
       script_stack_[1].IsBinary());
+}
+
+WitnessVersion Script::GetWitnessVersion() const {
+  if (IsWitnessProgram()) {
+    auto val = script_stack_[0].GetOpCode().GetDataType();
+    if (kOp_0 == val) {
+      return WitnessVersion::kVersion0;
+    } else if ((kOp_1 <= val) && (val <= kOp_16)) {
+      auto num = val - kOp_1;
+      auto version = WitnessVersion::kVersion1 + num;
+      return static_cast<WitnessVersion>(version);
+    }
+  }
+  return WitnessVersion::kVersionNone;
 }
 
 bool Script::IsP2wpkhScript() const {
