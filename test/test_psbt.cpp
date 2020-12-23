@@ -838,6 +838,12 @@ TEST(Psbt, SetGlobalRecordTest) {
   EXPECT_EQ(get_gval1.GetHex(), global_value1.GetHex());
   EXPECT_EQ(get_gval2.GetHex(), global_value2.GetHex());
 
+  auto key_list = psbt2.GetGlobalRecordKeyList();
+  EXPECT_EQ(2, key_list.size());
+  if (key_list.size() == 2) {
+    EXPECT_EQ(global_key1.GetHex(), key_list[0].GetHex());
+    EXPECT_EQ(global_key2.GetHex(), key_list[1].GetHex());
+  }
 }
 
 TEST(Psbt, SetOutputRecordTest) {
@@ -905,6 +911,13 @@ TEST(Psbt, SetOutputRecordTest) {
   auto get_gval2 = psbt2.GetTxOutRecord(0, global_key2);
   EXPECT_EQ(get_gval1.GetHex(), global_value1.GetHex());
   EXPECT_EQ(get_gval2.GetHex(), global_value2.GetHex());
+
+  auto key_list = psbt2.GetTxOutRecordKeyList(0);
+  EXPECT_EQ(2, key_list.size());
+  if (key_list.size() == 2) {
+    EXPECT_EQ(global_key1.GetHex(), key_list[0].GetHex());
+    EXPECT_EQ(global_key2.GetHex(), key_list[1].GetHex());
+  }
 }
 
 TEST(Psbt, SetInputRecordTest) {
@@ -987,6 +1000,13 @@ TEST(Psbt, SetInputRecordTest) {
   auto get_gval2 = psbt2.GetTxInRecord(0, global_key2);
   EXPECT_EQ(get_gval1.GetHex(), global_value1.GetHex());
   EXPECT_EQ(get_gval2.GetHex(), global_value2.GetHex());
+
+  auto key_list = psbt2.GetTxInRecordKeyList(0);
+  EXPECT_EQ(2, key_list.size());
+  if (key_list.size() == 2) {
+    EXPECT_EQ(global_key1.GetHex(), key_list[0].GetHex());
+    EXPECT_EQ(global_key2.GetHex(), key_list[1].GetHex());
+  }
 }
 
 TEST(Psbt, GetSignaturePubkeyList) {
