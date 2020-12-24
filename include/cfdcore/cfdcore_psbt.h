@@ -366,7 +366,7 @@ class CFD_CORE_EXPORT Psbt {
    * @return redeem script (or witness script)
    */
   Script GetTxInRedeemScriptDirect(
-      uint32_t index, bool ignore_error = false, bool is_witness) const;
+      uint32_t index, bool ignore_error = false, bool is_witness = true) const;
   /**
    * @brief get input key data list.
    * @param[in] index  input index
