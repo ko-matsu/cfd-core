@@ -114,6 +114,12 @@ class CFD_CORE_EXPORT SigHashType {
    */
   void SetFromSigHashFlag(uint8_t flag);
 
+  /**
+   * @brief Get string.
+   * @return SigHashType string.
+   */
+  std::string ToString() const;
+
  private:
   /**
    * @brief Sighashアルゴリズム

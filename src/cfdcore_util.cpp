@@ -92,6 +92,21 @@ void SigHashType::SetFromSigHashFlag(uint8_t flag) {
   is_fork_id_ = is_fork_id;
 }
 
+std::string SigHashType::ToString() const {
+  std::string result;
+  if (hash_algorithm_ == kSigHashAll) {
+    result = "ALL";
+  } else if (hash_algorithm_ == kSigHashNone) {
+    result = "NONE";
+  } else if (hash_algorithm_ == kSigHashSingle) {
+    result = "SINGLE";
+  } else {
+    return "";
+  }
+  if (is_anyone_can_pay_) result += "|ANYONECANPAY";
+  return result;
+}
+
 //////////////////////////////////
 /// HashUtil
 //////////////////////////////////
