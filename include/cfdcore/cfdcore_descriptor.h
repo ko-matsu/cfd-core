@@ -244,6 +244,13 @@ class CFD_CORE_EXPORT DescriptorKeyReference {
   explicit DescriptorKeyReference(
       const ExtPubkey& ext_pubkey, const std::string* arg = nullptr);
   /**
+   * @brief constructor.
+   * @param[in] key      key data
+   * @param[in] arg      argument
+   */
+  explicit DescriptorKeyReference(
+      const KeyData& key, const std::string* arg = nullptr);
+  /**
    * @brief copy constructor.
    * @param[in] object    DescriptorKeyReference object
    */
@@ -290,6 +297,11 @@ class CFD_CORE_EXPORT DescriptorKeyReference {
    */
   ExtPubkey GetExtPubkey() const;
   /**
+   * @brief getting key data.
+   * @return key data
+   */
+  KeyData GetKeyData() const;
+  /**
    * @brief getting key type.
    * @return key type
    */
@@ -300,6 +312,7 @@ class CFD_CORE_EXPORT DescriptorKeyReference {
   Pubkey pubkey_;               //!< pubkey
   ExtPrivkey extprivkey_;       //!< ext privkey
   ExtPubkey extpubkey_;         //!< ext pubkey
+  KeyData key_data_;            //!< key data
   std::string argument_;        //!< argument
 };
 
@@ -739,6 +752,31 @@ class CFD_CORE_EXPORT Descriptor {
    * @return descriptor reference list
    */
   std::vector<DescriptorScriptReference> GetReferenceAll(
+      const std::vector<std::string>* array_argument = nullptr) const;
+
+  /**
+   * @brief getting key data.
+   * @return key data
+   */
+  KeyData GetKeyData() const;
+  /**
+   * @brief getting key data.
+   * @param[in] argument        argument
+   * @return key data
+   */
+  KeyData GetKeyData(const std::string& argument) const;
+  /**
+   * @brief getting key data.
+   * @param[in] array_argument  argument
+   * @return key data
+   */
+  KeyData GetKeyData(const std::vector<std::string>& array_argument) const;
+  /**
+   * @brief getting key data list.
+   * @param[in] array_argument  argument
+   * @return key data
+   */
+  std::vector<KeyData> GetKeyDataAll(
       const std::vector<std::string>* array_argument = nullptr) const;
 
   /**

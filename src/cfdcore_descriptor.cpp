@@ -306,11 +306,27 @@ DescriptorKeyReference::DescriptorKeyReference(
       argument_((arg) ? *arg : "") {}
 
 DescriptorKeyReference::DescriptorKeyReference(
+    const KeyData& key, const std::string* arg)
+    : key_type_(DescriptorKeyType::kDescriptorKeyPublic),
+      pubkey_(key.GetPubkey()),
+      key_data_(key),
+      argument_((arg) ? *arg : "") {
+  if (key_data_.HasExtPrivkey()) {
+    extprivkey_ = key_data_.GetExtPrivkey();
+    key_type_ = DescriptorKeyType::kDescriptorKeyBip32Priv;
+  } else if (key_data_.HasExtPubkey()) {
+    extpubkey_ = key_data_.GetExtPubkey();
+    key_type_ = DescriptorKeyType::kDescriptorKeyBip32;
+  }
+}
+
+DescriptorKeyReference::DescriptorKeyReference(
     const DescriptorKeyReference& object) {
   key_type_ = object.key_type_;
   pubkey_ = object.pubkey_;
   extprivkey_ = object.extprivkey_;
   extpubkey_ = object.extpubkey_;
+  key_data_ = object.key_data_;
   argument_ = object.argument_;
 }
 
@@ -320,6 +336,7 @@ DescriptorKeyReference& DescriptorKeyReference::operator=(
   pubkey_ = object.pubkey_;
   extprivkey_ = object.extprivkey_;
   extpubkey_ = object.extpubkey_;
+  key_data_ = object.key_data_;
   argument_ = object.argument_;
   return *this;
 }
@@ -365,6 +382,8 @@ ExtPubkey DescriptorKeyReference::GetExtPubkey() const {
       CfdError::kCfdIllegalArgumentError,
       "GetExtPubkey unsupported key type.");
 }
+
+KeyData DescriptorKeyReference::GetKeyData() const { return key_data_; }
 
 DescriptorKeyType DescriptorKeyReference::GetKeyType() const {
   return key_type_;
@@ -1418,15 +1437,23 @@ DescriptorKeyReference DescriptorNode::GetKeyReferences(
   DescriptorKeyReference result;
   Pubkey pubkey;
   std::string using_key = key_info_;
+  KeyData key_data;
   if (key_type_ == DescriptorKeyType::kDescriptorKeyPublic) {
     pubkey = Pubkey(key_info_);
     result = DescriptorKeyReference(pubkey);
+    try {
+      key_data = KeyData(value_);
+      result = DescriptorKeyReference(key_data);
+    } catch (const CfdException& except) {
+      if (value_[0] == '[') throw except;
+    }
   } else if (
       (key_type_ == DescriptorKeyType::kDescriptorKeyBip32) ||
       (key_type_ == DescriptorKeyType::kDescriptorKeyBip32Priv)) {
     std::string arg_value;
     std::string* arg_pointer = nullptr;
     uint32_t need_arg_num = need_arg_num_;
+    bool has_base = false;
     if (need_arg_num == 0) {
       // 指定キー。強化鍵の場合、xprv/tprvの必要あり。
     } else if ((array_argument == nullptr) || array_argument->empty()) {
@@ -1440,6 +1467,7 @@ DescriptorKeyReference DescriptorNode::GetKeyReferences(
       // baseを取得する
       using_key = base_extkey_;
       need_arg_num = 0;
+      has_base = true;
     } else {
       // 動的キー生成。強化鍵の場合、xprv/tprvの必要あり。
       // array_argumentがnullptrの場合、仮で0を設定する。（生成テスト用）
@@ -1476,6 +1504,17 @@ DescriptorKeyReference DescriptorNode::GetKeyReferences(
           "Failed to generate pubkey from hdkey.");
     }
     pubkey = xpub.GetPubkey();
+
+    try {
+      if (((need_arg_num == 0) && (!has_base)) ||
+          ((!arg_value.empty()) &&
+           (arg_value.find('/') == std::string::npos))) {
+        key_data = KeyData(value_, static_cast<int32_t>(xpub.GetChildNum()));
+        result = DescriptorKeyReference(key_data, arg_pointer);
+      }
+    } catch (const CfdException& except) {
+      if (value_[0] == '[') throw except;
+    }
   }
 
   if (!pubkey.IsValid()) {
@@ -1724,6 +1763,62 @@ std::vector<DescriptorScriptReference> Descriptor::GetReferenceAll(
   if (array_argument) copy_list = *array_argument;
   std::vector<DescriptorScriptReference> ref_list;
   return root_node_.GetReferences(&copy_list);
+}
+
+KeyData Descriptor::GetKeyData() const {
+  if (GetNeedArgumentNum() != 0) {
+    warn(CFD_LOG_SOURCE, "Failed to empty argument. {}", GetNeedArgumentNum());
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Failed to empty argument. need argument descriptor.");
+  }
+  std::vector<std::string> list;
+  auto key_list = GetKeyDataAll(&list);
+  if (key_list.empty()) return KeyData();
+  return key_list[0];
+}
+
+KeyData Descriptor::GetKeyData(const std::string& argument) const {
+  std::vector<std::string> list;
+  for (uint32_t index = 0; index < GetNeedArgumentNum(); ++index) {
+    list.push_back(argument);
+  }
+  return GetKeyData(list);
+}
+
+KeyData Descriptor::GetKeyData(
+    const std::vector<std::string>& array_argument) const {
+  std::vector<std::string> copy_list = array_argument;
+  auto key_list = GetKeyDataAll(&copy_list);
+  if (key_list.empty()) return KeyData();
+  return key_list[0];
+}
+
+std::vector<KeyData> Descriptor::GetKeyDataAll(
+    const std::vector<std::string>* array_argument) const {
+  std::vector<DescriptorScriptReference> ref_list =
+      GetReferenceAll(array_argument);
+  std::vector<KeyData> result;
+
+  for (const auto& ref : ref_list) {
+    auto script_data = ref;
+    do {
+      if (script_data.HasKey()) {
+        auto key_list = script_data.GetKeyList();
+        for (const auto& key : key_list) {
+          auto key_data = key.GetKeyData();
+          if (key_data.IsValid()) {
+            result.push_back(key_data);
+          }
+        }
+      }
+      if (!script_data.HasChild()) {
+        break;
+      }
+      script_data = script_data.GetChild();
+    } while (true);
+  }
+  return result;
 }
 
 std::string Descriptor::ToString(bool append_checksum) const {
