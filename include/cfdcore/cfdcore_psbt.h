@@ -429,6 +429,12 @@ class CFD_CORE_EXPORT Psbt {
    */
   bool IsFindTxInRecord(uint32_t index, const ByteData& key) const;
   /**
+   * @brief get record key list.
+   * @param[in] index  input index
+   * @return record key list
+   */
+  std::vector<ByteData> GetTxInRecordKeyList(uint32_t index) const;
+  /**
    * @brief clear input sign data.
    * @details clear target is redeem script, signature, sighashtype.
    * @param[in] index  input index
@@ -525,6 +531,12 @@ class CFD_CORE_EXPORT Psbt {
    * @retval false  record not found
    */
   bool IsFindTxOutRecord(uint32_t index, const ByteData& key) const;
+  /**
+   * @brief get record key list.
+   * @param[in] index  output index
+   * @return record key list
+   */
+  std::vector<ByteData> GetTxOutRecordKeyList(uint32_t index) const;
 
   /**
    * @brief set global record.
@@ -545,6 +557,11 @@ class CFD_CORE_EXPORT Psbt {
    * @retval false  record not found
    */
   bool IsFindGlobalRecord(const ByteData& key) const;
+  /**
+   * @brief get record key list.
+   * @return record key list
+   */
+  std::vector<ByteData> GetGlobalRecordKeyList() const;
 
  protected:
   void* wally_psbt_pointer_;  ///< libwally psbt pointer

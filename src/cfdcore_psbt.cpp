@@ -2380,6 +2380,19 @@ bool Psbt::IsFindTxInRecord(uint32_t index, const ByteData &key) const {
   return (exist == 0) ? false : true;
 }
 
+std::vector<ByteData> Psbt::GetTxInRecordKeyList(uint32_t index) const {
+  CheckTxInIndex(index, __LINE__, __FUNCTION__);
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+  std::vector<ByteData> result;
+  auto input = &psbt_pointer->inputs[index];
+  for (size_t idx = 0; idx < input->unknowns.num_items; ++idx) {
+    auto item = &input->unknowns.items[idx];
+    result.emplace_back(item->key, item->key_len);
+  }
+  return result;
+}
+
 void Psbt::ClearTxInSignData(uint32_t index) {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
@@ -2694,6 +2707,19 @@ bool Psbt::IsFindTxOutRecord(uint32_t index, const ByteData &key) const {
   return (exist == 0) ? false : true;
 }
 
+std::vector<ByteData> Psbt::GetTxOutRecordKeyList(uint32_t index) const {
+  CheckTxOutIndex(index, __LINE__, __FUNCTION__);
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+  std::vector<ByteData> result;
+  auto output = &psbt_pointer->outputs[index];
+  for (size_t idx = 0; idx < output->unknowns.num_items; ++idx) {
+    auto item = &output->unknowns.items[idx];
+    result.emplace_back(item->key, item->key_len);
+  }
+  return result;
+}
+
 void Psbt::SetGlobalRecord(const ByteData &key, const ByteData &value) {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
@@ -2747,6 +2773,17 @@ bool Psbt::IsFindGlobalRecord(const ByteData &key) const {
     throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
   }
   return (exist == 0) ? false : true;
+}
+
+std::vector<ByteData> Psbt::GetGlobalRecordKeyList() const {
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+  std::vector<ByteData> result;
+  for (size_t idx = 0; idx < psbt_pointer->unknowns.num_items; ++idx) {
+    auto item = &psbt_pointer->unknowns.items[idx];
+    result.emplace_back(item->key, item->key_len);
+  }
+  return result;
 }
 
 void Psbt::CheckTxInIndex(uint32_t index, int line, const char *caller) const {
