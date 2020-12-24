@@ -2197,6 +2197,30 @@ Script Psbt::GetTxInRedeemScript(
   }
 }
 
+Script Psbt::GetTxInRedeemScriptDirect(
+    uint32_t index, bool ignore_error, bool is_witness) const {
+  CheckTxInIndex(index, __LINE__, __FUNCTION__);
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+
+  if (is_witness && (psbt_pointer->inputs[index].witness_script != nullptr)) {
+    return Script(ByteData(
+        psbt_pointer->inputs[index].witness_script,
+        psbt_pointer->inputs[index].witness_script_len));
+  } else if (
+      (!is_witness) &&
+      (psbt_pointer->inputs[index].redeem_script != nullptr)) {
+    return Script(ByteData(
+        psbt_pointer->inputs[index].redeem_script,
+        psbt_pointer->inputs[index].redeem_script_len));
+  } else if (ignore_error) {
+    return Script();
+  } else {
+    warn(CFD_LOG_SOURCE, "script not found.");
+    throw CfdException(kCfdIllegalStateError, "psbt script not found error.");
+  }
+}
+
 std::vector<KeyData> Psbt::GetTxInKeyDataList(uint32_t index) const {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;

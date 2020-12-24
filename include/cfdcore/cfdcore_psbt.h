@@ -359,6 +359,15 @@ class CFD_CORE_EXPORT Psbt {
       uint32_t index, bool ignore_error = false,
       bool* is_witness = nullptr) const;
   /**
+   * @brief get input redeem script.
+   * @param[in] index  input index
+   * @param[in] ignore_error   ignore error with empty data.
+   * @param[in] is_witness     getting target witness.
+   * @return redeem script (or witness script)
+   */
+  Script GetTxInRedeemScriptDirect(
+      uint32_t index, bool ignore_error = false, bool is_witness) const;
+  /**
    * @brief get input key data list.
    * @param[in] index  input index
    * @return key data list

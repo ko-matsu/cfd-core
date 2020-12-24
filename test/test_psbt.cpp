@@ -698,6 +698,10 @@ TEST(Psbt, UsecaseMultisig) {
     psbt.AddTxIn(txin);
     psbt.SetTxInUtxo(0, utxo_tx.GetTxOut(0), multisig, KeyData());
     psbt.SetTxInSighashType(0, SigHashType());
+    EXPECT_STREQ("522103a512f5f59c0e7901fc478ed6353eef76f44f9cb2c185bfbcf7f0b9bb76716bf32103f4d473614e954ac4f5518e6f7cb3307b4f84743e137ed4eecb5f4fb643c23b4752ae",
+        psbt.GetTxInRedeemScriptDirect(0, true, true));
+    EXPECT_STREQ("0020a8d9872ba946abbd50ac7b86669cdf07573d232ebc0950cc76755ae85aab3df6",
+        psbt.GetTxInRedeemScriptDirect(0, true, false));
   } catch (const CfdException& except) {
     EXPECT_STREQ("", except.what());
     throw except;
