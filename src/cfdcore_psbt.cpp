@@ -2352,9 +2352,11 @@ std::vector<ByteData> Psbt::GetTxInFinalScript(
 
   if (is_witness_stack) {
     auto stacks = psbt_pointer->inputs[index].final_witness;
-    for (size_t index = 0; index < stacks->num_items; ++index) {
-      result.emplace_back(
-          stacks->items[index].witness, stacks->items[index].witness_len);
+    if (stacks != nullptr) {
+      for (size_t index = 0; index < stacks->num_items; ++index) {
+        result.emplace_back(
+            stacks->items[index].witness, stacks->items[index].witness_len);
+      }
     }
   } else {
     result.emplace_back(
