@@ -1225,7 +1225,7 @@ KeyData::KeyData(const std::string& path_info, int32_t child_num) {
             "Failed to extkey path. "
             "A '*' can only be specified at the end.");
       }
-      if (list[index - 1].find("*") != std::string::npos) {
+      if (list.back().find("*") != std::string::npos) {
         if (child_num < 0) {
           warn(
               CFD_LOG_SOURCE,
