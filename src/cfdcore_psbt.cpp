@@ -517,11 +517,11 @@ void MergePsbtInputItem(
     } else if (ignore_duplicate_error) {
       // do nothing
     } else {
-      std::string item_name = "txin sighashtype";
-      warn(CFD_LOG_SOURCE, "psbt {} already exist.", item_name);
+      std::string field_name = "txin sighashtype";
+      warn(CFD_LOG_SOURCE, "psbt {} already exist.", field_name);
       throw CfdException(
           kCfdIllegalArgumentError,
-          "psbt " + item_name + " duplicated error.");
+          "psbt " + field_name + " duplicated error.");
     }
   }
   if (psbt_dest->redeem_script_len > 0) {
@@ -1656,7 +1656,7 @@ uint32_t Psbt::GetDataSize() const {
 
   if ((psbt_pointer != nullptr) && (psbt_pointer->num_inputs == 0)) {
     auto data = CreatePsbtOutputOnlyData(psbt_pointer);
-    return data.GetDataSize();
+    return static_cast<uint32_t>(data.GetDataSize());
   }
 
   int ret = wally_psbt_get_length(psbt_pointer, 0, &size);
@@ -1777,6 +1777,32 @@ void Psbt::Join(const Psbt &transaction, bool ignore_duplicate_error) {
   FreeWallyPsbtAddress(wally_psbt_pointer_);  // free
   wally_psbt_pointer_ = psbt_pointer;
   base_tx_ = RebuildTransaction(wally_psbt_pointer_);
+}
+
+uint32_t Psbt::GetTxInCount() const {
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+  if (psbt_pointer == nullptr) {
+    warn(CFD_LOG_SOURCE, "psbt pointer is null");
+    throw CfdException(kCfdIllegalStateError, "psbt pointer is null.");
+  } else if (psbt_pointer->tx == nullptr) {
+    warn(CFD_LOG_SOURCE, "psbt base tx is null");
+    throw CfdException(kCfdIllegalStateError, "psbt base tx is null.");
+  }
+  return static_cast<uint32_t>(psbt_pointer->tx->num_inputs);
+}
+
+uint32_t Psbt::GetTxOutCount() const {
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+  if (psbt_pointer == nullptr) {
+    warn(CFD_LOG_SOURCE, "psbt pointer is null");
+    throw CfdException(kCfdIllegalStateError, "psbt pointer is null.");
+  } else if (psbt_pointer->tx == nullptr) {
+    warn(CFD_LOG_SOURCE, "psbt base tx is null");
+    throw CfdException(kCfdIllegalStateError, "psbt base tx is null.");
+  }
+  return static_cast<uint32_t>(psbt_pointer->tx->num_outputs);
 }
 
 uint32_t Psbt::AddTxIn(const TxIn &txin) {
@@ -2353,9 +2379,10 @@ std::vector<ByteData> Psbt::GetTxInFinalScript(
   if (is_witness_stack) {
     auto stacks = psbt_pointer->inputs[index].final_witness;
     if (stacks != nullptr) {
-      for (size_t index = 0; index < stacks->num_items; ++index) {
+      for (size_t stack_idx = 0; stack_idx < stacks->num_items; ++stack_idx) {
         result.emplace_back(
-            stacks->items[index].witness, stacks->items[index].witness_len);
+            stacks->items[stack_idx].witness,
+            stacks->items[stack_idx].witness_len);
       }
     }
   } else {

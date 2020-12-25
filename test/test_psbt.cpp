@@ -400,11 +400,13 @@ static const std::string g_psbt_seed2 = "d3e3539eafb6af1f0ae374ecffd33bed394f5eb
 
 TEST(Psbt, SetTxInOnly) {
   Psbt psbt;
+  EXPECT_EQ(0, psbt.GetTxInCount());
   TxIn txin_w(Txid("c078957064d70a5e80c3c23302528524d424aaabce86fb3fc1b6e6ea76fd7f26"), 1, 0xffffffff);
   TxIn txin_l(Txid("c0ecc9313d16355d71b96acff5bca43cdb593289e50154bab12cff422a46257d"), 0, 0xffffffff);
   TxInReference txin_r(txin_l);
   psbt.AddTxIn(txin_w);
   psbt.AddTxIn(txin_r);
+  EXPECT_EQ(2, psbt.GetTxInCount());
 
   EXPECT_STREQ("70736274ff01005c0200000002267ffd76eae6b6c13ffb86ceabaa24d42485520233c2c3805e0ad764709578c00100000000ffffffff7d25462a42ff2cb1ba5401e5893259db3ca4bcf5cf6ab9715d35163d31c9ecc00000000000ffffffff0000000000000000", psbt.GetData().GetHex().c_str());
   EXPECT_STREQ("cHNidP8BAFwCAAAAAiZ//Xbq5rbBP/uGzquqJNQkhVICM8LDgF4K12RwlXjAAQAAAAD/////fSVGKkL/LLG6VAHliTJZ2zykvPXParlxXTUWPTHJ7MAAAAAAAP////8AAAAAAAAAAA==", psbt.GetBase64().c_str());
@@ -477,6 +479,7 @@ TEST(Psbt, SetInputOnlySimpleWitness) {
 
 TEST(Psbt, SetTxOutOnly) {
   Psbt psbt;
+  EXPECT_EQ(0, psbt.GetTxOutCount());
   
   HDWallet wallet1 = HDWallet(ByteData(g_psbt_seed1));
   HDWallet wallet2 = HDWallet(ByteData(g_psbt_seed2));
@@ -493,6 +496,7 @@ TEST(Psbt, SetTxOutOnly) {
   TxOutReference txout_2r(txout_2);
   psbt.AddTxOut(txout_1);
   psbt.AddTxOut(txout_2r);
+  EXPECT_EQ(2, psbt.GetTxOutCount());
 
   EXPECT_STREQ("70736274ff01004802000000000200e1f50500000000160014b322bddce633b851ac7370ab454f0b367a0654e500e1f50500000000160014cab8c53a6e8fc0296d1cd3915a307d51c491a55500000000000000", psbt.GetData().GetHex().c_str());
   Psbt psbt2(psbt.GetData());

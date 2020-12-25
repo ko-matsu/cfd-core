@@ -222,6 +222,18 @@ class CFD_CORE_EXPORT Psbt {
   void Combine(const Psbt& transaction);
 
   /**
+   * @brief Get txin count.
+   * @return txin count.
+   */
+  uint32_t GetTxInCount() const;
+
+  /**
+   * @brief Get txout count.
+   * @return txout count.
+   */
+  uint32_t GetTxOutCount() const;
+
+  /**
    * @brief add base transaction input.
    * @param[in] txin  transaction input.
    * @return added index.
