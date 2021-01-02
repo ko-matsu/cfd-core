@@ -328,6 +328,37 @@ TEST(Descriptor, Parse_raw) {
   EXPECT_NO_THROW(desc_str = desc.ToString());
   EXPECT_STREQ(desc_str.c_str(), descriptor.c_str());
   EXPECT_STREQ(locking_script.ToString().c_str(), "OP_RETURN 54686973204f505f52455455524e207472616e73616374696f6e206f7574707574207761732063726561746564206279206d6f646966696564206372656174657261777472616e73616374696f6e2e");
+
+  std::vector<DescriptorScriptReference> script_list;
+  std::vector<std::string> arg_list1;
+  EXPECT_NO_THROW(script_list = desc.GetReferenceAll(&arg_list1));
+  EXPECT_EQ(script_list.size(), 1);
+  if (script_list.size() == 1) {
+    EXPECT_FALSE(script_list[0].HasAddress());
+  }
+}
+
+TEST(Descriptor, Parse_raw_wsh) {
+  std::string descriptor = "raw(0020ef8110fa7ddefb3e2d02b2c1b1480389b4bc93f606281570cfc20dba18066aee)#2xu4jtw0";
+  Descriptor desc;
+  Script locking_script;
+  std::string desc_str = "";
+
+  EXPECT_NO_THROW(desc = Descriptor::Parse(descriptor));
+  EXPECT_NO_THROW(locking_script = desc.GetLockingScript());
+  EXPECT_NO_THROW(desc_str = desc.ToString());
+  EXPECT_STREQ(desc_str.c_str(), descriptor.c_str());
+  EXPECT_STREQ(locking_script.ToString().c_str(), "0 ef8110fa7ddefb3e2d02b2c1b1480389b4bc93f606281570cfc20dba18066aee");
+
+  std::vector<DescriptorScriptReference> script_list;
+  std::vector<std::string> arg_list1;
+  EXPECT_NO_THROW(script_list = desc.GetReferenceAll(&arg_list1));
+  EXPECT_EQ(script_list.size(), 1);
+  if (script_list.size() == 1) {
+    EXPECT_TRUE(script_list[0].HasAddress());
+    EXPECT_STREQ(script_list[0].GenerateAddress(NetType::kMainnet).GetAddress().c_str(),
+      "bc1qa7q3p7nammanutgzktqmzjqr3x6teylkqc5p2ux0cgxm5xqxdthq02yr5g");
+  }
 }
 
 TEST(Descriptor, Parse_pk_extkey) {
