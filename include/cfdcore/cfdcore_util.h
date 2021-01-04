@@ -340,6 +340,13 @@ class CFD_CORE_EXPORT CryptoUtil {
   static ByteData EncryptAes256(
       const std::vector<uint8_t> &key, const std::string &data);
   /**
+   * @brief Encrypto ByteData with AES256.
+   * @param[in] key key array with 32Byte.
+   * @param[in] data target byte data.
+   * @return encrypted byte data.
+   */
+  static ByteData EncryptAes256(const ByteData &key, const ByteData &data);
+  /**
    * @brief ByteDataをAES256復号化する.
    * @param[in] key keyとなる32Byteの配列データ
    * @param[in] data 暗号化されたByteData
@@ -347,6 +354,13 @@ class CFD_CORE_EXPORT CryptoUtil {
    */
   static std::string DecryptAes256ToString(
       const std::vector<uint8_t> &key, const ByteData &data);
+  /**
+   * @brief Decrypto ByteData with AES256.
+   * @param[in] key key array with 32Byte.
+   * @param[in] data target encrypted byte data.
+   * @return decrypted byte data.
+   */
+  static ByteData DecryptAes256(const ByteData &key, const ByteData &data);
   /**
    * @brief 文字列をAES256CBC暗号化する.
    * @param[in] key keyとなる32Byteの配列データ
