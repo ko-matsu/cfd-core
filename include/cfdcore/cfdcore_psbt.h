@@ -24,6 +24,45 @@ namespace core {
  */
 class CFD_CORE_EXPORT Psbt {
  public:
+  //! PSBT_GLOBAL_UNSIGNED_TX
+  static constexpr uint8_t kPsbtGlobalUnsignedTx = 0x00;
+  //! PSBT_GLOBAL_XPUB
+  static constexpr uint8_t kPsbtGlobalXpub = 0x01;
+  //! PSBT_GLOBAL_VERSION
+  static constexpr uint8_t kPsbtGlobalVersion = 0xfb;
+  //! PSBT_GLOBAL_PROPRIETARY
+  static constexpr uint8_t kPsbtGlobalProprietary = 0xfc;
+  //! PSBT_IN_NON_WITNESS_UTXO
+  static constexpr uint8_t kPsbtInputNonWitnessUtxo = 0x00;
+  //! PSBT_IN_WITNESS_UTXO
+  static constexpr uint8_t kPsbtInputWitnessUtxo = 0x01;
+  //! PSBT_IN_PARTIAL_SIG
+  static constexpr uint8_t kPsbtInputPartialSig = 0x02;
+  //! PSBT_IN_SIGHASH_TYPE
+  static constexpr uint8_t kPsbtInputSighashType = 0x03;
+  //! PSBT_IN_REDEEM_SCRIPT
+  static constexpr uint8_t kPsbtInputRedeemScript = 0x04;
+  //! PSBT_IN_WITNESS_SCRIPT
+  static constexpr uint8_t kPsbtInputWitnessScript = 0x05;
+  //! PSBT_IN_BIP32_DERIVATION
+  static constexpr uint8_t kPsbtInputBip32Derivation = 0x06;
+  //! PSBT_IN_FINAL_SCRIPTSIG
+  static constexpr uint8_t kPsbtInputFinalScriptsig = 0x07;
+  //! PSBT_IN_FINAL_SCRIPTWITNESS
+  static constexpr uint8_t kPsbtInputFinalScriptWitness = 0x08;
+  //! PSBT_IN_POR_COMMITMENT
+  static constexpr uint8_t kPsbtInputPorCommitment = 0x09;
+  //! PSBT_IN_PROPRIETARY
+  static constexpr uint8_t kPsbtInputProprietary = 0xfc;
+  //! PSBT_OUT_REDEEM_SCRIPT
+  static constexpr uint8_t kPsbtOutputRedeemScript = 0x00;
+  //! PSBT_OUT_WITNESS_SCRIPT
+  static constexpr uint8_t kPsbtOutputWitnessScript = 0x01;
+  //! PSBT_OUT_BIP32_DERIVATION
+  static constexpr uint8_t kPsbtOutputBip32Derivation = 0x02;
+  //! PSBT_OUT_PROPRIETARY
+  static constexpr uint8_t kPsbtOutputProprietary = 0xfc;
+
   /**
    * @brief Create psbt record key.
    * @param[in] type  key type.
@@ -84,6 +123,13 @@ class CFD_CORE_EXPORT Psbt {
   static ByteData CreateRecordKey(
       uint8_t type, const std::string& prefix, uint8_t sub_type,
       const std::string& sub_key);
+  /**
+   * @brief Create psbt pubkey record key.
+   * @param[in] type  key type.
+   * @param[in] pubkey  pubkey value.
+   * @return key data.
+   */
+  static ByteData CreatePubkeyRecordKey(uint8_t type, const Pubkey& pubkey);
 
   /**
    * @brief constructor.
