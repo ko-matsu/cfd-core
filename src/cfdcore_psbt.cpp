@@ -33,27 +33,6 @@ using logger::warn;
 // -----------------------------------------------------------------------------
 // File constants
 // -----------------------------------------------------------------------------
-
-static const uint8_t kPsbtGlobalUnsignedTx = 0;  //!< global unsigned tx
-static const uint8_t kPsbtGlobalVersion = 0xfb;  //!< global psbt version
-
-static const uint8_t kPsbtInputNonWitnessUtxo = 0;  //!< input utxo transaction
-static const uint8_t kPsbtInputWitnessUtxo = 1;  //!< input witness utxo output
-static const uint8_t kPsbtInputPartialSig = 2;   //!< input signature
-static const uint8_t kPsbtInputSigHashType = 3;  //!< input sighash type
-static const uint8_t kPsbtInputRedeemScript = 4;   //!< input redeem script
-static const uint8_t kPsbtInputWitnessScript = 5;  //!< input witness script
-/// input bip32 derivation
-static const uint8_t kPsbtInputBip32Derivation = 6;
-static const uint8_t kPsbtInputFinalScriptSig = 7;  //!< input final scriptsig
-/// input final witness stack
-static const uint8_t kPsbtInputFinalScriptWitness = 8;
-
-static const uint8_t kPsbtOutputRedeemScript = 0;   //!< output redeem script
-static const uint8_t kPsbtOutputWitnessScript = 1;  //!< output witness script
-/// output bip32 derivation
-static const uint8_t kPsbtOutputBip32Derivation = 2;
-
 static const uint8_t kPsbtSeparator = 0;  //!< psbt map separator
 
 // -----------------------------------------------------------------------------
@@ -786,18 +765,18 @@ static void WritePsbtOutput(
     Serializer *builder, const struct wally_psbt_output *output) {
   if (output->redeem_script_len != 0) {
     builder->AddPrefixBuffer(
-        kPsbtOutputRedeemScript, output->redeem_script,
+        Psbt::kPsbtOutputRedeemScript, output->redeem_script,
         output->redeem_script_len);
   }
   if (output->witness_script_len != 0) {
     builder->AddPrefixBuffer(
-        kPsbtOutputWitnessScript, output->witness_script,
+        Psbt::kPsbtOutputWitnessScript, output->witness_script,
         output->witness_script_len);
   }
   for (size_t i = 0; i < output->keypaths.num_items; ++i) {
     auto *item = &output->keypaths.items[i];
     builder->AddPrefixBuffer(
-        kPsbtOutputBip32Derivation, item->key, item->key_len);
+        Psbt::kPsbtOutputBip32Derivation, item->key, item->key_len);
     builder->AddVariableBuffer(item->value, item->value_len);
   }
   for (size_t i = 0; i < output->unknowns.num_items; ++i) {
@@ -818,13 +797,13 @@ ByteData CreatePsbtOutputOnlyData(const struct wally_psbt *psbt) {
   builder.AddDirectBytes(psbt->magic, sizeof(psbt->magic));
 
   builder.AddDirectByte(1);
-  builder.AddVariableInt(kPsbtGlobalUnsignedTx);
+  builder.AddVariableInt(Psbt::kPsbtGlobalUnsignedTx);
   auto tx = ConvertBitcoinTxFromWally(psbt->tx, false).GetBytes();
   builder.AddVariableBuffer(tx.data(), tx.size());
 
   if (psbt->version > 0) {
     builder.AddDirectByte(1);
-    builder.AddVariableInt(kPsbtGlobalVersion);
+    builder.AddVariableInt(Psbt::kPsbtGlobalVersion);
     std::vector<uint8_t> data(sizeof(psbt->version));
     memcpy(data.data(), &psbt->version, data.size());
     // TODO(k-matsuzawa) need endian support.
@@ -890,7 +869,7 @@ static uint8_t SetPsbtGlobal(
     struct wally_psbt *psbt) {
   int ret;
   bool has_key_1byte = (key.size() == 1);
-  if (key[0] == kPsbtGlobalUnsignedTx) {
+  if (key[0] == Psbt::kPsbtGlobalUnsignedTx) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -900,7 +879,7 @@ static uint8_t SetPsbtGlobal(
     throw CfdException(
         kCfdIllegalArgumentError,
         "psbt setting global tx is not supported error.");
-  } else if (key[0] == kPsbtGlobalVersion) {
+  } else if (key[0] == Psbt::kPsbtGlobalVersion) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -935,7 +914,7 @@ static ByteData GetPsbtGlobal(
   if (is_find != nullptr) *is_find = false;
   const auto key = key_data.GetBytes();
   bool has_key_1byte = (key.size() == 1);
-  if (key[0] == kPsbtGlobalUnsignedTx) {
+  if (key[0] == Psbt::kPsbtGlobalUnsignedTx) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -944,7 +923,7 @@ static ByteData GetPsbtGlobal(
     if (is_find != nullptr) *is_find = true;
     Transaction tx(ConvertBitcoinTxFromWally(psbt->tx, false));
     return tx.GetData();
-  } else if (key[0] == kPsbtGlobalVersion) {
+  } else if (key[0] == Psbt::kPsbtGlobalVersion) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -983,7 +962,7 @@ static uint8_t SetPsbtInput(
     struct wally_psbt_input *input) {
   int ret;
   bool has_key_1byte = (key.size() == 1);
-  if (key[0] == kPsbtInputNonWitnessUtxo) {
+  if (key[0] == Psbt::kPsbtInputNonWitnessUtxo) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1004,7 +983,7 @@ static uint8_t SetPsbtInput(
       throw CfdException(
           kCfdIllegalArgumentError, "psbt set input utxo error.");
     }
-  } else if (key[0] == kPsbtInputWitnessUtxo) {
+  } else if (key[0] == Psbt::kPsbtInputWitnessUtxo) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1025,7 +1004,7 @@ static uint8_t SetPsbtInput(
       throw CfdException(
           kCfdIllegalArgumentError, "psbt set output witnessUtxo error.");
     }
-  } else if (key[0] == kPsbtInputPartialSig) {
+  } else if (key[0] == Psbt::kPsbtInputPartialSig) {
     std::vector<uint8_t> pubkey(key.size() - 1);
     if (pubkey.size() != 0) {
       memcpy(pubkey.data(), &key.data()[1], pubkey.size());
@@ -1042,7 +1021,7 @@ static uint8_t SetPsbtInput(
       throw CfdException(
           kCfdIllegalArgumentError, "psbt set input signatures error.");
     }
-  } else if (key[0] == kPsbtInputSigHashType) {
+  } else if (key[0] == Psbt::kPsbtInputSighashType) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1062,7 +1041,7 @@ static uint8_t SetPsbtInput(
       throw CfdException(
           kCfdIllegalArgumentError, "psbt set input sighash error.");
     }
-  } else if (key[0] == kPsbtInputRedeemScript) {
+  } else if (key[0] == Psbt::kPsbtInputRedeemScript) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1075,7 +1054,7 @@ static uint8_t SetPsbtInput(
       throw CfdException(
           kCfdIllegalArgumentError, "psbt set input redeemScript error.");
     }
-  } else if (key[0] == kPsbtInputWitnessScript) {
+  } else if (key[0] == Psbt::kPsbtInputWitnessScript) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1088,7 +1067,7 @@ static uint8_t SetPsbtInput(
       throw CfdException(
           kCfdIllegalArgumentError, "psbt set input witnessScript error.");
     }
-  } else if (key[0] == kPsbtInputBip32Derivation) {
+  } else if (key[0] == Psbt::kPsbtInputBip32Derivation) {
     std::vector<uint8_t> pubkey(key.size() - 1);
     if (pubkey.size() != 0) {
       memcpy(pubkey.data(), &key.data()[1], pubkey.size());
@@ -1116,7 +1095,7 @@ static uint8_t SetPsbtInput(
       throw CfdException(
           kCfdIllegalArgumentError, "psbt set input pubkey error.");
     }
-  } else if (key[0] == kPsbtInputFinalScriptSig) {
+  } else if (key[0] == Psbt::kPsbtInputFinalScriptsig) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1129,7 +1108,7 @@ static uint8_t SetPsbtInput(
       throw CfdException(
           kCfdIllegalArgumentError, "psbt set input final scriptsig error.");
     }
-  } else if (key[0] == kPsbtInputFinalScriptWitness) {
+  } else if (key[0] == Psbt::kPsbtInputFinalScriptWitness) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1193,7 +1172,7 @@ static ByteData GetPsbtInput(
   const auto key = key_data.GetBytes();
   if (is_find != nullptr) *is_find = false;
   bool has_key_1byte = (key.size() == 1);
-  if (key[0] == kPsbtInputNonWitnessUtxo) {
+  if (key[0] == Psbt::kPsbtInputNonWitnessUtxo) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1209,7 +1188,7 @@ static ByteData GetPsbtInput(
           kCfdIllegalArgumentError,
           "psbt target key " + key_data.GetHex() + " not found error.");
     }
-  } else if (key[0] == kPsbtInputWitnessUtxo) {
+  } else if (key[0] == Psbt::kPsbtInputWitnessUtxo) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1228,7 +1207,7 @@ static ByteData GetPsbtInput(
           kCfdIllegalArgumentError,
           "psbt target key " + key_data.GetHex() + " not found error.");
     }
-  } else if (key[0] == kPsbtInputPartialSig) {
+  } else if (key[0] == Psbt::kPsbtInputPartialSig) {
     std::vector<uint8_t> pubkey(key.size() - 1);
     if (pubkey.size() != 0) {
       memcpy(pubkey.data(), &key.data()[1], pubkey.size());
@@ -1248,7 +1227,7 @@ static ByteData GetPsbtInput(
         throw except;
       }
     }
-  } else if (key[0] == kPsbtInputSigHashType) {
+  } else if (key[0] == Psbt::kPsbtInputSighashType) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1265,7 +1244,7 @@ static ByteData GetPsbtInput(
           kCfdIllegalArgumentError,
           "psbt target key " + key_data.GetHex() + " not found error.");
     }
-  } else if (key[0] == kPsbtInputRedeemScript) {
+  } else if (key[0] == Psbt::kPsbtInputRedeemScript) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1282,7 +1261,7 @@ static ByteData GetPsbtInput(
           kCfdIllegalArgumentError,
           "psbt target key " + key_data.GetHex() + " not found error.");
     }
-  } else if (key[0] == kPsbtInputWitnessScript) {
+  } else if (key[0] == Psbt::kPsbtInputWitnessScript) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1299,7 +1278,7 @@ static ByteData GetPsbtInput(
           kCfdIllegalArgumentError,
           "psbt target key " + key_data.GetHex() + " not found error.");
     }
-  } else if (key[0] == kPsbtInputBip32Derivation) {
+  } else if (key[0] == Psbt::kPsbtInputBip32Derivation) {
     std::vector<uint8_t> pubkey(key.size() - 1);
     if (pubkey.size() != 0) {
       memcpy(pubkey.data(), &key.data()[1], pubkey.size());
@@ -1319,7 +1298,7 @@ static ByteData GetPsbtInput(
         throw except;
       }
     }
-  } else if (key[0] == kPsbtInputFinalScriptSig) {
+  } else if (key[0] == Psbt::kPsbtInputFinalScriptsig) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1333,7 +1312,7 @@ static ByteData GetPsbtInput(
           kCfdIllegalArgumentError,
           "psbt target key " + key_data.GetHex() + " not found error.");
     }
-  } else if (key[0] == kPsbtInputFinalScriptWitness) {
+  } else if (key[0] == Psbt::kPsbtInputFinalScriptWitness) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1385,7 +1364,7 @@ static uint8_t SetPsbtOutput(
     struct wally_psbt_output *output) {
   int ret;
   bool has_key_1byte = (key.size() == 1);
-  if (key[0] == kPsbtOutputRedeemScript) {
+  if (key[0] == Psbt::kPsbtOutputRedeemScript) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1404,7 +1383,7 @@ static uint8_t SetPsbtOutput(
       throw CfdException(
           kCfdIllegalArgumentError, "psbt set output redeemScript error.");
     }
-  } else if (key[0] == kPsbtOutputWitnessScript) {
+  } else if (key[0] == Psbt::kPsbtOutputWitnessScript) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1423,7 +1402,7 @@ static uint8_t SetPsbtOutput(
       throw CfdException(
           kCfdIllegalArgumentError, "psbt set output witnessScript error.");
     }
-  } else if (key[0] == kPsbtOutputBip32Derivation) {
+  } else if (key[0] == Psbt::kPsbtOutputBip32Derivation) {
     std::vector<uint8_t> pubkey(key.size() - 1);
     if (pubkey.size() != 0) {
       memcpy(pubkey.data(), &key.data()[1], pubkey.size());
@@ -1477,7 +1456,7 @@ static ByteData GetPsbtOutput(
   if (is_find != nullptr) *is_find = false;
   const auto key = key_data.GetBytes();
   bool has_key_1byte = (key.size() == 1);
-  if (key[0] == kPsbtOutputRedeemScript) {
+  if (key[0] == Psbt::kPsbtOutputRedeemScript) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1494,7 +1473,7 @@ static ByteData GetPsbtOutput(
           kCfdIllegalArgumentError,
           "psbt target key " + key_data.GetHex() + " not found error.");
     }
-  } else if (key[0] == kPsbtOutputWitnessScript) {
+  } else if (key[0] == Psbt::kPsbtOutputWitnessScript) {
     if (!has_key_1byte) {
       warn(CFD_LOG_SOURCE, "psbt invalid key format.");
       throw CfdException(
@@ -1511,7 +1490,7 @@ static ByteData GetPsbtOutput(
           kCfdIllegalArgumentError,
           "psbt target key " + key_data.GetHex() + " not found error.");
     }
-  } else if (key[0] == kPsbtOutputBip32Derivation) {
+  } else if (key[0] == Psbt::kPsbtOutputBip32Derivation) {
     std::vector<uint8_t> pubkey(key.size() - 1);
     if (pubkey.size() != 0) {
       memcpy(pubkey.data(), &key.data()[1], pubkey.size());
@@ -1620,7 +1599,7 @@ struct wally_psbt *ParsePsbtData(const ByteData &data) {
       if (!key.empty()) {
         std::vector<uint8_t> buf = parser.ReadVariableBuffer();
         bool has_key_1byte = (key.size() == 1);
-        if (key[0] == kPsbtGlobalUnsignedTx) {
+        if (key[0] == Psbt::kPsbtGlobalUnsignedTx) {
           if (!has_key_1byte) {
             warn(CFD_LOG_SOURCE, "psbt invalid key format.");
             throw CfdException(
@@ -1663,7 +1642,7 @@ struct wally_psbt *ParsePsbtData(const ByteData &data) {
               throw CfdException(kCfdInternalError, "psbt set txout error.");
             }
           }
-        } else if (key[0] == kPsbtGlobalVersion) {
+        } else if (key[0] == Psbt::kPsbtGlobalVersion) {
           if (!has_key_1byte) {
             warn(CFD_LOG_SOURCE, "psbt invalid key format.");
             throw CfdException(
@@ -2450,30 +2429,15 @@ void Psbt::SetTxInRecord(
   uint8_t type = SetPsbtInput(key_vec, val_vec, &psbt_pointer->inputs[index]);
 
   struct wally_map *map_ptr = nullptr;
-  switch (type) {
-    case kPsbtInputNonWitnessUtxo:
-      // fall-through
-    case kPsbtInputWitnessUtxo:
-      // fall-through
-    case kPsbtInputSigHashType:
-      // fall-through
-    case kPsbtInputRedeemScript:
-      // fall-through
-    case kPsbtInputWitnessScript:
-      // fall-through
-    case kPsbtInputFinalScriptSig:
-      // fall-through
-    case kPsbtInputFinalScriptWitness:
-      break;
-    case kPsbtInputPartialSig:
+  if ((type >= Psbt::kPsbtInputNonWitnessUtxo) &&
+      (type <= Psbt::kPsbtInputFinalScriptWitness)) {
+    if (type == Psbt::kPsbtInputPartialSig) {
       map_ptr = &psbt_pointer->inputs[index].signatures;
-      break;
-    case kPsbtInputBip32Derivation:
+    } else if (type == Psbt::kPsbtInputBip32Derivation) {
       map_ptr = &psbt_pointer->inputs[index].keypaths;
-      break;
-    default:
-      map_ptr = &psbt_pointer->inputs[index].unknowns;
-      break;
+    }
+  } else {
+    map_ptr = &psbt_pointer->inputs[index].unknowns;
   }
   if (map_ptr != nullptr) {
     int ret = wally_map_sort(map_ptr, 0);
