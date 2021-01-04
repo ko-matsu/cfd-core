@@ -851,21 +851,30 @@ ByteData CreatePsbtOutputOnlyData(const struct wally_psbt *psbt) {
  * @param[in] map_object    map
  * @param[in] key           key data
  * @param[in] field_name    field name
+ * @param[out] index        index
  */
 static void FindPsbtMap(
     const struct wally_map *map_object, const std::vector<uint8_t> &key,
-    const std::string &field_name) {
+    const std::string &field_name, size_t *index = nullptr) {
   size_t exist = 0;
   int ret = wally_map_find(map_object, key.data(), key.size(), &exist);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
     throw CfdException(
-        kCfdIllegalArgumentError, "psbt find " + field_name + " error.");
+        kCfdInternalError, "psbt find " + field_name + " error.");
   }
-  if (exist != 0) {
+  if ((index == nullptr) && (exist != 0)) {
     warn(CFD_LOG_SOURCE, "{} duplicates.", field_name);
     throw CfdException(
         kCfdIllegalArgumentError, "psbt " + field_name + " duplicates error.");
+  } else if (index != nullptr) {
+    if (exist == 0) {
+      warn(CFD_LOG_SOURCE, "{} not found.", field_name);
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt " + field_name + " not found error.");
+    }
+    *index = exist - 1;
   }
 }
 
@@ -912,6 +921,54 @@ static uint8_t SetPsbtGlobal(
     }
   }
   return key[0];
+}
+
+/**
+ * @brief Get psbt global data.
+ * @param[in] key_data    key
+ * @param[in] psbt        psbt object
+ * @param[out] is_find    psbt key find
+ * @return value
+ */
+static ByteData GetPsbtGlobal(
+    const ByteData &key_data, struct wally_psbt *psbt, bool *is_find) {
+  if (is_find != nullptr) *is_find = false;
+  const auto key = key_data.GetBytes();
+  bool has_key_1byte = (key.size() == 1);
+  if (key[0] == kPsbtGlobalUnsignedTx) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (is_find != nullptr) *is_find = true;
+    Transaction tx(ConvertBitcoinTxFromWally(psbt->tx, false));
+    return tx.GetData();
+  } else if (key[0] == kPsbtGlobalVersion) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (is_find != nullptr) *is_find = true;
+    uint8_t empty = 0;
+    return ByteData(&empty, sizeof(empty));
+  } else {
+    size_t index = 0;
+    try {
+      FindPsbtMap(&psbt->unknowns, key, "global unknowns", &index);
+      if (is_find != nullptr) *is_find = true;
+      return ByteData(
+          psbt->unknowns.items[index].value,
+          psbt->unknowns.items[index].value_len);
+    } catch (const CfdException &except) {
+      if ((is_find == nullptr) ||
+          (except.GetErrorCode() != kCfdIllegalArgumentError)) {
+        throw except;
+      }
+    }
+  }
+  return ByteData();
 }
 
 /**
@@ -1124,6 +1181,199 @@ static uint8_t SetPsbtInput(
 }
 
 /**
+ * @brief Get psbt input data.
+ * @param[in] key_data    key
+ * @param[in] input       psbt input
+ * @param[out] is_find    psbt key find
+ * @return value
+ */
+static ByteData GetPsbtInput(
+    const ByteData &key_data, const struct wally_psbt_input *input,
+    bool *is_find) {
+  const auto key = key_data.GetBytes();
+  if (is_find != nullptr) *is_find = false;
+  bool has_key_1byte = (key.size() == 1);
+  if (key[0] == kPsbtInputNonWitnessUtxo) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (input->utxo != nullptr) {
+      if (is_find != nullptr) *is_find = true;
+      Transaction tx(ConvertBitcoinTxFromWally(input->utxo, false));
+      return tx.GetData();
+    } else if (is_find == nullptr) {
+      warn(CFD_LOG_SOURCE, "psbt target {} not found.", key_data.GetHex());
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt target key " + key_data.GetHex() + " not found error.");
+    }
+  } else if (key[0] == kPsbtInputWitnessUtxo) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    // TODO(k-matsuzawa) need endian support.
+    if (input->witness_utxo != nullptr) {
+      if (is_find != nullptr) *is_find = true;
+      Serializer builder;
+      builder.AddDirectNumber(input->witness_utxo->satoshi);
+      builder.AddVariableBuffer(ByteData(
+          input->witness_utxo->script, input->witness_utxo->script_len));
+      return builder.Output();
+    } else if (is_find == nullptr) {
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt target key " + key_data.GetHex() + " not found error.");
+    }
+  } else if (key[0] == kPsbtInputPartialSig) {
+    std::vector<uint8_t> pubkey(key.size() - 1);
+    if (pubkey.size() != 0) {
+      memcpy(pubkey.data(), &key.data()[1], pubkey.size());
+    }
+    Pubkey pk(pubkey);
+    auto pk_bytes = pk.GetData().GetBytes();
+    size_t index = 0;
+    try {
+      FindPsbtMap(&input->signatures, pk_bytes, "input signatures", &index);
+      if (is_find != nullptr) *is_find = true;
+      return ByteData(
+          input->signatures.items[index].value,
+          input->signatures.items[index].value_len);
+    } catch (const CfdException &except) {
+      if ((is_find == nullptr) ||
+          (except.GetErrorCode() != kCfdIllegalArgumentError)) {
+        throw except;
+      }
+    }
+  } else if (key[0] == kPsbtInputSigHashType) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (input->sighash != 0) {
+      if (is_find != nullptr) *is_find = true;
+      // TODO(k-matsuzawa) need endian support.
+      Serializer builder;
+      builder.AddDirectNumber(input->sighash);
+      return builder.Output();
+    } else if (is_find == nullptr) {
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt target key " + key_data.GetHex() + " not found error.");
+    }
+  } else if (key[0] == kPsbtInputRedeemScript) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (input->redeem_script_len != 0) {
+      if (is_find != nullptr) *is_find = true;
+      Serializer builder;
+      builder.AddVariableBuffer(
+          ByteData(input->redeem_script, input->redeem_script_len));
+      return builder.Output();
+    } else if (is_find == nullptr) {
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt target key " + key_data.GetHex() + " not found error.");
+    }
+  } else if (key[0] == kPsbtInputWitnessScript) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (input->witness_script_len != 0) {
+      if (is_find != nullptr) *is_find = true;
+      Serializer builder;
+      builder.AddVariableBuffer(
+          ByteData(input->witness_script, input->witness_script_len));
+      return builder.Output();
+    } else if (is_find == nullptr) {
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt target key " + key_data.GetHex() + " not found error.");
+    }
+  } else if (key[0] == kPsbtInputBip32Derivation) {
+    std::vector<uint8_t> pubkey(key.size() - 1);
+    if (pubkey.size() != 0) {
+      memcpy(pubkey.data(), &key.data()[1], pubkey.size());
+    }
+    Pubkey pk(pubkey);
+    auto pk_bytes = pk.GetData().GetBytes();
+    size_t index = 0;
+    try {
+      FindPsbtMap(&input->keypaths, pk_bytes, "input bip32 pubkey", &index);
+      if (is_find != nullptr) *is_find = true;
+      return ByteData(
+          input->keypaths.items[index].value,
+          input->keypaths.items[index].value_len);
+    } catch (const CfdException &except) {
+      if ((is_find == nullptr) ||
+          (except.GetErrorCode() != kCfdIllegalArgumentError)) {
+        throw except;
+      }
+    }
+  } else if (key[0] == kPsbtInputFinalScriptSig) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (input->final_scriptsig_len != 0) {
+      if (is_find != nullptr) *is_find = true;
+      return ByteData(input->final_scriptsig, input->final_scriptsig_len);
+    } else if (is_find == nullptr) {
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt target key " + key_data.GetHex() + " not found error.");
+    }
+  } else if (key[0] == kPsbtInputFinalScriptWitness) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (input->final_witness != nullptr) {
+      if (is_find != nullptr) *is_find = true;
+      Serializer builder;
+      size_t num = input->final_witness->num_items;
+      builder.AddVariableInt(num);
+      for (uint64_t idx = 0; idx < num; ++idx) {
+        builder.AddVariableBuffer(ByteData(
+            input->final_witness->items[idx].witness,
+            input->final_witness->items[idx].witness_len));
+      }
+      return builder.Output();
+    } else if (is_find == nullptr) {
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt target key " + key_data.GetHex() + " not found error.");
+    }
+  } else {
+    size_t index = 0;
+    try {
+      FindPsbtMap(&input->unknowns, key, "input unknowns", &index);
+      if (is_find != nullptr) *is_find = true;
+      return ByteData(
+          input->unknowns.items[index].value,
+          input->unknowns.items[index].value_len);
+    } catch (const CfdException &except) {
+      if ((is_find == nullptr) ||
+          (except.GetErrorCode() != kCfdIllegalArgumentError)) {
+        throw except;
+      }
+    }
+  }
+  return ByteData();
+}
+
+/**
  * @brief set psbt output data.
  * @param[in] key     key
  * @param[in] value   value
@@ -1160,7 +1410,7 @@ static uint8_t SetPsbtOutput(
       throw CfdException(
           kCfdIllegalArgumentError, "psbt invalid key format error.");
     }
-    if (output->redeem_script != nullptr) {
+    if (output->witness_script != nullptr) {
       warn(CFD_LOG_SOURCE, "output witnessScript duplicates.");
       throw CfdException(
           kCfdIllegalArgumentError,
@@ -1212,6 +1462,91 @@ static uint8_t SetPsbtOutput(
     }
   }
   return key[0];
+}
+
+/**
+ * @brief Get psbt output data.
+ * @param[in] key_data    key
+ * @param[in] output      psbt output
+ * @param[out] is_find    psbt key find
+ * @return value
+ */
+static ByteData GetPsbtOutput(
+    const ByteData &key_data, struct wally_psbt_output *output,
+    bool *is_find) {
+  if (is_find != nullptr) *is_find = false;
+  const auto key = key_data.GetBytes();
+  bool has_key_1byte = (key.size() == 1);
+  if (key[0] == kPsbtOutputRedeemScript) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (output->redeem_script_len != 0) {
+      if (is_find != nullptr) *is_find = true;
+      Serializer builder;
+      builder.AddVariableBuffer(
+          ByteData(output->redeem_script, output->redeem_script_len));
+      return builder.Output();
+    } else if (is_find == nullptr) {
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt target key " + key_data.GetHex() + " not found error.");
+    }
+  } else if (key[0] == kPsbtOutputWitnessScript) {
+    if (!has_key_1byte) {
+      warn(CFD_LOG_SOURCE, "psbt invalid key format.");
+      throw CfdException(
+          kCfdIllegalArgumentError, "psbt invalid key format error.");
+    }
+    if (output->witness_script_len != 0) {
+      if (is_find != nullptr) *is_find = true;
+      Serializer builder;
+      builder.AddVariableBuffer(
+          ByteData(output->witness_script, output->witness_script_len));
+      return builder.Output();
+    } else if (is_find == nullptr) {
+      throw CfdException(
+          kCfdIllegalArgumentError,
+          "psbt target key " + key_data.GetHex() + " not found error.");
+    }
+  } else if (key[0] == kPsbtOutputBip32Derivation) {
+    std::vector<uint8_t> pubkey(key.size() - 1);
+    if (pubkey.size() != 0) {
+      memcpy(pubkey.data(), &key.data()[1], pubkey.size());
+    }
+    Pubkey pk(pubkey);
+    auto pk_bytes = pk.GetData().GetBytes();
+    size_t index = 0;
+    try {
+      FindPsbtMap(&output->keypaths, pk_bytes, "output bip32 pubkey", &index);
+      if (is_find != nullptr) *is_find = true;
+      return ByteData(
+          output->keypaths.items[index].value,
+          output->keypaths.items[index].value_len);
+    } catch (const CfdException &except) {
+      if ((is_find == nullptr) ||
+          (except.GetErrorCode() != kCfdIllegalArgumentError)) {
+        throw except;
+      }
+    }
+  } else {
+    size_t index = 0;
+    try {
+      FindPsbtMap(&output->unknowns, key, "output unknowns", &index);
+      if (is_find != nullptr) *is_find = true;
+      return ByteData(
+          output->unknowns.items[index].value,
+          output->unknowns.items[index].value_len);
+    } catch (const CfdException &except) {
+      if ((is_find == nullptr) ||
+          (except.GetErrorCode() != kCfdIllegalArgumentError)) {
+        throw except;
+      }
+    }
+  }
+  return ByteData();
 }
 
 /**
@@ -1624,6 +1959,10 @@ ByteData Psbt::CreateRecordKey(
       ByteData(
           reinterpret_cast<const uint8_t *>(sub_key.data()),
           static_cast<uint32_t>(strlen(sub_key.c_str()))));
+}
+
+ByteData Psbt::CreatePubkeyRecordKey(uint8_t type, const Pubkey &pubkey) {
+  return ByteData(&type, 1).Concat(pubkey.GetData());
 }
 
 std::string Psbt::GetBase64() const {
@@ -2397,40 +2736,16 @@ ByteData Psbt::GetTxInRecord(uint32_t index, const ByteData &key) const {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  auto key_vec = key.GetBytes();
-  size_t exist = 0;
-  int ret = wally_map_find(
-      &psbt_pointer->inputs[index].unknowns, key_vec.data(), key_vec.size(),
-      &exist);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
-  }
-  if (exist == 0) {
-    warn(CFD_LOG_SOURCE, "target key not found.");
-    throw CfdException(
-        kCfdIllegalStateError, "psbt global target key not found.");
-  }
-  uint32_t map_index = static_cast<uint32_t>(exist) - 1;
-  return ByteData(
-      psbt_pointer->inputs[index].unknowns.items[map_index].value,
-      psbt_pointer->inputs[index].unknowns.items[map_index].value_len);
+  return GetPsbtInput(key, &psbt_pointer->inputs[index], nullptr);
 }
 
 bool Psbt::IsFindTxInRecord(uint32_t index, const ByteData &key) const {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  auto key_vec = key.GetBytes();
-  size_t exist = 0;
-  int ret = wally_map_find(
-      &psbt_pointer->inputs[index].unknowns, key_vec.data(), key_vec.size(),
-      &exist);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
-  }
-  return (exist == 0) ? false : true;
+  bool is_find = false;
+  GetPsbtInput(key, &psbt_pointer->inputs[index], &is_find);
+  return is_find;
 }
 
 std::vector<ByteData> Psbt::GetTxInRecordKeyList(uint32_t index) const {
@@ -2724,40 +3039,16 @@ ByteData Psbt::GetTxOutRecord(uint32_t index, const ByteData &key) const {
   CheckTxOutIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  auto key_vec = key.GetBytes();
-  size_t exist = 0;
-  int ret = wally_map_find(
-      &psbt_pointer->outputs[index].unknowns, key_vec.data(), key_vec.size(),
-      &exist);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
-  }
-  if (exist == 0) {
-    warn(CFD_LOG_SOURCE, "target key not found.");
-    throw CfdException(
-        kCfdIllegalStateError, "psbt global target key not found.");
-  }
-  uint32_t map_index = static_cast<uint32_t>(exist) - 1;
-  return ByteData(
-      psbt_pointer->outputs[index].unknowns.items[map_index].value,
-      psbt_pointer->outputs[index].unknowns.items[map_index].value_len);
+  return GetPsbtOutput(key, &psbt_pointer->outputs[index], nullptr);
 }
 
 bool Psbt::IsFindTxOutRecord(uint32_t index, const ByteData &key) const {
   CheckTxOutIndex(index, __LINE__, __FUNCTION__);
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  auto key_vec = key.GetBytes();
-  size_t exist = 0;
-  int ret = wally_map_find(
-      &psbt_pointer->outputs[index].unknowns, key_vec.data(), key_vec.size(),
-      &exist);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
-  }
-  return (exist == 0) ? false : true;
+  bool is_find = false;
+  GetPsbtOutput(key, &psbt_pointer->outputs[index], &is_find);
+  return is_find;
 }
 
 std::vector<ByteData> Psbt::GetTxOutRecordKeyList(uint32_t index) const {
@@ -2795,37 +3086,15 @@ void Psbt::SetGlobalRecord(const ByteData &key, const ByteData &value) {
 ByteData Psbt::GetGlobalRecord(const ByteData &key) const {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  auto key_vec = key.GetBytes();
-  size_t exist = 0;
-  int ret = wally_map_find(
-      &psbt_pointer->unknowns, key_vec.data(), key_vec.size(), &exist);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
-  }
-  if (exist == 0) {
-    warn(CFD_LOG_SOURCE, "target key not found.");
-    throw CfdException(
-        kCfdIllegalStateError, "psbt global target key not found.");
-  }
-  uint32_t map_index = static_cast<uint32_t>(exist) - 1;
-  return ByteData(
-      psbt_pointer->unknowns.items[map_index].value,
-      psbt_pointer->unknowns.items[map_index].value_len);
+  return GetPsbtGlobal(key, psbt_pointer, nullptr);
 }
 
 bool Psbt::IsFindGlobalRecord(const ByteData &key) const {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  auto key_vec = key.GetBytes();
-  size_t exist = 0;
-  int ret = wally_map_find(
-      &psbt_pointer->unknowns, key_vec.data(), key_vec.size(), &exist);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_map_find NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt find unknown key error.");
-  }
-  return (exist == 0) ? false : true;
+  bool is_find = false;
+  GetPsbtGlobal(key, psbt_pointer, &is_find);
+  return is_find;
 }
 
 std::vector<ByteData> Psbt::GetGlobalRecordKeyList() const {
