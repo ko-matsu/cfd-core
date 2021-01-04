@@ -485,7 +485,10 @@ Script DescriptorScriptReference::GetLockingScript() const {
 
 bool DescriptorScriptReference::HasAddress() const {
   if (script_type_ == DescriptorScriptType::kDescriptorScriptRaw) {
-    // TODO(k-matsuzawa) 将来的にはdecoderawtransaction相当には対応させたい
+    if (locking_script_.IsP2wpkhScript() || locking_script_.IsP2wshScript() ||
+        locking_script_.IsP2shScript() || locking_script_.IsP2pkhScript()) {
+      return true;
+    }
     return false;
   }
   return true;
@@ -496,7 +499,18 @@ Address DescriptorScriptReference::GenerateAddress(NetType net_type) const {
   bool is_witness = false;
   switch (script_type_) {
     case DescriptorScriptType::kDescriptorScriptRaw:
-      // TODO(k-matsuzawa) 将来的にはdecoderawtransaction相当には対応させたい
+      if (locking_script_.IsP2wpkhScript() ||
+          locking_script_.IsP2wshScript()) {
+        auto hash = locking_script_.GetElementList()[1].GetBinaryData();
+        return Address(net_type, WitnessVersion::kVersion0, hash);
+      } else if (locking_script_.IsP2shScript()) {
+        auto hash = locking_script_.GetElementList()[1].GetBinaryData();
+        return Address(net_type, AddressType::kP2shAddress, ByteData160(hash));
+      } else if (locking_script_.IsP2pkhScript()) {
+        auto hash = locking_script_.GetElementList()[2].GetBinaryData();
+        return Address(
+            net_type, AddressType::kP2pkhAddress, ByteData160(hash));
+      }
       warn(CFD_LOG_SOURCE, "raw type descriptor is not support.");
       throw CfdException(
           CfdError::kCfdIllegalArgumentError,
@@ -568,7 +582,15 @@ std::vector<Address> DescriptorScriptReference::GenerateAddresses(
 AddressType DescriptorScriptReference::GetAddressType() const {
   switch (script_type_) {
     case DescriptorScriptType::kDescriptorScriptRaw:
-      // TODO(k-matsuzawa) 将来的にはdecoderawtransaction相当には対応させたい
+      if (locking_script_.IsP2wpkhScript()) {
+        return AddressType::kP2wpkhAddress;
+      } else if (locking_script_.IsP2wshScript()) {
+        return AddressType::kP2wshAddress;
+      } else if (locking_script_.IsP2shScript()) {
+        return AddressType::kP2shAddress;
+      } else if (locking_script_.IsP2pkhScript()) {
+        return AddressType::kP2pkhAddress;
+      }
       warn(
           CFD_LOG_SOURCE,
           "Failed to GenerateAddress. raw type descriptor is not support.");
