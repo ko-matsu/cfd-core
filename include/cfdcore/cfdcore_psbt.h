@@ -606,6 +606,11 @@ class CFD_CORE_EXPORT Psbt {
   std::vector<ByteData> GetTxOutRecordKeyList(uint32_t index) const;
 
   /**
+   * @brief Get the psbt version.
+   * @return psbt version
+   */
+  uint32_t GetPsbtVersion() const;
+  /**
    * @brief set global record.
    * @param[in] key     record key
    * @param[in] value   record value

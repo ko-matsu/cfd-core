@@ -3030,6 +3030,16 @@ std::vector<ByteData> Psbt::GetTxOutRecordKeyList(uint32_t index) const {
   return result;
 }
 
+uint32_t Psbt::GetPsbtVersion() const {
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+  if (psbt_pointer == nullptr) {
+    warn(CFD_LOG_SOURCE, "psbt pointer is null");
+    throw CfdException(kCfdIllegalStateError, "psbt pointer is null.");
+  }
+  return psbt_pointer->version;
+}
+
 void Psbt::SetGlobalRecord(const ByteData &key, const ByteData &value) {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);

@@ -46,6 +46,7 @@ TEST(Psbt, EmptyObject) {
     EXPECT_STREQ("70736274ff01000a0200000000000000000000",
         empty_obj.GetData().GetHex().c_str());
     EXPECT_STREQ("cHNidP8BAAoCAAAAAAAAAAAAAA==", empty_obj.GetBase64().c_str());
+    EXPECT_EQ(0, empty_obj.GetPsbtVersion());
   } catch (const CfdException& except) {
     EXPECT_STREQ("", except.what());
   }
