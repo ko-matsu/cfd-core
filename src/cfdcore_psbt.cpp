@@ -930,8 +930,10 @@ static ByteData GetPsbtGlobal(
           kCfdIllegalArgumentError, "psbt invalid key format error.");
     }
     if (is_find != nullptr) *is_find = true;
-    uint8_t empty = 0;
-    return ByteData(&empty, sizeof(empty));
+    // TODO(k-matsuzawa) need endian support.
+    Serializer builder;
+    builder.AddDirectNumber(psbt->version);
+    return builder.Output();
   } else {
     size_t index = 0;
     try {
