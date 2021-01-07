@@ -2075,6 +2075,7 @@ void Psbt::Combine(const Psbt &transaction) {
     warn(CFD_LOG_SOURCE, "wally_psbt_combine NG[{}]", ret);
     throw CfdException(kCfdIllegalArgumentError, "psbt combine error.");
   }
+  base_tx_ = RebuildTransaction(wally_psbt_pointer_);
 }
 
 void Psbt::Sign(const Privkey &privkey, bool has_grind_r) {
@@ -2155,6 +2156,7 @@ uint32_t Psbt::AddTxIn(const Txid &txid, uint32_t vout, uint32_t sequence) {
     warn(CFD_LOG_SOURCE, "wally_psbt_add_input_at NG[{}]", ret);
     throw CfdException(kCfdIllegalArgumentError, "psbt add input error.");
   }
+  base_tx_ = RebuildTransaction(wally_psbt_pointer_);
   return index;
 }
 
@@ -2794,6 +2796,7 @@ uint32_t Psbt::AddTxOut(const Script &locking_script, const Amount &amount) {
     warn(CFD_LOG_SOURCE, "wally_psbt_add_output_at NG[{}]", ret);
     throw CfdException(kCfdIllegalArgumentError, "psbt add output error.");
   }
+  base_tx_ = RebuildTransaction(wally_psbt_pointer_);
   return index;
 }
 
