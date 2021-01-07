@@ -98,6 +98,7 @@ bool ValidatePsbtUtxo(
           kCfdIllegalArgumentError, "pubkey isn't use redeemScript.");
     }
 
+    is_witness = out_script.IsP2wpkhScript();
     if (key_list.size() > 1) {
       warn(
           CFD_LOG_SOURCE, "set many key. using key is one.", txid.GetHex(),
@@ -106,8 +107,7 @@ bool ValidatePsbtUtxo(
           kCfdIllegalArgumentError, "set many key. using key is one.");
     } else if (key_list.size() == 1) {
       auto pubkey = key_list[0].GetPubkey();
-      if (out_script.IsP2wpkhScript()) {
-        is_witness = true;
+      if (is_witness) {
         if (!ScriptUtil::CreateP2wpkhLockingScript(pubkey).Equals(
                 out_script)) {
           warn(
@@ -136,6 +136,7 @@ bool ValidatePsbtUtxo(
           throw CfdException(
               kCfdIllegalArgumentError, "unmatch scriptPubkey.");
         }
+        is_witness = true;
       }
 
       if (key_list.size() > 1) {
@@ -155,8 +156,8 @@ bool ValidatePsbtUtxo(
           throw CfdException(kCfdIllegalArgumentError, "unmatch pubkey.");
         }
         if (new_redeem_script != nullptr) *new_redeem_script = wpkh_script;
+        is_witness = true;
       }
-      is_witness = true;
     } else {
       Address p2sh_addr(NetType::kMainnet, redeem_script);
       Address p2wsh_addr(
