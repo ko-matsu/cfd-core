@@ -39,18 +39,13 @@ static const uint8_t kPsbtSeparator = 0;  //!< psbt map separator
 // Internal
 // -----------------------------------------------------------------------------
 /**
- * @brief create psbt bip32 key map
- * @param[in] key_list bip32 key path list
- * @return map
+ * @brief set psbt bip32 key map
+ * @param[in] key_list  bip32 key path list
+ * @param[in] map_obj   map object.
  */
-static struct wally_map *CreateKeyPathMap(
-    const std::vector<KeyData> &key_list) {
-  struct wally_map *map_obj = nullptr;
-  int ret = wally_map_init_alloc(key_list.size(), &map_obj);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_map_init_alloc NG[{}]", ret);
-    throw CfdException(kCfdMemoryFullError, "psbt alloc map error.");
-  }
+static void SetKeyPathMap(
+    const std::vector<KeyData> &key_list, struct wally_map *map_obj) {
+  int ret;
   for (auto &key : key_list) {
     auto key_vec = key.GetPubkey().GetData().GetBytes();
     std::vector<uint8_t> fingerprint(4);
@@ -68,7 +63,6 @@ static struct wally_map *CreateKeyPathMap(
       throw CfdException(kCfdMemoryFullError, "psbt add keypath error.");
     }
   }
-  return map_obj;
 }
 
 /**
@@ -263,15 +257,7 @@ void SetPsbtTxInScriptAndKeyList(
   }
 
   if (!key_list.empty()) {
-    struct wally_map *map_obj = CreateKeyPathMap(key_list);
-    ret = wally_psbt_input_set_keypaths(input, map_obj);
-    wally_map_free(map_obj);
-    if (ret != WALLY_OK) {
-      warn(CFD_LOG_SOURCE, "wally_psbt_output_set_keypaths NG[{}]", ret);
-      throw CfdException(
-          kCfdIllegalArgumentError, "psbt add output keypaths error.");
-    }
-
+    SetKeyPathMap(key_list, &input->keypaths);
     ret = wally_map_sort(&input->keypaths, 0);
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
@@ -2882,16 +2868,7 @@ void Psbt::SetTxOutData(
   }
 
   if (!key_list.empty()) {
-    struct wally_map *map_obj = CreateKeyPathMap(key_list);
-    ret =
-        wally_psbt_output_set_keypaths(&psbt_pointer->outputs[index], map_obj);
-    wally_map_free(map_obj);
-    if (ret != WALLY_OK) {
-      warn(CFD_LOG_SOURCE, "wally_psbt_output_set_keypaths NG[{}]", ret);
-      throw CfdException(
-          kCfdIllegalArgumentError, "psbt add output keypaths error.");
-    }
-
+    SetKeyPathMap(key_list, &psbt_pointer->outputs[index].keypaths);
     ret = wally_map_sort(&psbt_pointer->outputs[index].keypaths, 0);
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
