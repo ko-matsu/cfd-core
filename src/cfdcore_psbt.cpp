@@ -34,6 +34,8 @@ using logger::warn;
 // File constants
 // -----------------------------------------------------------------------------
 static const uint8_t kPsbtSeparator = 0;  //!< psbt map separator
+//! global xpub key size
+static const size_t kPsbtGlobalXpubSize = BIP32_SERIALIZED_LEN + 1;
 
 // -----------------------------------------------------------------------------
 // Internal
@@ -854,6 +856,10 @@ static void FindPsbtMap(
 static uint8_t SetPsbtGlobal(
     const std::vector<uint8_t> &key, const std::vector<uint8_t> &value,
     struct wally_psbt *psbt) {
+  if (psbt == nullptr) {
+    warn(CFD_LOG_SOURCE, "psbt pointer is null");
+    throw CfdException(kCfdIllegalStateError, "psbt pointer is null.");
+  }
   int ret;
   bool has_key_1byte = (key.size() == 1);
   if (key[0] == Psbt::kPsbtGlobalUnsignedTx) {
@@ -898,6 +904,10 @@ static uint8_t SetPsbtGlobal(
  */
 static ByteData GetPsbtGlobal(
     const ByteData &key_data, struct wally_psbt *psbt, bool *is_find) {
+  if (psbt == nullptr) {
+    warn(CFD_LOG_SOURCE, "psbt pointer is null");
+    throw CfdException(kCfdIllegalStateError, "psbt pointer is null.");
+  }
   if (is_find != nullptr) *is_find = false;
   const auto key = key_data.GetBytes();
   bool has_key_1byte = (key.size() == 1);
@@ -3007,6 +3017,111 @@ uint32_t Psbt::GetPsbtVersion() const {
     throw CfdException(kCfdIllegalStateError, "psbt pointer is null.");
   }
   return psbt_pointer->version;
+}
+
+void Psbt::SetGlobalXpubkey(const KeyData &key) {
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+  if (psbt_pointer == nullptr) {
+    warn(CFD_LOG_SOURCE, "psbt pointer is null");
+    throw CfdException(kCfdIllegalStateError, "psbt pointer is null.");
+  }
+
+  if (!key.HasExtPubkey()) {
+    warn(CFD_LOG_SOURCE, "psbt global xpub can set only ExtPubkey.");
+    throw CfdException(
+        kCfdIllegalArgumentError, "psbt global xpub can set only ExtPubkey.");
+  }
+  uint8_t xpub_key = Psbt::kPsbtGlobalXpub;
+  ByteData key_top(&xpub_key, 1);
+  ByteData key_data = key_top.Concat(key.GetExtPubkey().GetData());
+
+  auto fingerprint = key.GetFingerprint().GetBytes();
+  auto num_list = key.GetChildNumArray();
+  if (fingerprint.size() < 4) {
+    warn(CFD_LOG_SOURCE, "psbt fingerprint size low 4 byte.");
+    throw CfdException(
+        kCfdIllegalArgumentError, "psbt fingerprint size low 4 byte.");
+  }
+  if (num_list.empty()) {
+    warn(CFD_LOG_SOURCE, "psbt empty bip32 path.");
+    throw CfdException(kCfdIllegalArgumentError, "psbt empty bip32 path.");
+  }
+  Serializer builder(4 + (num_list.size() * 4));
+  builder.AddDirectBytes(fingerprint.data(), 4);
+  for (const auto child_num : num_list) {
+    builder.AddDirectNumber(child_num);
+  }
+  SetGlobalRecord(key_data, builder.Output());
+}
+
+KeyData Psbt::GetGlobalXpubkeyBip32(const ExtPubkey &key) const {
+  uint8_t xpub_key = Psbt::kPsbtGlobalXpub;
+  ByteData key_top(&xpub_key, 1);
+  ByteData key_data = key_top.Concat(key.GetData());
+  auto data = GetGlobalRecord(key_data);
+
+  ByteData fingerprint;
+  std::vector<uint32_t> path;
+  if (((data.GetDataSize() % 4) == 0) && (data.GetDataSize() > 0)) {
+    auto data_arr = data.GetBytes();
+    fingerprint = ByteData(data_arr.data(), 4);
+
+    // TODO(k-matsuzawa) Need endian support.
+    size_t arr_max = data_arr.size() / 4;
+    uint32_t *val_arr = reinterpret_cast<uint32_t *>(data_arr.data());
+    for (size_t arr_index = 1; arr_index < arr_max; ++arr_index) {
+      path.push_back(val_arr[arr_index]);
+    }
+  }
+  return KeyData(key, path, fingerprint);
+}
+
+bool Psbt::IsFindGlobalXpubkey(const ExtPubkey &key) const {
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+  bool is_find = false;
+  uint8_t xpub_key = Psbt::kPsbtGlobalXpub;
+  ByteData key_top(&xpub_key, 1);
+  ByteData key_data = key_top.Concat(key.GetData());
+  GetPsbtGlobal(key_data, psbt_pointer, &is_find);
+  return is_find;
+}
+
+std::vector<KeyData> Psbt::GetGlobalXpubkeyDataList() const {
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+  if (psbt_pointer == nullptr) {
+    warn(CFD_LOG_SOURCE, "psbt pointer is null");
+    throw CfdException(kCfdIllegalStateError, "psbt pointer is null.");
+  }
+
+  size_t key_max = psbt_pointer->unknowns.num_items;
+  std::vector<KeyData> arr;
+  arr.reserve(key_max);
+  struct wally_map_item *item;
+  for (size_t key_index = 0; key_index < key_max; ++key_index) {
+    item = &psbt_pointer->unknowns.items[key_index];
+    if (item->key_len != kPsbtGlobalXpubSize) continue;
+    if (item->key[0] != Psbt::kPsbtGlobalXpub) continue;
+    ByteData key(&item->key[1], item->key_len - 1);
+    ExtPubkey ext_pubkey(key);
+
+    ByteData fingerprint;
+    std::vector<uint32_t> path;
+    if (((item->value_len % 4) == 0) && (item->value_len > 0)) {
+      fingerprint = ByteData(item->value, 4);
+
+      // TODO(k-matsuzawa) Need endian support.
+      size_t arr_max = item->value_len / 4;
+      uint32_t *val_arr = reinterpret_cast<uint32_t *>(item->value);
+      for (size_t arr_index = 1; arr_index < arr_max; ++arr_index) {
+        path.push_back(val_arr[arr_index]);
+      }
+    }
+    arr.emplace_back(KeyData(ext_pubkey, path, fingerprint));
+  }
+  return arr;
 }
 
 void Psbt::SetGlobalRecord(const ByteData &key, const ByteData &value) {
