@@ -1241,10 +1241,7 @@ static ByteData GetPsbtInput(
     }
     if (input->redeem_script_len != 0) {
       if (is_find != nullptr) *is_find = true;
-      Serializer builder;
-      builder.AddVariableBuffer(
-          ByteData(input->redeem_script, input->redeem_script_len));
-      return builder.Output();
+      return ByteData(input->redeem_script, input->redeem_script_len);
     } else if (is_find == nullptr) {
       throw CfdException(
           kCfdIllegalArgumentError,
@@ -1258,10 +1255,7 @@ static ByteData GetPsbtInput(
     }
     if (input->witness_script_len != 0) {
       if (is_find != nullptr) *is_find = true;
-      Serializer builder;
-      builder.AddVariableBuffer(
-          ByteData(input->witness_script, input->witness_script_len));
-      return builder.Output();
+      return ByteData(input->witness_script, input->witness_script_len);
     } else if (is_find == nullptr) {
       throw CfdException(
           kCfdIllegalArgumentError,
@@ -1453,10 +1447,7 @@ static ByteData GetPsbtOutput(
     }
     if (output->redeem_script_len != 0) {
       if (is_find != nullptr) *is_find = true;
-      Serializer builder;
-      builder.AddVariableBuffer(
-          ByteData(output->redeem_script, output->redeem_script_len));
-      return builder.Output();
+      return ByteData(output->redeem_script, output->redeem_script_len);
     } else if (is_find == nullptr) {
       throw CfdException(
           kCfdIllegalArgumentError,
@@ -1470,10 +1461,7 @@ static ByteData GetPsbtOutput(
     }
     if (output->witness_script_len != 0) {
       if (is_find != nullptr) *is_find = true;
-      Serializer builder;
-      builder.AddVariableBuffer(
-          ByteData(output->witness_script, output->witness_script_len));
-      return builder.Output();
+      return ByteData(output->witness_script, output->witness_script_len);
     } else if (is_find == nullptr) {
       throw CfdException(
           kCfdIllegalArgumentError,
