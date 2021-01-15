@@ -78,6 +78,14 @@ class CFD_CORE_EXPORT Psbt {
    */
   static ByteData CreateRecordKey(uint8_t type);
   /**
+   * @brief Create psbt fix size record key.
+   * @param[in] type  key type.
+   * @param[in] fixed_size_key  fixed size key value.
+   * @return key data.
+   */
+  static ByteData CreateFixRecordKey(
+      uint8_t type, const ByteData& fixed_size_key);
+  /**
    * @brief Create psbt record key.
    * @param[in] type  key type.
    * @param[in] key_bytes  key value.

@@ -1880,6 +1880,11 @@ Transaction Psbt::RebuildTransaction(const void *wally_psbt_pointer) {
 
 ByteData Psbt::CreateRecordKey(uint8_t type) { return ByteData(&type, 1); }
 
+ByteData Psbt::CreateFixRecordKey(
+    uint8_t type, const ByteData &fixed_size_key) {
+  return ByteData(&type, 1).Concat(fixed_size_key);
+}
+
 ByteData Psbt::CreateRecordKey(uint8_t type, const ByteData &key_bytes) {
   return ByteData(&type, 1).Concat(key_bytes.Serialize());
 }

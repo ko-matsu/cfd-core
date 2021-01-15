@@ -1061,12 +1061,14 @@ TEST(Psbt, CreateRecordKey) {
   auto key3 = Psbt::CreateRecordKey(3, "abc");
   auto key4 = Psbt::CreateRecordKey(4, ByteData("d1d2"), 5);
   auto key5 = Psbt::CreateRecordKey(5, "def", 9);
+  auto key6 = Psbt::CreateFixRecordKey(6, ByteData("f1f2"));
 
   EXPECT_STREQ("01", key1.GetHex().c_str());
   EXPECT_STREQ("0202f1f2", key2.GetHex().c_str());
   EXPECT_STREQ("0303616263", key3.GetHex().c_str());
   EXPECT_STREQ("0402d1d205", key4.GetHex().c_str());
   EXPECT_STREQ("050364656609", key5.GetHex().c_str());
+  EXPECT_STREQ("06f1f2", key6.GetHex().c_str());
 }
 
 TEST(Psbt, GlobalXpubTest) {
