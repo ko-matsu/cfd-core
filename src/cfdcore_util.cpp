@@ -2,8 +2,7 @@
 /**
  * @file cfdcore_util.cpp
  *
- * @brief \~japanese Utility関連クラス定義
- *   \~english definition related to Utility classes
+ * @brief definition related to Utility classes
  */
 
 #include "cfdcore/cfdcore_util.h"
@@ -110,6 +109,54 @@ std::string SigHashType::ToString() const {
 //////////////////////////////////
 /// HashUtil
 //////////////////////////////////
+// Ripemd160 --------------------------------------------------------------
+ByteData160 HashUtil::Ripemd160(const std::string &str) {
+  std::vector<uint8_t> output(RIPEMD160_LEN);
+  int ret = wally_ripemd160(
+      reinterpret_cast<const uint8_t *>(str.data()), str.size(), output.data(),
+      output.size());
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_hash160 NG[{}].", ret);
+    throw CfdException(kCfdIllegalStateError, "hash160 calc error.");
+  }
+
+  ByteData160 byte160(output);
+  return byte160;
+}
+
+ByteData160 HashUtil::Ripemd160(const std::vector<uint8_t> &bytes) {
+  std::vector<uint8_t> output(RIPEMD160_LEN);
+  int ret = wally_ripemd160(
+      bytes.data(), bytes.size(), output.data(), output.size());
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_hash160 NG[{}].", ret);
+    throw CfdException(kCfdIllegalStateError, "hash160 calc error.");
+  }
+
+  ByteData160 byte160(output);
+  return byte160;
+}
+
+ByteData160 HashUtil::Ripemd160(const ByteData &data) {
+  return Ripemd160(data.GetBytes());
+}
+
+ByteData160 HashUtil::Ripemd160(const ByteData160 &data) {
+  return Ripemd160(data.GetBytes());
+}
+
+ByteData160 HashUtil::Ripemd160(const ByteData256 &data) {
+  return Ripemd160(data.GetBytes());
+}
+
+ByteData160 HashUtil::Ripemd160(const Pubkey &pubkey) {
+  return Ripemd160(pubkey.GetData().GetBytes());
+}
+
+ByteData160 HashUtil::Ripemd160(const Script &script) {
+  return Ripemd160(script.GetData().GetBytes());
+}
+
 // Hash160 -----------------------------------------------------------------
 ByteData160 HashUtil::Hash160(const std::string &str) {
   std::vector<uint8_t> output(HASH160_LEN);

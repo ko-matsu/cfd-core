@@ -142,6 +142,50 @@ class CFD_CORE_EXPORT SigHashType {
  */
 class CFD_CORE_EXPORT HashUtil {
  public:
+  // Ripemd160 --------------------------------------------------------------
+  /**
+   * @brief Hash the string with Ripemd160.
+   * @param[in] str   message text
+   * @return hashed data
+   */
+  static ByteData160 Ripemd160(const std::string &str);
+  /**
+   * @brief Hash the byte array with Ripemd160.
+   * @param[in] bytes   message data
+   * @return hashed data
+   */
+  static ByteData160 Ripemd160(const std::vector<uint8_t> &bytes);
+  /**
+   * @brief Hash the byte array with Ripemd160.
+   * @param[in] data  message data
+   * @return hashed data
+   */
+  static ByteData160 Ripemd160(const ByteData &data);
+  /**
+   * @brief Hash the byte array with Ripemd160.
+   * @param[in] data  message data
+   * @return hashed data
+   */
+  static ByteData160 Ripemd160(const ByteData160 &data);
+  /**
+   * @brief Hash the byte array with Ripemd160.
+   * @param[in] data  message data
+   * @return hashed data
+   */
+  static ByteData160 Ripemd160(const ByteData256 &data);
+  /**
+   * @brief Hash the pubkey bytes with Ripemd160.
+   * @param[in] pubkey Pubkey
+   * @return pubkey hash
+   */
+  static ByteData160 Ripemd160(const Pubkey &pubkey);
+  /**
+   * @brief Hash the script bytes with Ripemd160.
+   * @param[in] script Script
+   * @return script hash
+   */
+  static ByteData160 Ripemd160(const Script &script);
+
   // Hash160 --------------------------------------------------------------
   /**
    * @brief 文字列をHash160でハッシュする.
