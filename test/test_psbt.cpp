@@ -1119,4 +1119,8 @@ TEST(Psbt, GlobalXpubTest) {
   } catch (const CfdException& except) {
     EXPECT_STREQ("", except.what());
   }
+
+  ByteData key("010488b21e0691fe4d298000002cb26a08008723cc8f19ac08bce635c087d63d738b63c33e62186d43cf3a5805f302e9156620b5b29e8272e86f1d81fb07d6c57c557cbc25218dfde33ab8cea06b7b");
+  auto value = psbt.GetGlobalRecord(key);
+  EXPECT_STREQ("ae05dbb7000000002c000080", value.GetHex().c_str());
 }
