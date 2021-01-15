@@ -13,6 +13,7 @@
 using cfd::core::CfdException;
 using cfd::core::Address;
 using cfd::core::Amount;
+using cfd::core::ExtPubkey;
 using cfd::core::Script;
 using cfd::core::ScriptBuilder;
 using cfd::core::ScriptOperator;
@@ -1066,4 +1067,60 @@ TEST(Psbt, CreateRecordKey) {
   EXPECT_STREQ("0303616263", key3.GetHex().c_str());
   EXPECT_STREQ("0402d1d205", key4.GetHex().c_str());
   EXPECT_STREQ("050364656609", key5.GetHex().c_str());
+}
+
+TEST(Psbt, GlobalXpubTest) {
+  Psbt psbt("cHNidP8BAF4CAAAAAWkv08JB0xYYGWvDa23k9riJEU5CDpvd+cu+Ux5aVE1UAAAAAAD/////ARBLzR0AAAAAIgAgPK0GGd5n5iR6dqECgTY1wFNFfGuk/eSsH/2BSNcOS8wAAAAAAAEBIAhYzR0AAAAAF6kUlF+1A5GnBjfB/8Wrf7ZTCMLyMXWHIgIDpRL19ZwOeQH8R47WNT7vdvRPnLLBhb+89/C5u3Zxa/NHMEQCICBjWTfgUXDYPcMhOts6bq5mcTAI5KvDi0kSxWgN7E8MAiAzwIpxowdXsIRj1TDsBY7XQBlo+zC+9j1FSXIaDkhbhAEiAgP01HNhTpVKxPVRjm98szB7T4R0PhN+1O7LX0+2Q8I7R0cwRAIgXSdKeIfePvrehKSjScTDb1ibVWI7ECe32m2sicF4VjQCIGoDr+u7tgifHjf6yPmZpAFRYciSAUT9UxEtoFgEzUPMAQEDBAEAAAABBCIAIJxNrLJeu4rai7sa3bhp3qTYFwzJUfHZaUshVOFYMnbJAQVHUiEDpRL19ZwOeQH8R47WNT7vdvRPnLLBhb+89/C5u3Zxa/MhA/TUc2FOlUrE9VGOb3yzMHtPhHQ+E37U7stfT7ZDwjtHUq4iBgOlEvX1nA55AfxHjtY1Pu929E+cssGFv7z38Lm7dnFr8xgqcEdgLAAAgAAAAIAAAACAAAAAAAsAAAAiBgP01HNhTpVKxPVRjm98szB7T4R0PhN+1O7LX0+2Q8I7Rxida22GLAAAgAAAAIAAAACAAAAAAAsAAAAAAQAiACA8rQYZ3mfmJHp2oQKBNjXAU0V8a6T95Kwf/YFI1w5LzAEBR1IhApBtOZ9tu+zImNS43j9JdHTIakHyzzbXH5XlygawdIZ7IQJiLHl07DLeda+jczsJpsM9DepRSyn6rM+wmRd09GIiQlKuIgICYix5dOwy3nWvo3M7CabDPQ3qUUsp+qzPsJkXdPRiIkIYnWtthiwAAIAAAACAAAAAgAAAAAAMAAAAIgICkG05n2277MiY1LjeP0l0dMhqQfLPNtcfleXKBrB0hnsYKnBHYCwAAIAAAACAAAAAgAAAAAAMAAAAAA==");
+
+  ExtPubkey ext_pubkey("xpub6EkLrUTiaMiLbMAkbLN2BdH4hWkCQT7fLQf3Q6Ymx3gAqbuFeSKHfTMVDtjcsuRtEFqJbAsjYFZMrqeDLgRSsn4yuQygK44HWPrnA7gZC2C");
+
+  try {
+    EXPECT_FALSE(psbt.IsFindGlobalXpubkey(ext_pubkey));
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+
+  try {
+    KeyData key_data(ext_pubkey, "0/44", ByteData("b7665978"));
+    psbt.SetGlobalXpubkey(key_data);
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+
+  try {
+    EXPECT_TRUE(psbt.IsFindGlobalXpubkey(ext_pubkey));
+    auto get_data = psbt.GetGlobalXpubkeyBip32(ext_pubkey);
+    EXPECT_STREQ("0/44", get_data.GetBip32Path().c_str());
+    EXPECT_STREQ("b7665978", get_data.GetFingerprint().GetHex().c_str());
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+
+  try {
+    ExtPubkey ext_pubkey2("xpub6JNQxQDHv2vcUQiXjggbaGYZg3nmxX6ojMcJPSs4KfLSLnMBCg8VbJUh5n4to2SwLWXdSXnHBkUQx1fVnJ9oKYjPPYAQehjWRpx6ErQyykX");
+    KeyData key_data2(ext_pubkey2, "0/44'", ByteData("ae05dbb7"));
+    psbt.SetGlobalXpubkey(key_data2);
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+
+  try {
+    auto extkey_list = psbt.GetGlobalXpubkeyDataList();
+    EXPECT_EQ(2, extkey_list.size());
+    if (extkey_list.size() == 2) {
+      EXPECT_STREQ("xpub6EkLrUTiaMiLbMAkbLN2BdH4hWkCQT7fLQf3Q6Ymx3gAqbuFeSKHfTMVDtjcsuRtEFqJbAsjYFZMrqeDLgRSsn4yuQygK44HWPrnA7gZC2C", extkey_list[0].GetExtPubkey().ToString().c_str());
+      EXPECT_STREQ("0/44", extkey_list[0].GetBip32Path().c_str());
+      EXPECT_STREQ("b7665978", extkey_list[0].GetFingerprint().GetHex().c_str());
+
+      EXPECT_STREQ("xpub6JNQxQDHv2vcUQiXjggbaGYZg3nmxX6ojMcJPSs4KfLSLnMBCg8VbJUh5n4to2SwLWXdSXnHBkUQx1fVnJ9oKYjPPYAQehjWRpx6ErQyykX", extkey_list[1].GetExtPubkey().ToString().c_str());
+      EXPECT_STREQ("0/44'", extkey_list[1].GetBip32Path().c_str());
+      EXPECT_STREQ("ae05dbb7", extkey_list[1].GetFingerprint().GetHex().c_str());
+    }
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+
+  ByteData key("010488b21e0691fe4d298000002cb26a08008723cc8f19ac08bce635c087d63d738b63c33e62186d43cf3a5805f302e9156620b5b29e8272e86f1d81fb07d6c57c557cbc25218dfde33ab8cea06b7b");
+  auto value = psbt.GetGlobalRecord(key);
+  EXPECT_STREQ("ae05dbb7000000002c000080", value.GetHex().c_str());
 }

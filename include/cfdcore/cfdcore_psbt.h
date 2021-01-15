@@ -52,6 +52,14 @@ class CFD_CORE_EXPORT Psbt {
   static constexpr uint8_t kPsbtInputFinalScriptWitness = 0x08;
   //! PSBT_IN_POR_COMMITMENT
   static constexpr uint8_t kPsbtInputPorCommitment = 0x09;
+  //! PSBT_IN_RIPEMD160
+  static constexpr uint8_t kPsbtInputRipemd160 = 0x0a;
+  //! PSBT_IN_SHA256
+  static constexpr uint8_t kPsbtInputSha256 = 0x0b;
+  //! PSBT_IN_HASH160
+  static constexpr uint8_t kPsbtInputHash160 = 0x0c;
+  //! PSBT_IN_HASH256
+  static constexpr uint8_t kPsbtInputHash256 = 0x0d;
   //! PSBT_IN_PROPRIETARY
   static constexpr uint8_t kPsbtInputProprietary = 0xfc;
   //! PSBT_OUT_REDEEM_SCRIPT
@@ -610,6 +618,29 @@ class CFD_CORE_EXPORT Psbt {
    * @return psbt version
    */
   uint32_t GetPsbtVersion() const;
+  /**
+   * @brief set global extpubkey.
+   * @param[in] key     extkey data.
+   */
+  void SetGlobalXpubkey(const KeyData& key);
+  /**
+   * @brief get global extpubkey.
+   * @param[in] key    extpubkey
+   * @return key data
+   */
+  KeyData GetGlobalXpubkeyBip32(const ExtPubkey& key) const;
+  /**
+   * @brief exist global extpubkey.
+   * @param[in] key    extpubkey
+   * @retval true  exist record
+   * @retval false  record not found
+   */
+  bool IsFindGlobalXpubkey(const ExtPubkey& key) const;
+  /**
+   * @brief get global key data list.
+   * @return key data list
+   */
+  std::vector<KeyData> GetGlobalXpubkeyDataList() const;
   /**
    * @brief set global record.
    * @param[in] key     record key
