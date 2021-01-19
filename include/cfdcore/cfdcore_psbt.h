@@ -191,7 +191,7 @@ class CFD_CORE_EXPORT Psbt {
    * @brief constructor
    * @param[in] psbt   Psbt object.
    */
-  explicit Psbt(const Psbt& psbt);
+  Psbt(const Psbt& psbt);
   /**
    * @brief destructor
    */
