@@ -808,6 +808,7 @@ TEST(Psbt, UsecaseMultisig) {
       auto exp_script = ScriptUtil::CreateP2wshLockingScript(script);
       EXPECT_EQ(exp_script.GetData().Serialize().GetHex(), wsh_script[0].GetHex());
     }
+    EXPECT_STREQ("cHNidP8BAF4CAAAAAWkv08JB0xYYGWvDa23k9riJEU5CDpvd+cu+Ux5aVE1UAAAAAAD/////ARBLzR0AAAAAIgAgPK0GGd5n5iR6dqECgTY1wFNFfGuk/eSsH/2BSNcOS8wAAAAAAAEBIAhYzR0AAAAAF6kUlF+1A5GnBjfB/8Wrf7ZTCMLyMXWHAQYAAQYAAQcjIgAgnE2ssl67itqLuxrduGnepNgXDMlR8dlpSyFU4VgydskBCNoEAEcwRAIgIGNZN+BRcNg9wyE62zpurmZxMAjkq8OLSRLFaA3sTwwCIDPAinGjB1ewhGPVMOwFjtdAGWj7ML72PUVJchoOSFuEAUcwRAIgXSdKeIfePvrehKSjScTDb1ibVWI7ECe32m2sicF4VjQCIGoDr+u7tgifHjf6yPmZpAFRYciSAUT9UxEtoFgEzUPMAUdSIQOlEvX1nA55AfxHjtY1Pu929E+cssGFv7z38Lm7dnFr8yED9NRzYU6VSsT1UY5vfLMwe0+EdD4TftTuy19PtkPCO0dSrgABACIAIDytBhneZ+YkenahAoE2NcBTRXxrpP3krB/9gUjXDkvMAQFHUiECkG05n2277MiY1LjeP0l0dMhqQfLPNtcfleXKBrB0hnshAmIseXTsMt51r6NzOwmmwz0N6lFLKfqsz7CZF3T0YiJCUq4iAgJiLHl07DLeda+jczsJpsM9DepRSyn6rM+wmRd09GIiQhida22GLAAAgAAAAIAAAACAAAAAAAwAAAAiAgKQbTmfbbvsyJjUuN4/SXR0yGpB8s821x+V5coGsHSGexgqcEdgLAAAgAAAAIAAAACAAAAAAAwAAAAA", psbt.GetBase64().c_str());
   } catch (const CfdException& except) {
     EXPECT_STREQ("", except.what());
     throw except;
