@@ -2363,6 +2363,11 @@ void Psbt::SetTxInFinalScript(
     Script script_sig;
     if (unlocking_script.size() == 1) {
       script_sig = Script(unlocking_script[0]);
+      if (script_sig.GetElementList().size() > 1) {
+        ScriptBuilder builder;  // combine single script
+        builder.AppendData(script_sig.GetData());
+        script_sig = builder.Build();
+      }
     } else {
       ScriptBuilder build;
       for (auto script : unlocking_script) {
@@ -2375,9 +2380,7 @@ void Psbt::SetTxInFinalScript(
       }
       script_sig = build.Build();
     }
-    ScriptBuilder builder;
-    builder.AppendData(script_sig.GetData());
-    auto sig_val = builder.Build().GetData().GetBytes();
+    auto sig_val = script_sig.GetData().GetBytes();
     ret = wally_psbt_input_set_final_scriptsig(
         &psbt_pointer->inputs[index], sig_val.data(), sig_val.size());
     if (ret != WALLY_OK) {
