@@ -2747,6 +2747,7 @@ void Psbt::ClearTxInSignData(uint32_t index) {
     FreeWallyBuffer(keypath->value);
     memset(keypath, 0, sizeof(*keypath));
   }
+  input->keypaths.num_items = 0;
   for (size_t idx = 0; idx < input->signatures.num_items; ++idx) {
     auto sig = &input->signatures.items[idx];
     memset(sig->key, 0, sig->key_len);
