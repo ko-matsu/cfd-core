@@ -2363,11 +2363,6 @@ void Psbt::SetTxInFinalScript(
     Script script_sig;
     if (unlocking_script.size() == 1) {
       script_sig = Script(unlocking_script[0]);
-      if (script_sig.GetElementList().size() > 1) {
-        ScriptBuilder builder;  // combine single script
-        builder.AppendData(script_sig.GetData());
-        script_sig = builder.Build();
-      }
     } else {
       ScriptBuilder build;
       for (auto script : unlocking_script) {
