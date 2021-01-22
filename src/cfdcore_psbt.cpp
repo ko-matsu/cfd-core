@@ -2375,7 +2375,9 @@ void Psbt::SetTxInFinalScript(
       }
       script_sig = build.Build();
     }
-    auto sig_val = script_sig.GetData().GetBytes();
+    ScriptBuilder builder;
+    builder.AppendData(script_sig.GetData());
+    auto sig_val = builder.Build().GetData().GetBytes();
     ret = wally_psbt_input_set_final_scriptsig(
         &psbt_pointer->inputs[index], sig_val.data(), sig_val.size());
     if (ret != WALLY_OK) {
