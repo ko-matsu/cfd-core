@@ -753,14 +753,16 @@ struct wally_psbt *MergePsbt(
 static void WritePsbtOutput(
     Serializer *builder, const struct wally_psbt_output *output) {
   if (output->redeem_script_len != 0) {
-    builder->AddPrefixBuffer(
-        Psbt::kPsbtOutputRedeemScript, output->redeem_script,
-        output->redeem_script_len);
+    builder->AddDirectByte(1);
+    builder->AddVariableInt(Psbt::kPsbtOutputRedeemScript);
+    builder->AddVariableBuffer(
+        output->redeem_script, output->redeem_script_len);
   }
   if (output->witness_script_len != 0) {
-    builder->AddPrefixBuffer(
-        Psbt::kPsbtOutputWitnessScript, output->witness_script,
-        output->witness_script_len);
+    builder->AddDirectByte(1);
+    builder->AddVariableInt(Psbt::kPsbtOutputWitnessScript);
+    builder->AddVariableBuffer(
+        output->witness_script, output->witness_script_len);
   }
   for (size_t i = 0; i < output->keypaths.num_items; ++i) {
     auto *item = &output->keypaths.items[i];
