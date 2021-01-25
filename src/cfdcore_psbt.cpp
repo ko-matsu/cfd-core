@@ -229,10 +229,12 @@ bool ValidatePsbtUtxo(
  * @param[in] is_witness      witness flag
  * @param[in] redeem_script   redeem script
  * @param[in] key_list        bip32 key list.
+ * @param[in] locking_script  locking script
  */
 void SetPsbtTxInScriptAndKeyList(
     struct wally_psbt_input *input, bool is_witness,
-    const Script &redeem_script, const std::vector<KeyData> &key_list) {
+    const Script &redeem_script, const std::vector<KeyData> &key_list,
+    const Script &locking_script) {
   int ret;
   if (!redeem_script.IsEmpty()) {
     auto script_val = redeem_script.GetData().GetBytes();
@@ -245,16 +247,22 @@ void SetPsbtTxInScriptAndKeyList(
         throw CfdException(
             kCfdIllegalArgumentError, "psbt add witness script error.");
       }
-      script_val = ScriptUtil::CreateP2wshLockingScript(redeem_script)
-                       .GetData()
-                       .GetBytes();
+      if (locking_script.IsP2shScript()) {
+        script_val = ScriptUtil::CreateP2wshLockingScript(redeem_script)
+                        .GetData()
+                        .GetBytes();
+      } else {
+        script_val.clear();
+      }
     }
-    ret = wally_psbt_input_set_redeem_script(
-        input, script_val.data(), script_val.size());
-    if (ret != WALLY_OK) {
-      warn(CFD_LOG_SOURCE, "wally_psbt_input_set_redeem_script NG[{}]", ret);
-      throw CfdException(
-          kCfdIllegalArgumentError, "psbt add redeem script error.");
+    if (!script_val.empty()) {
+      ret = wally_psbt_input_set_redeem_script(
+          input, script_val.data(), script_val.size());
+      if (ret != WALLY_OK) {
+        warn(CFD_LOG_SOURCE, "wally_psbt_input_set_redeem_script NG[{}]", ret);
+        throw CfdException(
+            kCfdIllegalArgumentError, "psbt add redeem script error.");
+      }
     }
   }
 
@@ -2213,7 +2221,8 @@ void Psbt::SetTxInUtxo(
   wally_tx_free(wally_tx_obj);
 
   SetPsbtTxInScriptAndKeyList(
-      &psbt_pointer->inputs[index], is_witness, new_redeem_script, key_list);
+      &psbt_pointer->inputs[index], is_witness, new_redeem_script,
+      key_list, txout.GetLockingScript());
 }
 
 void Psbt::SetTxInUtxo(
@@ -2269,7 +2278,8 @@ void Psbt::SetTxInUtxo(
   }
 
   SetPsbtTxInScriptAndKeyList(
-      &psbt_pointer->inputs[index], is_witness, new_redeem_script, key_list);
+      &psbt_pointer->inputs[index], is_witness, new_redeem_script, key_list,
+      script);
 }
 
 void Psbt::SetTxInSignature(
@@ -2860,16 +2870,24 @@ void Psbt::SetTxOutData(
         throw CfdException(
             kCfdIllegalArgumentError, "psbt add output witness script error.");
       }
-      script_val = ScriptUtil::CreateP2wshLockingScript(new_redeem_script)
-                       .GetData()
-                       .GetBytes();
+      if (script.IsP2shScript()) {
+        script_val = ScriptUtil::CreateP2wshLockingScript(new_redeem_script)
+                        .GetData()
+                        .GetBytes();
+      } else {
+        script_val.clear();
+      }
     }
-    ret = wally_psbt_output_set_redeem_script(
-        &psbt_pointer->outputs[index], script_val.data(), script_val.size());
-    if (ret != WALLY_OK) {
-      warn(CFD_LOG_SOURCE, "wally_psbt_output_set_redeem_script NG[{}]", ret);
-      throw CfdException(
-          kCfdIllegalArgumentError, "psbt add output redeem script error.");
+    if (!script_val.empty()) {
+      ret = wally_psbt_output_set_redeem_script(
+          &psbt_pointer->outputs[index], script_val.data(),
+          script_val.size());
+      if (ret != WALLY_OK) {
+        warn(CFD_LOG_SOURCE,
+            "wally_psbt_output_set_redeem_script NG[{}]", ret);
+        throw CfdException(
+            kCfdIllegalArgumentError, "psbt add output redeem script error.");
+      }
     }
   }
 
