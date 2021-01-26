@@ -328,6 +328,37 @@ TEST(Descriptor, Parse_raw) {
   EXPECT_NO_THROW(desc_str = desc.ToString());
   EXPECT_STREQ(desc_str.c_str(), descriptor.c_str());
   EXPECT_STREQ(locking_script.ToString().c_str(), "OP_RETURN 54686973204f505f52455455524e207472616e73616374696f6e206f7574707574207761732063726561746564206279206d6f646966696564206372656174657261777472616e73616374696f6e2e");
+
+  std::vector<DescriptorScriptReference> script_list;
+  std::vector<std::string> arg_list1;
+  EXPECT_NO_THROW(script_list = desc.GetReferenceAll(&arg_list1));
+  EXPECT_EQ(script_list.size(), 1);
+  if (script_list.size() == 1) {
+    EXPECT_FALSE(script_list[0].HasAddress());
+  }
+}
+
+TEST(Descriptor, Parse_raw_wsh) {
+  std::string descriptor = "raw(0020ef8110fa7ddefb3e2d02b2c1b1480389b4bc93f606281570cfc20dba18066aee)#2xu4jtw0";
+  Descriptor desc;
+  Script locking_script;
+  std::string desc_str = "";
+
+  EXPECT_NO_THROW(desc = Descriptor::Parse(descriptor));
+  EXPECT_NO_THROW(locking_script = desc.GetLockingScript());
+  EXPECT_NO_THROW(desc_str = desc.ToString());
+  EXPECT_STREQ(desc_str.c_str(), descriptor.c_str());
+  EXPECT_STREQ(locking_script.ToString().c_str(), "0 ef8110fa7ddefb3e2d02b2c1b1480389b4bc93f606281570cfc20dba18066aee");
+
+  std::vector<DescriptorScriptReference> script_list;
+  std::vector<std::string> arg_list1;
+  EXPECT_NO_THROW(script_list = desc.GetReferenceAll(&arg_list1));
+  EXPECT_EQ(script_list.size(), 1);
+  if (script_list.size() == 1) {
+    EXPECT_TRUE(script_list[0].HasAddress());
+    EXPECT_STREQ(script_list[0].GenerateAddress(NetType::kMainnet).GetAddress().c_str(),
+      "bc1qa7q3p7nammanutgzktqmzjqr3x6teylkqc5p2ux0cgxm5xqxdthq02yr5g");
+  }
 }
 
 TEST(Descriptor, Parse_pk_extkey) {
@@ -384,6 +415,14 @@ TEST(Descriptor, Parse_pkh_extkey_derive) {
     "OP_DUP OP_HASH160 2a05c214617c9b0434c92d0583200a85ef61818f OP_EQUALVERIFY OP_CHECKSIG");
   EXPECT_STREQ(gen_script.ToString().c_str(),
     "OP_DUP OP_HASH160 c463e6dedb2b780434e60fcee3f2d0a0fbcbbc90 OP_EQUALVERIFY OP_CHECKSIG");
+  try {
+    auto key = desc.GetKeyData("0");
+    EXPECT_TRUE(key.IsValid());
+    EXPECT_STREQ(key.ToString().c_str(),
+      "[d34db33f/44'/0'/0'/1/0]03095e95d8c50ae3f3fea93fa8e983f710489f60ff681a658c06eba64622c824b1");
+  } catch (const CfdException& except) {
+    EXPECT_STREQ(except.what(), "");
+  }
 }
 
 TEST(Descriptor, Parse_wsh_extkey_derive) {
@@ -821,6 +860,16 @@ TEST(Descriptor, CheckChecksum) {
   EXPECT_NO_THROW(desc = Descriptor::Parse(base_descriptor));
   EXPECT_NO_THROW(desc_str = desc.ToString());
   EXPECT_STREQ(desc_str.c_str(), success_descriptor.c_str());
+  try {
+    auto key_list = desc.GetKeyDataAll();
+    EXPECT_FALSE(key_list.empty());
+    if (!key_list.empty()) {
+      EXPECT_STREQ(key_list[0].ToString().c_str(),
+        "[ef57314e/0'/0'/4']03d3f817091de0bbe51e19b53303b12e463f664894d49cb5bf5bb19c88fbc54d8d");
+    }
+  } catch (const CfdException& except) {
+    EXPECT_STREQ(except.what(), "");
+  }
 }
 
 TEST(Descriptor, CreateDescriptor_wpkh) {
@@ -835,6 +884,14 @@ TEST(Descriptor, CreateDescriptor_wpkh) {
   EXPECT_NO_THROW(desc = Descriptor::CreateDescriptor(DescriptorScriptType::kDescriptorScriptWpkh, key_info));
   EXPECT_NO_THROW(desc_str = desc.ToString());
   EXPECT_STREQ(desc_str.c_str(), ext_descriptor.c_str());
+  try {
+    auto key = desc.GetKeyData();
+    EXPECT_TRUE(key.IsValid());
+    EXPECT_STREQ(key.ToString().c_str(),
+      "[1422fcb3/0'/0'/68']02bedf98a38247c1718fdff7e07561b4dc15f10323ebb0accab581778e72c2e995");
+  } catch (const CfdException& except) {
+    EXPECT_STREQ(except.what(), "");
+  }
 }
 
 TEST(Descriptor, CreateDescriptor_sh_wsh_sortedmulti) {

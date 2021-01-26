@@ -114,6 +114,12 @@ class CFD_CORE_EXPORT SigHashType {
    */
   void SetFromSigHashFlag(uint8_t flag);
 
+  /**
+   * @brief Get string.
+   * @return SigHashType string.
+   */
+  std::string ToString() const;
+
  private:
   /**
    * @brief Sighashアルゴリズム
@@ -136,6 +142,50 @@ class CFD_CORE_EXPORT SigHashType {
  */
 class CFD_CORE_EXPORT HashUtil {
  public:
+  // Ripemd160 --------------------------------------------------------------
+  /**
+   * @brief Hash the string with Ripemd160.
+   * @param[in] str   message text
+   * @return hashed data
+   */
+  static ByteData160 Ripemd160(const std::string &str);
+  /**
+   * @brief Hash the byte array with Ripemd160.
+   * @param[in] bytes   message data
+   * @return hashed data
+   */
+  static ByteData160 Ripemd160(const std::vector<uint8_t> &bytes);
+  /**
+   * @brief Hash the byte array with Ripemd160.
+   * @param[in] data  message data
+   * @return hashed data
+   */
+  static ByteData160 Ripemd160(const ByteData &data);
+  /**
+   * @brief Hash the byte array with Ripemd160.
+   * @param[in] data  message data
+   * @return hashed data
+   */
+  static ByteData160 Ripemd160(const ByteData160 &data);
+  /**
+   * @brief Hash the byte array with Ripemd160.
+   * @param[in] data  message data
+   * @return hashed data
+   */
+  static ByteData160 Ripemd160(const ByteData256 &data);
+  /**
+   * @brief Hash the pubkey bytes with Ripemd160.
+   * @param[in] pubkey Pubkey
+   * @return pubkey hash
+   */
+  static ByteData160 Ripemd160(const Pubkey &pubkey);
+  /**
+   * @brief Hash the script bytes with Ripemd160.
+   * @param[in] script Script
+   * @return script hash
+   */
+  static ByteData160 Ripemd160(const Script &script);
+
   // Hash160 --------------------------------------------------------------
   /**
    * @brief 文字列をHash160でハッシュする.
@@ -334,6 +384,13 @@ class CFD_CORE_EXPORT CryptoUtil {
   static ByteData EncryptAes256(
       const std::vector<uint8_t> &key, const std::string &data);
   /**
+   * @brief Encrypto ByteData with AES256.
+   * @param[in] key key array with 32Byte.
+   * @param[in] data target byte data.
+   * @return encrypted byte data.
+   */
+  static ByteData EncryptAes256(const ByteData &key, const ByteData &data);
+  /**
    * @brief ByteDataをAES256復号化する.
    * @param[in] key keyとなる32Byteの配列データ
    * @param[in] data 暗号化されたByteData
@@ -341,6 +398,13 @@ class CFD_CORE_EXPORT CryptoUtil {
    */
   static std::string DecryptAes256ToString(
       const std::vector<uint8_t> &key, const ByteData &data);
+  /**
+   * @brief Decrypto ByteData with AES256.
+   * @param[in] key key array with 32Byte.
+   * @param[in] data target encrypted byte data.
+   * @return decrypted byte data.
+   */
+  static ByteData DecryptAes256(const ByteData &key, const ByteData &data);
   /**
    * @brief 文字列をAES256CBC暗号化する.
    * @param[in] key keyとなる32Byteの配列データ

@@ -21,6 +21,7 @@ core moduels for cfd libraries
 ### Windows
 
 download and install files.
+
 - [CMake](https://cmake.org/) (3.14.3 or higher)
 - Compiler or development environment (One of the following)
   - MSVC
@@ -55,7 +56,7 @@ apt-get install -y build-essential cmake python nodejs
 ```
 
 cmake version 3.14.2 or lower, download from website and install cmake.
-(https://cmake.org/download/)
+(<https://cmake.org/download/>)
 
 ---
 
@@ -118,6 +119,7 @@ npm cmake_make_install
 ```
 
 cmake version is 3.15 or higher:
+
 ```Shell
 npm cmake_install
 (Enter the password when prompted to use the sudo command.)
@@ -135,6 +137,7 @@ cd build && sudo ninja install
 cmake version is 3.15 or higher: `cmake --install build`
 
 ### uninstall
+
 ```Shell
 (uninstall by using makefile)
 cd build && sudo make uninstall
@@ -199,26 +202,29 @@ npm run ctest
 
 ## Note
 
-### Git connection:
+### Git connection
 
 Git repository connections default to HTTPS.
 However, depending on the connection settings of GitHub, you may only be able to connect via SSH.
 As a countermeasure, forcibly establish SSH connection by setting `CFD_CMAKE_GIT_SSH=1` in the environment variable.
 
 - Windows: (On the command line. Or set from the system setting screen.)
-```
+
+```Bat
 set CFD_CMAKE_GIT_SSH=1
 ```
 
 - MacOS & Linux(Ubuntu):
-```
+
+```Shell
 export CFD_CMAKE_GIT_SSH=1
 ```
 
-### Ignore git update for CMake External Project:
+### Ignore git update for CMake External Project
 
 Depending on your git environment, you may get the following error when checking out external:
-```
+
+```Shell
   Performing update step for 'libwally-core-download'
   Current branch cmake_build is up to date.
   No stash entries found.
@@ -237,11 +243,13 @@ This phenomenon is due to the `git update` related command.
 Please set an environment variable that skips update processing.
 
 - Windows: (On the command line. Or set from the system setting screen.)
-```
+
+```Bat
 set CFD_CMAKE_GIT_SKIP_UPDATE=1
 ```
 
 - MacOS & Linux(Ubuntu):
-```
+
+```Shell
 export CFD_CMAKE_GIT_SKIP_UPDATE=1
 ```

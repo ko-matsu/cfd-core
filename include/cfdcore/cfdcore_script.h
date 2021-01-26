@@ -21,18 +21,43 @@
 namespace cfd {
 namespace core {
 
-/// P2PKHのScriptサイズ（WALLY_SCRIPTPUBKEY_P2PKH_LEN）
+/// Script size on P2PKH.
 constexpr size_t kScriptHashP2pkhLength = 25;
-/// P2SHのScriptサイズ（WALLY_SCRIPTPUBKEY_P2SH_LEN）
+/// Script size on P2SH.
 constexpr size_t kScriptHashP2shLength = 23;
-/// P2WPKHのScriptサイズ（WALLY_SCRIPTPUBKEY_P2WPKH_LEN）
+/// Script size on P2WPKH.
 constexpr size_t kScriptHashP2wpkhLength = 22;
-/// P2WSHのScriptサイズ（WALLY_SCRIPTPUBKEY_P2WSH_LEN）
+/// Script size on P2WSH.
 constexpr size_t kScriptHashP2wshLength = 34;
-/// WitnessProgramの最小サイズ
+/// WitnessProgram's minimum size.
 constexpr size_t kMinWitnessProgramLength = 4;
-/// WitnessProgramの最大サイズ
+/// WitnessProgram's maximum size.
 constexpr size_t kMaxWitnessProgramLength = 42;
+
+/**
+ * @typedef WitnessVersion
+ * @brief Witness version
+ */
+enum WitnessVersion {
+  kVersionNone = -1,  //!< Missing WitnessVersion
+  kVersion0 = 0,      //!< version 0
+  kVersion1,          //!< version 1 (for future use)
+  kVersion2,          //!< version 2 (for future use)
+  kVersion3,          //!< version 3 (for future use)
+  kVersion4,          //!< version 4 (for future use)
+  kVersion5,          //!< version 5 (for future use)
+  kVersion6,          //!< version 6 (for future use)
+  kVersion7,          //!< version 7 (for future use)
+  kVersion8,          //!< version 8 (for future use)
+  kVersion9,          //!< version 9 (for future use)
+  kVersion10,         //!< version 10 (for future use)
+  kVersion11,         //!< version 11 (for future use)
+  kVersion12,         //!< version 12 (for future use)
+  kVersion13,         //!< version 13 (for future use)
+  kVersion14,         //!< version 14 (for future use)
+  kVersion15,         //!< version 15 (for future use)
+  kVersion16          //!< version 16 (for future use)
+};
 
 /**
  * @brief script element type
@@ -702,6 +727,13 @@ class CFD_CORE_EXPORT Script {
    */
   bool IsEmpty() const;
   /**
+   * @brief check equal object.
+   * @param[in] script     check target,
+   * @retval true   equal
+   * @retval false  differ
+   */
+  bool Equals(const Script &script) const;
+  /**
    * @brief get element list.
    * @return element list
    */
@@ -773,6 +805,12 @@ class CFD_CORE_EXPORT Script {
    * @retval false  not pegout script.
    */
   bool IsPegoutScript() const;
+
+  /**
+   * @brief get witness version on locking script.
+   * @return witness version.
+   */
+  WitnessVersion GetWitnessVersion() const;
 
  private:
   /// script byte data

@@ -708,9 +708,18 @@ static const std::vector<ElementsUnblindedAddressTestVector> test_vectors = {
   {
     "XTfKFxkeC83awc3HnPFbZxgMRdBAjDpDbc",
     ElementsNetType::kElementsRegtest,
-    ElementsAddressType::kP2shP2wshAddress,
+    ElementsAddressType::kP2shAddress,
     Pubkey(),
     Script("522102723d9fb5ad0c7f7d70c897731bcf6a58a4dee8113d7d848bff9f6f7bc01ff36621023bf567600a7972e22ac50eef693f05935cbcf48fb7bb550d7ab7e050f98567e352ae"),
+  },
+  // p2sh-segwit multisig
+  {
+    "XGpSNPYXP2h5FnDXiv5fGKdp4u2HjuexMu",
+    ElementsNetType::kElementsRegtest,
+    ElementsAddressType::kP2shP2wshAddress,
+    Pubkey(),
+    // Script("522102723d9fb5ad0c7f7d70c897731bcf6a58a4dee8113d7d848bff9f6f7bc01ff36621023bf567600a7972e22ac50eef693f05935cbcf48fb7bb550d7ab7e050f98567e352ae"),
+    Script("0020f41c58db6607eb43a43554cd45787df1d9ee89a2f001bff8ae9ce427d2d8cad4"),
   },
   // regtest bech32 address
   // bech32 pubkey

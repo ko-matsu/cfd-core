@@ -2,8 +2,7 @@
 /**
  * @file cfdcore_util.cpp
  *
- * @brief \~japanese Utility関連クラス定義
- *   \~english definition related to Utility classes
+ * @brief definition related to Utility classes
  */
 
 #include "cfdcore/cfdcore_util.h"
@@ -92,9 +91,72 @@ void SigHashType::SetFromSigHashFlag(uint8_t flag) {
   is_fork_id_ = is_fork_id;
 }
 
+std::string SigHashType::ToString() const {
+  std::string result;
+  if (hash_algorithm_ == kSigHashAll) {
+    result = "ALL";
+  } else if (hash_algorithm_ == kSigHashNone) {
+    result = "NONE";
+  } else if (hash_algorithm_ == kSigHashSingle) {
+    result = "SINGLE";
+  } else {
+    return "";
+  }
+  if (is_anyone_can_pay_) result += "|ANYONECANPAY";
+  return result;
+}
+
 //////////////////////////////////
 /// HashUtil
 //////////////////////////////////
+// Ripemd160 --------------------------------------------------------------
+ByteData160 HashUtil::Ripemd160(const std::string &str) {
+  std::vector<uint8_t> output(RIPEMD160_LEN);
+  int ret = wally_ripemd160(
+      reinterpret_cast<const uint8_t *>(str.data()), str.size(), output.data(),
+      output.size());
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_hash160 NG[{}].", ret);
+    throw CfdException(kCfdIllegalStateError, "hash160 calc error.");
+  }
+
+  ByteData160 byte160(output);
+  return byte160;
+}
+
+ByteData160 HashUtil::Ripemd160(const std::vector<uint8_t> &bytes) {
+  std::vector<uint8_t> output(RIPEMD160_LEN);
+  int ret = wally_ripemd160(
+      bytes.data(), bytes.size(), output.data(), output.size());
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_hash160 NG[{}].", ret);
+    throw CfdException(kCfdIllegalStateError, "hash160 calc error.");
+  }
+
+  ByteData160 byte160(output);
+  return byte160;
+}
+
+ByteData160 HashUtil::Ripemd160(const ByteData &data) {
+  return Ripemd160(data.GetBytes());
+}
+
+ByteData160 HashUtil::Ripemd160(const ByteData160 &data) {
+  return Ripemd160(data.GetBytes());
+}
+
+ByteData160 HashUtil::Ripemd160(const ByteData256 &data) {
+  return Ripemd160(data.GetBytes());
+}
+
+ByteData160 HashUtil::Ripemd160(const Pubkey &pubkey) {
+  return Ripemd160(pubkey.GetData().GetBytes());
+}
+
+ByteData160 HashUtil::Ripemd160(const Script &script) {
+  return Ripemd160(script.GetData().GetBytes());
+}
+
 // Hash160 -----------------------------------------------------------------
 ByteData160 HashUtil::Hash160(const std::string &str) {
   std::vector<uint8_t> output(HASH160_LEN);
@@ -331,6 +393,44 @@ ByteData CryptoUtil::EncryptAes256(
   return ByteData(output);
 }
 
+ByteData CryptoUtil::EncryptAes256(const ByteData &key, const ByteData &data) {
+  if (key.GetDataSize() != AES_KEY_LEN_256) {
+    warn(CFD_LOG_SOURCE, "wally_aes key size NG.");
+    throw CfdException(
+        kCfdIllegalStateError, "EncryptAes256Cbc key size error.");
+  }
+
+  if (data.IsEmpty()) {
+    warn(CFD_LOG_SOURCE, "wally_aes data is Empty.");
+    throw CfdException(
+        kCfdIllegalStateError, "EncryptAes256Cbc data isEmpty.");
+  }
+
+  size_t data_size = data.GetDataSize();
+  if (data.GetDataSize() % kAesBlockLength != 0) {
+    data_size = ((data.GetDataSize() / kAesBlockLength) + 1) * kAesBlockLength;
+  }
+  std::vector<uint8_t> output(data_size);
+  std::vector<uint8_t> key_data = key.GetBytes();
+  std::vector<uint8_t> value_data = data.GetBytes();
+  std::vector<uint8_t> input(data_size);
+  // To fill the end with 0
+  memcpy(
+      input.data(), reinterpret_cast<const uint8_t *>(value_data.data()),
+      value_data.size());
+
+  // Encrypt data using AES (ECB mode, no padding).
+  int ret = wally_aes(
+      key_data.data(), key_data.size(), input.data(), input.size(),
+      AES_FLAG_ENCRYPT, output.data(), output.size());
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_aes NG[{}].", ret);
+    throw CfdException(kCfdIllegalStateError, "EncryptAes256 error.");
+  }
+
+  return ByteData(output);
+}
+
 std::string CryptoUtil::DecryptAes256ToString(
     const std::vector<uint8_t> &key, const ByteData &data) {
   if (key.size() != AES_KEY_LEN_256) {
@@ -340,7 +440,7 @@ std::string CryptoUtil::DecryptAes256ToString(
 
   std::vector<uint8_t> output(data.GetDataSize());
 
-  // Encrypt data using AES (ECB mode, no padding).
+  // Decrypt data using AES (ECB mode, no padding).
   int ret = wally_aes(
       key.data(), key.size(), data.GetBytes().data(), data.GetDataSize(),
       AES_FLAG_DECRYPT, output.data(), output.size());
@@ -352,6 +452,29 @@ std::string CryptoUtil::DecryptAes256ToString(
   std::string ret_str;
   ret_str.append(reinterpret_cast<const char *>(output.data()), output.size());
   return ret_str;
+}
+
+ByteData CryptoUtil::DecryptAes256(const ByteData &key, const ByteData &data) {
+  if (key.GetDataSize() != AES_KEY_LEN_256) {
+    warn(CFD_LOG_SOURCE, "wally_aes key size NG.");
+    throw CfdException(
+        kCfdIllegalStateError, "DecryptAes256Cbc key size error.");
+  }
+
+  std::vector<uint8_t> output(data.GetDataSize());
+  std::vector<uint8_t> key_data = key.GetBytes();
+  std::vector<uint8_t> value_data = data.GetBytes();
+
+  // Decrypt data using AES (ECB mode, no padding).
+  int ret = wally_aes(
+      key_data.data(), key_data.size(), value_data.data(), value_data.size(),
+      AES_FLAG_DECRYPT, output.data(), output.size());
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_aes NG[{}].", ret);
+    throw CfdException(kCfdIllegalStateError, "DecryptAes256 error.");
+  }
+
+  return ByteData(output);
 }
 
 ByteData CryptoUtil::EncryptAes256Cbc(
