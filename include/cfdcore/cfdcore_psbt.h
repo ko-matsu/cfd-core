@@ -72,6 +72,11 @@ class CFD_CORE_EXPORT Psbt {
   static constexpr uint8_t kPsbtOutputProprietary = 0xfc;
 
   /**
+   * @brief Get PSBT default version.
+   * @return PSBT version.
+   */
+  static uint32_t GetDefaultVersion();
+  /**
    * @brief Create psbt record key.
    * @param[in] type  key type.
    * @return key data.

@@ -1,4 +1,4 @@
-// Copyright 2020 CryptoGarage
+// Copyright 2021 CryptoGarage
 /**
  * @file cfdcore_psbt.cpp
  *
@@ -1656,7 +1656,7 @@ struct wally_psbt *ParsePsbtData(const ByteData &data) {
                 kCfdIllegalArgumentError, "psbt invlid version size error.");
           }
           memcpy(&psbt->version, buf.data(), sizeof(psbt->version));
-          if (psbt->version > WALLY_PSBT_HIGHEST_VERSION) {
+          if (psbt->version > Psbt::GetDefaultVersion()) {
             warn(
                 CFD_LOG_SOURCE, "psbt unsupported version[{}]", psbt->version);
             throw CfdException(
@@ -1718,12 +1718,12 @@ struct wally_psbt *ParsePsbtData(const ByteData &data) {
 // -----------------------------------------------------------------------------
 // Psbt
 // -----------------------------------------------------------------------------
-Psbt::Psbt() : Psbt(WALLY_PSBT_HIGHEST_VERSION, 2, static_cast<uint32_t>(0)) {
+Psbt::Psbt() : Psbt(Psbt::GetDefaultVersion(), 2, static_cast<uint32_t>(0)) {
   // do nothing
 }
 
 Psbt::Psbt(uint32_t version, uint32_t lock_time)
-    : Psbt(WALLY_PSBT_HIGHEST_VERSION, version, lock_time) {
+    : Psbt(Psbt::GetDefaultVersion(), version, lock_time) {
   // constructor
 }
 
@@ -1773,7 +1773,7 @@ Psbt::Psbt(const ByteData &byte_data) {
 }
 
 Psbt::Psbt(const Transaction &transaction)
-    : Psbt(WALLY_PSBT_HIGHEST_VERSION, transaction) {
+    : Psbt(Psbt::GetDefaultVersion(), transaction) {
   // constructor
 }
 
@@ -1886,6 +1886,10 @@ Transaction Psbt::RebuildTransaction(const void *wally_psbt_pointer) {
     }
   }
   return tx;
+}
+
+uint32_t Psbt::GetDefaultVersion() {
+  return WALLY_PSBT_HIGHEST_VERSION;
 }
 
 ByteData Psbt::CreateRecordKey(uint8_t type) { return ByteData(&type, 1); }
