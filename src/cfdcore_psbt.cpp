@@ -51,10 +51,13 @@ static void SetKeyPathMap(
   for (auto &key : key_list) {
     auto key_vec = key.GetPubkey().GetData().GetBytes();
     std::vector<uint8_t> fingerprint(4);
-    if (key.GetFingerprint().GetDataSize() >= 4) {
-      fingerprint = key.GetFingerprint().GetBytes();
-    }
+    auto fp = key.GetFingerprint();
     auto path = key.GetChildNumArray();
+    if (fp.IsEmpty() && path.empty()) {
+      fingerprint = key.GetPubkey().GetFingerprint().GetBytes();
+    } else if (fp.GetDataSize() >= 4) {
+      fingerprint = fp.GetBytes();
+    }
 
     ret = wally_map_add_keypath_item(
         map_obj, key_vec.data(), key_vec.size(), fingerprint.data(), 4,
@@ -249,8 +252,8 @@ void SetPsbtTxInScriptAndKeyList(
       }
       if (locking_script.IsP2shScript()) {
         script_val = ScriptUtil::CreateP2wshLockingScript(redeem_script)
-                        .GetData()
-                        .GetBytes();
+                         .GetData()
+                         .GetBytes();
       } else {
         script_val.clear();
       }
@@ -1888,9 +1891,7 @@ Transaction Psbt::RebuildTransaction(const void *wally_psbt_pointer) {
   return tx;
 }
 
-uint32_t Psbt::GetDefaultVersion() {
-  return WALLY_PSBT_HIGHEST_VERSION;
-}
+uint32_t Psbt::GetDefaultVersion() { return WALLY_PSBT_HIGHEST_VERSION; }
 
 ByteData Psbt::CreateRecordKey(uint8_t type) { return ByteData(&type, 1); }
 
@@ -2225,8 +2226,8 @@ void Psbt::SetTxInUtxo(
   wally_tx_free(wally_tx_obj);
 
   SetPsbtTxInScriptAndKeyList(
-      &psbt_pointer->inputs[index], is_witness, new_redeem_script,
-      key_list, txout.GetLockingScript());
+      &psbt_pointer->inputs[index], is_witness, new_redeem_script, key_list,
+      txout.GetLockingScript());
 }
 
 void Psbt::SetTxInUtxo(
@@ -2876,19 +2877,18 @@ void Psbt::SetTxOutData(
       }
       if (script.IsP2shScript()) {
         script_val = ScriptUtil::CreateP2wshLockingScript(new_redeem_script)
-                        .GetData()
-                        .GetBytes();
+                         .GetData()
+                         .GetBytes();
       } else {
         script_val.clear();
       }
     }
     if (!script_val.empty()) {
       ret = wally_psbt_output_set_redeem_script(
-          &psbt_pointer->outputs[index], script_val.data(),
-          script_val.size());
+          &psbt_pointer->outputs[index], script_val.data(), script_val.size());
       if (ret != WALLY_OK) {
-        warn(CFD_LOG_SOURCE,
-            "wally_psbt_output_set_redeem_script NG[{}]", ret);
+        warn(
+            CFD_LOG_SOURCE, "wally_psbt_output_set_redeem_script NG[{}]", ret);
         throw CfdException(
             kCfdIllegalArgumentError, "psbt add output redeem script error.");
       }
@@ -3073,10 +3073,10 @@ void Psbt::SetGlobalXpubkey(const KeyData &key) {
     throw CfdException(
         kCfdIllegalArgumentError, "psbt fingerprint size low 4 byte.");
   }
-  if (num_list.empty()) {
-    warn(CFD_LOG_SOURCE, "psbt empty bip32 path.");
-    throw CfdException(kCfdIllegalArgumentError, "psbt empty bip32 path.");
-  }
+  // if (num_list.empty()) {
+  //   warn(CFD_LOG_SOURCE, "psbt empty bip32 path.");
+  //   throw CfdException(kCfdIllegalArgumentError, "psbt empty bip32 path.");
+  // }
   Serializer builder(4 + (num_list.size() * 4));
   builder.AddDirectBytes(fingerprint.data(), 4);
   for (const auto child_num : num_list) {
