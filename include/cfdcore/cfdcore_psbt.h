@@ -376,6 +376,18 @@ class CFD_CORE_EXPORT Psbt {
   void SetTxInUtxo(
       uint32_t index, const TxOutReference& txout, const Script& redeem_script,
       const std::vector<KeyData>& key_list);
+  /**
+   * @brief set input utxo data on direct.
+   * @param[in] index   input index
+   * @param[in] txout   utxo witness transaction output
+   */
+  void SetTxInWitnessUtxoDirect(uint32_t index, const TxOutReference& txout);
+  /**
+   * @brief set input bip32 key on direct.
+   * @param[in] index       input index
+   * @param[in] key_data    key data
+   */
+  void SetTxInBip32KeyDirect(uint32_t index, const KeyData& key_data);
 
   /**
    * @brief set input signature.

@@ -2287,6 +2287,47 @@ void Psbt::SetTxInUtxo(
       script);
 }
 
+void Psbt::SetTxInWitnessUtxoDirect(
+    uint32_t index, const TxOutReference &txout) {
+  CheckTxInIndex(index, __LINE__, __FUNCTION__);
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+
+  struct wally_tx_output *output = nullptr;
+  auto script = txout.GetLockingScript();
+  auto script_val = script.GetData().GetBytes();
+  int ret = wally_tx_output_init_alloc(
+      static_cast<uint64_t>(txout.GetValue().GetSatoshiValue()),
+      script_val.data(), script_val.size(), &output);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_tx_output_init_alloc NG[{}]", ret);
+    throw CfdException(kCfdIllegalArgumentError, "psbt alloc output error.");
+  }
+
+  ret =
+      wally_psbt_input_set_witness_utxo(&psbt_pointer->inputs[index], output);
+  wally_tx_output_free(output);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_psbt_input_set_witness_utxo NG[{}]", ret);
+    throw CfdException(
+        kCfdIllegalArgumentError, "psbt add witness utxo error.");
+  }
+}
+
+void Psbt::SetTxInBip32KeyDirect(uint32_t index, const KeyData &key_data) {
+  CheckTxInIndex(index, __LINE__, __FUNCTION__);
+  struct wally_psbt *psbt_pointer;
+  psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
+
+  std::vector<KeyData> key_list = {key_data};
+  SetKeyPathMap(key_list, &psbt_pointer->inputs[index].keypaths);
+  int ret = wally_map_sort(&psbt_pointer->inputs[index].keypaths, 0);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
+    throw CfdException(kCfdInternalError, "psbt input sort keypaths error.");
+  }
+}
+
 void Psbt::SetTxInSignature(
     uint32_t index, const KeyData &key, const ByteData &signature) {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);

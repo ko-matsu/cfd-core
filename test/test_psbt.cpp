@@ -521,6 +521,47 @@ TEST(Psbt, SetInputOnlySimpleWitness) {
   EXPECT_STREQ("cHNidP8BAFwCAAAAAiZ//Xbq5rbBP/uGzquqJNQkhVICM8LDgF4K12RwlXjAAQAAAAD/////fSVGKkL/LLG6VAHliTJZ2zykvPXParlxXTUWPTHJ7MAAAAAAAP////8AAAAAAAABASAA4fUFAAAAABepFFCfWYX06QoU+5Djkxb9tPOsl1MHhwEDBAEAAAABBBYAFJYsTgjzNtOvvDQVydNZrhBARwUgIgYCVlJIRgs8GG3s8T2wbwck/VC0fMPkicMAdsg2PVA4zv4YKnBHYCwAAIAAAACAAAAAgAEAAAABAAAAAAEAvwIAAAABxtLqNuLoArUt2sZl2svtL4MbUmNFnhynNPXJRddRXkAAAAAAakcwRAIgEblsfS0NLo3LNxOOGKzEYHUpZa3Zy4eH31w0nfDirmYCIC6TrzG2T1Fm5WBYGVVdq+xXvnlDAPrbNwUvMd3eqZBcASED49JEo5Z+C4d2X9qGxf84iF90mTlTuVhDiK7zCyavauz/////AXhRzR0AAAAAGXapFI0gRDqRlp47yg4kDND/5NyYxj3iiKwAAAAAIgYC2faIjyhaFaahiAoiAsKyMKQtd89i2mpIrKQZgmLNo8cYnWtthiwAAIAAAACAAAAAgAAAAAABAAAAAA==", psbt2.GetBase64().c_str());
 }
 
+TEST(Psbt, SetInputDirectWitness) {
+  Psbt psbt("cHNidP8BAFwCAAAAAiZ//Xbq5rbBP/uGzquqJNQkhVICM8LDgF4K12RwlXjAAQAAAAD/////fSVGKkL/LLG6VAHliTJZ2zykvPXParlxXTUWPTHJ7MAAAAAAAP////8AAAAAAAAAAA==");
+
+  HDWallet wallet1 = HDWallet(ByteData(g_psbt_seed1));
+  HDWallet wallet2 = HDWallet(ByteData(g_psbt_seed2));
+  std::string path1 = "44h/0h/0h/1/1";
+  std::string path2 = "44h/0h/0h/0/1";
+
+  auto key1 = wallet1.GeneratePubkeyData(NetType::kTestnet, path1);
+  auto key2 = wallet2.GeneratePubkeyData(NetType::kTestnet, path2);
+  try {
+    auto tx = psbt.GetTransaction();
+    psbt.SetTxInWitnessUtxoDirect(0, Transaction(g_psbt_utxo_witness).GetTxOut(tx.GetTxIn(0).GetVout()));
+    psbt.SetTxInBip32KeyDirect(0, key1);
+    auto p2wpkh_locking_script = ScriptUtil::CreateP2wpkhLockingScript(key1.GetPubkey());
+    psbt.SetTxInRecord(0,
+        Psbt::CreateRecordKey(Psbt::kPsbtInputRedeemScript),
+        p2wpkh_locking_script.GetData());
+    psbt.SetTxInSighashType(0, SigHashType());
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+
+  try {
+    psbt.SetTxInRecord(1,
+        Psbt::CreateRecordKey(Psbt::kPsbtInputNonWitnessUtxo),
+        Transaction(g_psbt_utxo_legacy).GetData());
+    psbt.SetTxInBip32KeyDirect(1, key2);
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+
+  EXPECT_TRUE(psbt.IsFindTxInSighashType(0));
+  EXPECT_FALSE(psbt.IsFindTxInSighashType(1));
+  EXPECT_EQ(SigHashType().GetSigHashFlag(), psbt.GetTxInSighashType(0).GetSigHashFlag());
+
+  EXPECT_STREQ("70736274ff01005c0200000002267ffd76eae6b6c13ffb86ceabaa24d42485520233c2c3805e0ad764709578c00100000000ffffffff7d25462a42ff2cb1ba5401e5893259db3ca4bcf5cf6ab9715d35163d31c9ecc00000000000ffffffff00000000000001012000e1f5050000000017a914509f5985f4e90a14fb90e39316fdb4f3ac97530787010304010000000104160014962c4e08f336d3afbc3415c9d359ae1040470520220602565248460b3c186decf13db06f0724fd50b47cc3e489c30076c8363d5038cefe182a7047602c00008000000080000000800100000001000000000100bf0200000001c6d2ea36e2e802b52ddac665dacbed2f831b5263459e1ca734f5c945d7515e40000000006a473044022011b96c7d2d0d2e8dcb37138e18acc460752965add9cb8787df5c349df0e2ae6602202e93af31b64f5166e5605819555dabec57be794300fadb37052f31dddea9905c012103e3d244a3967e0b87765fda86c5ff38885f74993953b9584388aef30b26af6aecffffffff017851cd1d000000001976a9148d20443a91969e3bca0e240cd0ffe4dc98c63de288ac00000000220602d9f6888f285a15a6a1880a2202c2b230a42d77cf62da6a48aca4198262cda3c7189d6b6d862c0000800000008000000080000000000100000000", psbt.GetData().GetHex().c_str());
+  Psbt psbt2(psbt.GetData());
+  EXPECT_STREQ("cHNidP8BAFwCAAAAAiZ//Xbq5rbBP/uGzquqJNQkhVICM8LDgF4K12RwlXjAAQAAAAD/////fSVGKkL/LLG6VAHliTJZ2zykvPXParlxXTUWPTHJ7MAAAAAAAP////8AAAAAAAABASAA4fUFAAAAABepFFCfWYX06QoU+5Djkxb9tPOsl1MHhwEDBAEAAAABBBYAFJYsTgjzNtOvvDQVydNZrhBARwUgIgYCVlJIRgs8GG3s8T2wbwck/VC0fMPkicMAdsg2PVA4zv4YKnBHYCwAAIAAAACAAAAAgAEAAAABAAAAAAEAvwIAAAABxtLqNuLoArUt2sZl2svtL4MbUmNFnhynNPXJRddRXkAAAAAAakcwRAIgEblsfS0NLo3LNxOOGKzEYHUpZa3Zy4eH31w0nfDirmYCIC6TrzG2T1Fm5WBYGVVdq+xXvnlDAPrbNwUvMd3eqZBcASED49JEo5Z+C4d2X9qGxf84iF90mTlTuVhDiK7zCyavauz/////AXhRzR0AAAAAGXapFI0gRDqRlp47yg4kDND/5NyYxj3iiKwAAAAAIgYC2faIjyhaFaahiAoiAsKyMKQtd89i2mpIrKQZgmLNo8cYnWtthiwAAIAAAACAAAAAgAAAAAABAAAAAA==", psbt2.GetBase64().c_str());
+}
+
 TEST(Psbt, SetTxOutOnly) {
   Psbt psbt;
   EXPECT_EQ(0, psbt.GetTxOutCount());
