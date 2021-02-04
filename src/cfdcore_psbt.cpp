@@ -1570,7 +1570,17 @@ struct wally_psbt *ParsePsbtData(const ByteData &data) {
   std::vector<uint8_t> bytes = data.GetBytes();
   int ret = wally_psbt_from_bytes(bytes.data(), bytes.size(), &psbt);
   if (ret == WALLY_OK) {
-    return psbt;
+    if ((psbt->num_inputs != 0) || (psbt->num_outputs != 0)) {
+      return psbt;
+    }
+    std::vector<uint8_t> tmp_buf(bytes.size());
+    size_t tmp_size = 0;
+    ret = wally_psbt_to_bytes(
+        psbt, 0, tmp_buf.data(), tmp_buf.size(), &tmp_size);
+    if ((ret == WALLY_OK) && (tmp_size == bytes.size())) {
+      // It was able to convert the data correctly.
+      return psbt;
+    }
   } else if (ret != WALLY_EINVAL) {
     warn(CFD_LOG_SOURCE, "wally_psbt_from_bytes NG[{}]", ret);
     throw CfdException(kCfdInternalError, "psbt from bytes error.");

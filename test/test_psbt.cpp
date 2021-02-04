@@ -1212,3 +1212,8 @@ TEST(Psbt, GlobalXpubTest) {
   auto value = psbt.GetGlobalRecord(key);
   EXPECT_STREQ("ae05dbb7000000002c000080", value.GetHex().c_str());
 }
+
+TEST(Psbt, ParseSingleOutputTx) {
+  Psbt psbt("cHNidP8BADUCAAAAAAEAAAAAAAAAACIAIMWuT/F87AVelktXNgEyjz+Hn6RB5T74is39TY6N9CnvAAAAAAAA");
+  EXPECT_STREQ("0200000000010000000000000000220020c5ae4ff17cec055e964b573601328f3f879fa441e53ef88acdfd4d8e8df429ef00000000", psbt.GetTransaction().GetHex().c_str());
+}
