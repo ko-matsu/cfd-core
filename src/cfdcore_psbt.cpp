@@ -986,6 +986,11 @@ static uint8_t SetPsbtInput(
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_tx_from_hex NG[{}]", ret);
       throw CfdException(kCfdIllegalArgumentError, "psbt tx from hex error.");
+    } else if (
+        (wally_tx_obj->num_inputs == 0) || (wally_tx_obj->num_outputs == 0)) {
+      wally_tx_free(wally_tx_obj);
+      warn(CFD_LOG_SOURCE, "invalind utxo transaction format.");
+      throw CfdException(kCfdIllegalArgumentError, "psbt invalid tx error.");
     }
 
     ret = wally_psbt_input_set_utxo(input, wally_tx_obj);
@@ -1803,6 +1808,12 @@ Psbt::Psbt(uint32_t psbt_version, const Transaction &transaction) {
     } else {
       throw CfdException(kCfdInternalError, "psbt tx from hex error.");
     }
+  } else if (
+      (tx->num_inputs != txin_list.size()) ||
+      (tx->num_outputs != txout_list.size())) {
+    // free and direct creating.
+    wally_tx_free(tx);
+    tx = nullptr;
   }
 
   struct wally_psbt *psbt_pointer = nullptr;
@@ -2215,6 +2226,11 @@ void Psbt::SetTxInUtxo(
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_tx_from_hex NG[{}]", ret);
     throw CfdException(kCfdIllegalArgumentError, "psbt tx from hex error.");
+  } else if (
+      (wally_tx_obj->num_inputs == 0) || (wally_tx_obj->num_outputs == 0)) {
+    wally_tx_free(wally_tx_obj);
+    warn(CFD_LOG_SOURCE, "invalind utxo transaction format.");
+    throw CfdException(kCfdIllegalArgumentError, "psbt invalid tx error.");
   }
 
   ret = wally_psbt_input_set_utxo(&psbt_pointer->inputs[index], wally_tx_obj);
