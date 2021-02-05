@@ -1214,6 +1214,15 @@ TEST(Psbt, GlobalXpubTest) {
 }
 
 TEST(Psbt, ParseSingleOutputTx) {
-  Psbt psbt("cHNidP8BADUCAAAAAAEAAAAAAAAAACIAIMWuT/F87AVelktXNgEyjz+Hn6RB5T74is39TY6N9CnvAAAAAAAA");
-  EXPECT_STREQ("0200000000010000000000000000220020c5ae4ff17cec055e964b573601328f3f879fa441e53ef88acdfd4d8e8df429ef00000000", psbt.GetTransaction().GetHex().c_str());
+  std::string tx_hex = "0200000000010000000000000000220020c5ae4ff17cec055e964b573601328f3f879fa441e53ef88acdfd4d8e8df429ef00000000";
+  std::string psbt_hex = "70736274ff0100350200000000010000000000000000220020c5ae4ff17cec055e964b573601328f3f879fa441e53ef88acdfd4d8e8df429ef000000000000";
+  std::string psbt_base64 = "cHNidP8BADUCAAAAAAEAAAAAAAAAACIAIMWuT/F87AVelktXNgEyjz+Hn6RB5T74is39TY6N9CnvAAAAAAAA";
+  Psbt psbt(psbt_base64);
+  EXPECT_EQ(tx_hex, psbt.GetTransaction().GetHex());
+  EXPECT_EQ(psbt_hex, psbt.GetData().GetHex());
+
+  Transaction tx(tx_hex);
+  psbt = Psbt(tx);
+  EXPECT_EQ(tx_hex, psbt.GetTransaction().GetHex());
+  EXPECT_EQ(psbt_hex, psbt.GetData().GetHex());
 }
