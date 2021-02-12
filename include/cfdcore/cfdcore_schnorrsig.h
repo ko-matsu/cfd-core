@@ -1,4 +1,7 @@
 // Copyright 2020 CryptoGarage
+#ifndef CFD_CORE_INCLUDE_CFDCORE_CFDCORE_SCHNORRSIG_H_
+#define CFD_CORE_INCLUDE_CFDCORE_CFDCORE_SCHNORRSIG_H_
+
 #include <string>
 #include <vector>
 
@@ -7,9 +10,6 @@
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_util.h"
 
-#ifndef CFD_CORE_INCLUDE_CFDCORE_CFDCORE_SCHNORRSIG_H_
-#define CFD_CORE_INCLUDE_CFDCORE_CFDCORE_SCHNORRSIG_H_
-
 namespace cfd {
 namespace core {
 
@@ -17,6 +17,7 @@ using cfd::core::ByteData;
 using cfd::core::ByteData256;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
+using cfd::core::SigHashType;
 
 class SchnorrSignature;
 
@@ -231,7 +232,7 @@ class CFD_CORE_EXPORT SchnorrSignature {
   /**
    * @brief Get the sighash type.
    *
-   * @return hex string.
+   * @return sighash type.
    */
   SigHashType GetSigHashType() const;
 

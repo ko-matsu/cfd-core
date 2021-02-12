@@ -486,7 +486,8 @@ Script DescriptorScriptReference::GetLockingScript() const {
 bool DescriptorScriptReference::HasAddress() const {
   if (script_type_ == DescriptorScriptType::kDescriptorScriptRaw) {
     if (locking_script_.IsP2wpkhScript() || locking_script_.IsP2wshScript() ||
-        locking_script_.IsP2shScript() || locking_script_.IsP2pkhScript()) {
+        locking_script_.IsTaprootScript() || locking_script_.IsP2shScript() ||
+        locking_script_.IsP2pkhScript()) {
       return true;
     }
     return false;
@@ -500,9 +501,10 @@ Address DescriptorScriptReference::GenerateAddress(NetType net_type) const {
   switch (script_type_) {
     case DescriptorScriptType::kDescriptorScriptRaw:
       if (locking_script_.IsP2wpkhScript() ||
+          locking_script_.IsTaprootScript() ||
           locking_script_.IsP2wshScript()) {
         auto hash = locking_script_.GetElementList()[1].GetBinaryData();
-        return Address(net_type, WitnessVersion::kVersion0, hash);
+        return Address(net_type, locking_script_.GetWitnessVersion(), hash);
       } else if (locking_script_.IsP2shScript()) {
         auto hash = locking_script_.GetElementList()[1].GetBinaryData();
         return Address(net_type, AddressType::kP2shAddress, ByteData160(hash));
@@ -586,6 +588,8 @@ AddressType DescriptorScriptReference::GetAddressType() const {
         return AddressType::kP2wpkhAddress;
       } else if (locking_script_.IsP2wshScript()) {
         return AddressType::kP2wshAddress;
+      } else if (locking_script_.IsTaprootScript()) {
+        return AddressType::kTaprootAddress;
       } else if (locking_script_.IsP2shScript()) {
         return AddressType::kP2shAddress;
       } else if (locking_script_.IsP2pkhScript()) {
@@ -616,6 +620,9 @@ AddressType DescriptorScriptReference::GetAddressType() const {
   if (locking_script_.IsP2wshScript()) {
     return AddressType::kP2wshAddress;
   }
+  if (locking_script_.IsTaprootScript()) {
+    return AddressType::kTaprootAddress;
+  }
   if (locking_script_.IsP2pkhScript()) {
     return AddressType::kP2pkhAddress;
   }
@@ -636,6 +643,9 @@ HashType DescriptorScriptReference::GetHashType() const {
   }
   if (locking_script_.IsP2wshScript()) {
     return HashType::kP2wsh;
+  }
+  if (locking_script_.IsTaprootScript()) {
+    return HashType::kTaproot;
   }
   if (locking_script_.IsP2pkScript()) {
     return HashType::kP2pkh;
@@ -750,7 +760,7 @@ DescriptorNode DescriptorNode::Parse(
   node.node_type_ = DescriptorNodeType::kDescriptorTypeScript;
   node.AnalyzeChild(output_descriptor, 0);
   node.AnalyzeAll("");
-  // Script生成テスト
+  // Script generate test
   std::vector<std::string> list;
   for (uint32_t index = 0; index < node.GetNeedArgumentNum(); ++index) {
     list.push_back("0");

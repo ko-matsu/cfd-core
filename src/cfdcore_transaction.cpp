@@ -76,6 +76,7 @@ uint32_t TxIn::EstimateTxInSize(
     uint32_t *no_witness_area_size, const Script *scriptsig_template) {
   bool is_pubkey = false;
   bool is_witness = true;
+  bool is_taproot = false;
   bool use_unlocking_script = true;
   uint32_t size = kMinimumTxInSize;
   uint32_t witness_size = 0;
@@ -101,6 +102,9 @@ uint32_t TxIn::EstimateTxInSize(
     case AddressType::kP2shP2wpkhAddress:
       is_pubkey = true;
       break;
+    case AddressType::kTaprootAddress:
+      is_taproot = true;
+      break;
     default:
       if (redeem_script.IsEmpty()) {
         warn(CFD_LOG_SOURCE, "unknown address type, and empty redeem script.");
@@ -118,6 +122,9 @@ uint32_t TxIn::EstimateTxInSize(
       (scriptsig_template != nullptr) && (!scriptsig_template->IsEmpty())) {
     script_size = static_cast<uint32_t>(
         scriptsig_template->GetData().GetSerializeSize());
+  } else if (is_taproot) {
+    // signature(64byte) + sighash type(1byte) + serialized(1byte)
+    script_size = SchnorrSignature::kSchnorrSignatureSize + 2;
   } else {
     // Forehead is a big size
     script_size = (EC_SIGNATURE_DER_MAX_LEN - 2) * 2;

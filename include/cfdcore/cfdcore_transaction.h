@@ -24,8 +24,12 @@
 namespace cfd {
 namespace core {
 
+/**
+ * @brief Tapscript data struct.
+ */
 struct TapScriptData {
-  ByteData256 tap_leaf_hash;
+  ByteData256 tap_leaf_hash;  //!< tapleaf hash
+  //! OP_CODESEPARATOR position
   uint32_t code_separator_position = 0xffffffff;
 };
 

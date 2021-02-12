@@ -800,6 +800,13 @@ class CFD_CORE_EXPORT Script {
   bool IsP2wshScript() const;
 
   /**
+   * @brief Check if the script is taproot script.
+   * @retval true   script is taproot.
+   * @retval false  not taproot.
+   */
+  bool IsTaprootScript() const;
+
+  /**
    * @brief Check if the script is pegout script.
    * @retval true   script is pegout script.
    * @retval false  not pegout script.
@@ -1029,6 +1036,16 @@ class CFD_CORE_EXPORT ScriptUtil {
    * @endcode
    */
   static Script CreateP2wshLockingScript(const Script &redeem_script);
+  /**
+   * @brief Create locking script for taproot.
+   * @param[in] data  witness program
+   * @return Script
+   * @details Create a Script with the following content.
+   * @code{.unparse}
+   * OP_1 <32-byte>
+   * @endcode
+   */
+  static Script CreateTaprootLockingScript(const ByteData256 &data);
   /**
    * @brief RedeemScriptが有効なものであるかをチェックする.
    * @param[in] redeem_script redeem script

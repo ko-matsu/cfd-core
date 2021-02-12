@@ -897,7 +897,7 @@ bool Script::IsWitnessProgram() const {
   auto hash_size = script_stack_[1].GetBinaryData().GetDataSize();
   if (op_code == ScriptType::kOp_0) {
     if ((hash_size != 0x14) && (hash_size != 0x20)) return false;
-  } else if (script_stack_[0].GetOpCode() == ScriptOperator::OP_0) {
+  } else if (op_code == ScriptType::kOp_1) {
     if (hash_size != 0x20) return false;
   }
   return true;
@@ -931,6 +931,15 @@ bool Script::IsP2wshScript() const {
       script_data_.GetDataSize() == kScriptHashP2wshLength &&
       script_stack_.size() == 2 &&
       script_stack_[0].GetOpCode() == ScriptOperator::OP_0 &&
+      script_stack_[1].IsBinary() &&
+      script_stack_[1].GetBinaryData().GetDataSize() == kByteData256Length);
+}
+
+bool Script::IsTaprootScript() const {
+  return (
+      script_data_.GetDataSize() == kScriptHashP2wshLength &&
+      script_stack_.size() == 2 &&
+      script_stack_[0].GetOpCode() == ScriptOperator::OP_1 &&
       script_stack_[1].IsBinary() &&
       script_stack_[1].GetBinaryData().GetDataSize() == kByteData256Length);
 }
@@ -1167,6 +1176,13 @@ Script ScriptUtil::CreateP2wshLockingScript(const Script& redeem_script) {
   ByteData256 script_hash = HashUtil::Sha256(redeem_script);
 
   return CreateP2wshLockingScript(script_hash);
+}
+
+Script ScriptUtil::CreateTaprootLockingScript(const ByteData256& data) {
+  ScriptBuilder builder;
+  builder.AppendOperator(ScriptOperator::OP_1);
+  builder.AppendData(data);
+  return builder.Build();
 }
 
 bool ScriptUtil::IsValidRedeemScript(const Script& redeem_script) {
