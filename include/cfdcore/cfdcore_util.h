@@ -38,6 +38,7 @@ const uint32_t kByteData512Length = 64;
  * @brief Sighash flags for transaction signing.
  */
 enum SigHashAlgorithm {
+  kSigHashDefault = 0,    //!< default (= SIGHASH_ALL)
   kSigHashAll = 0x01,     //!< SIGHASH_ALL
   kSigHashNone = 0x02,    //!< SIGHASH_NONE
   kSigHashSingle = 0x03,  //!< SIGHASH_SINGLE

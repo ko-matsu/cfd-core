@@ -25,10 +25,22 @@ using cfd::core::HashUtil;
 // ----------------------------------------------------------------------------
 // SchnorrSignature
 // ----------------------------------------------------------------------------
-SchnorrSignature::SchnorrSignature() : data_() {}
+SchnorrSignature::SchnorrSignature()
+    : data_(), sighash_type_(SigHashAlgorithm::kSigHashDefault) {}
 
-SchnorrSignature::SchnorrSignature(const ByteData &data) : data_(data) {
-  if ((data_.GetDataSize()) != SchnorrSignature::kSchnorrSignatureSize) {
+SchnorrSignature::SchnorrSignature(const ByteData &data)
+    : data_(data), sighash_type_(SigHashAlgorithm::kSigHashDefault) {
+  if (data_.GetDataSize() == SchnorrSignature::kSchnorrSignatureSize + 1) {
+    auto bytes = data.GetBytes();
+    uint8_t sighash_type = bytes[SchnorrSignature::kSchnorrSignatureSize];
+    if ((sighash_type == 0) || (!IsValidSigHashType(sighash_type))) {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Invalid Schnorr signature hash type.");
+    }
+    sighash_type_.SetFromSigHashFlag(sighash_type);
+    data_ = ByteData(bytes.data(), SchnorrSignature::kSchnorrSignatureSize);
+  } else if (data_.GetDataSize() != SchnorrSignature::kSchnorrSignatureSize) {
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "Invalid Schnorr signature data.");
   }
@@ -37,9 +49,22 @@ SchnorrSignature::SchnorrSignature(const ByteData &data) : data_(data) {
 SchnorrSignature::SchnorrSignature(const std::string &data)
     : SchnorrSignature(ByteData(data)) {}
 
-ByteData SchnorrSignature::GetData() const { return data_; }
+ByteData SchnorrSignature::GetData(bool append_sighash_type) const {
+  if ((!append_sighash_type) || (sighash_type_.GetSigHashFlag() == 0) ||
+      (data_.GetDataSize() != SchnorrSignature::kSchnorrSignatureSize)) {
+    return data_;
+  }
 
-std::string SchnorrSignature::GetHex() const { return data_.GetHex(); }
+  uint8_t sighash_type = sighash_type_.GetSigHashFlag();
+  return data_.Concat(ByteData(&sighash_type, 1));
+}
+
+std::string SchnorrSignature::GetHex(bool append_sighash_type) const {
+  if (sighash_type_.GetSigHashFlag() == 0) return data_.GetHex();
+  return GetData(append_sighash_type).GetHex();
+}
+
+SigHashType SchnorrSignature::GetSigHashType() const { return sighash_type_; }
 
 SchnorrPubkey SchnorrSignature::GetNonce() const {
   auto bytes = data_.GetBytes();
@@ -52,6 +77,25 @@ Privkey SchnorrSignature::GetPrivkey() const {
   auto start = bytes.begin() + SchnorrPubkey::kSchnorrPubkeySize;
   auto end = start + Privkey::kPrivkeySize;
   return Privkey(ByteData(std::vector<uint8_t>(start, end)));
+}
+
+void SchnorrSignature::SetSigHashType(const SigHashType &sighash_type) {
+  if (!IsValidSigHashType(sighash_type.GetSigHashFlag())) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Invalid sighash type for schnorr signature.");
+  }
+  sighash_type_ = sighash_type;
+}
+
+bool SchnorrSignature::IsValidSigHashType(uint8_t sighash_type_value) {
+  bool is_anyone_can_pay = (sighash_type_value & 0x80) ? true : false;
+  if ((is_anyone_can_pay &&
+       ((sighash_type_value <= 0x80) || (sighash_type_value > 0x83))) ||
+      ((!is_anyone_can_pay) && (sighash_type_value > 0x03))) {
+    return false;
+  }
+  return true;
 }
 
 // ----------------------------------------------------------------------------
@@ -274,7 +318,7 @@ SchnorrSignature SignCommon(
 
   ret = secp256k1_schnorrsig_sign(
       ctx, raw_sig.data(), msg.GetBytes().data(), &keypair, nfn,
-      ndata.GetBytes().data());
+      (ndata.IsEmpty()) ? nullptr : ndata.GetBytes().data());
 
   if (ret != 1) {
     throw CfdException(
@@ -282,6 +326,10 @@ SchnorrSignature SignCommon(
   }
 
   return SchnorrSignature(raw_sig);
+}
+
+SchnorrSignature SchnorrUtil::Sign(const ByteData256 &msg, const Privkey &sk) {
+  return SignCommon(msg, sk, nullptr, ByteData());
 }
 
 SchnorrSignature SchnorrUtil::Sign(

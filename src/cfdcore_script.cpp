@@ -882,11 +882,25 @@ bool Script::IsMultisigScript() const {
 }
 
 bool Script::IsWitnessProgram() const {
-  return (
-      (kMinWitnessProgramLength <= script_data_.GetDataSize() ||
-       script_data_.GetDataSize() <= kMaxWitnessProgramLength) &&
-      script_stack_[0].GetOpCode() == ScriptOperator::OP_0 &&
-      script_stack_[1].IsBinary());
+  if ((script_data_.GetDataSize() < kMinWitnessProgramLength) ||
+      (kMaxWitnessProgramLength < script_data_.GetDataSize()) ||
+      (script_stack_.size() != 2) || (!script_stack_[0].IsOpCode()) ||
+      (!script_stack_[1].IsBinary())) {
+    return false;
+  }
+  auto op_code = script_stack_[0].GetOpCode().GetDataType();
+  if ((op_code != ScriptType::kOp_0) &&
+      ((op_code < ScriptType::kOp_1) || (op_code > ScriptType::kOp_16))) {
+    return false;
+  }
+
+  auto hash_size = script_stack_[1].GetBinaryData().GetDataSize();
+  if (op_code == ScriptType::kOp_0) {
+    if ((hash_size != 0x14) && (hash_size != 0x20)) return false;
+  } else if (script_stack_[0].GetOpCode() == ScriptOperator::OP_0) {
+    if (hash_size != 0x20) return false;
+  }
+  return true;
 }
 
 WitnessVersion Script::GetWitnessVersion() const {

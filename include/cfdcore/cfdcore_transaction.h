@@ -24,6 +24,11 @@
 namespace cfd {
 namespace core {
 
+struct TapScriptData {
+  ByteData256 tap_leaf_hash;
+  uint32_t code_separator_position = 0xffffffff;
+};
+
 //! transaction callback type: add txin
 constexpr const uint32_t kStateChangeAddTxIn = 0x00000001;
 //! transaction callback type: update txin
@@ -420,6 +425,19 @@ class CFD_CORE_EXPORT Transaction : public AbstractTransaction {
       uint32_t txin_index, const ByteData& script_data,
       SigHashType sighash_type, const Amount& value = Amount(),
       WitnessVersion version = WitnessVersion::kVersionNone) const;
+  /**
+   * @brief Get signature hash by schnorr.
+   * @param[in] txin_index    TxIn's index
+   * @param[in] sighash_type  SigHashType(@see cfdcore_util.h)
+   * @param[in] utxo_list     utxo list (for amount & scriptPubkey)
+   * @param[in] annex         annex data
+   * @param[in] script_data   tap script data
+   * @return signature hash
+   */
+  ByteData256 GetSchnorrSignatureHash(
+      uint32_t txin_index, SigHashType sighash_type,
+      const std::vector<TxOut>& utxo_list, const ByteData& annex = ByteData(),
+      const TapScriptData* script_data = nullptr) const;
   /**
    * @brief witness情報かどうかを取得する.
    * @retval true   witness
