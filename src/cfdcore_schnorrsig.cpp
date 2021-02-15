@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "cfdcore/cfdcore_exception.h"
+#include "cfdcore/cfdcore_util.h"
 #include "secp256k1.h"             // NOLINT
 #include "secp256k1_schnorrsig.h"  // NOLINT
 #include "secp256k1_util.h"        // NOLINT
@@ -19,6 +20,7 @@ using cfd::core::ByteData;
 using cfd::core::ByteData256;
 using cfd::core::CfdError;
 using cfd::core::CfdException;
+using cfd::core::HashUtil;
 
 // ----------------------------------------------------------------------------
 // SchnorrSignature
@@ -310,6 +312,50 @@ Pubkey SchnorrUtil::ComputeSigPoint(
   }
 
   return ConvertSecpPubkey(secp_sigpoint);
+}
+
+Pubkey SchnorrUtil::ComputeSigPointBatch(
+    const std::vector<ByteData256> &msgs,
+    const std::vector<SchnorrPubkey> &nonces, const SchnorrPubkey &pubkey) {
+  if (msgs.size() != nonces.size() || msgs.empty()) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Expected same number of messages or nonces, and at least one "
+        "message.");
+  }
+
+  Pubkey rs;
+
+  if (msgs.size() == 1) {
+    rs = Pubkey(ByteData("02").Concat(nonces[0].GetData()));
+  } else {
+    std::vector<Pubkey> pub_nonces;
+    for (const auto& nonce : nonces) {
+      pub_nonces.push_back(Pubkey(ByteData("02").Concat(nonce.GetData())));
+    }
+    rs = Pubkey::CombinePubkey(pub_nonces);
+  }
+
+  auto bip340_challenge = ByteData(
+      "7bb52d7a9fef58323eb1bf7a407db382d2f3f2d81bb1224f49fe518f6d48d37c7bb52d7"
+      "a9fef58323eb1bf7a407db382d2f3f2d81bb1224f49fe518f6d48d37c");
+  Privkey res;
+  for (size_t i = 0; i < msgs.size(); i++) {
+    auto m_tagged_hash =
+        HashUtil::Sha256(bip340_challenge.Concat(nonces[i].GetData())
+                             .Concat(pubkey.GetData())
+                             .Concat(msgs[i]));
+    if (i == 0) {
+      res = Privkey(m_tagged_hash);
+    } else {
+      res = res.CreateTweakAdd(m_tagged_hash);
+    }
+  }
+
+  auto xe = Pubkey(ByteData("02").Concat(pubkey.GetData()))
+                .CreateTweakMul(ByteData256(res.GetData()));
+
+  return Pubkey::CombinePubkey({rs, xe});
 }
 
 bool SchnorrUtil::Verify(

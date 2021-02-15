@@ -1,5 +1,6 @@
 // Copyright 2020 CryptoGarage
 #include <string>
+#include <vector>
 
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_common.h"
@@ -287,6 +288,23 @@ class CFD_CORE_EXPORT SchnorrUtil {
   static Pubkey ComputeSigPoint(
       const ByteData256 &msg, const SchnorrPubkey &nonce,
       const SchnorrPubkey &pubkey);
+
+  /**
+   * @brief Compute the sum of signature points for a set of Schnorr signature.
+   * This enable reducing the number of EC multiplications done when computing the
+   * addition of multiple signature points. So instead of computing:
+   * S = (R_0 + X * H(X || R_0 || m_0)) + ... + (R_n + X * H(X || R_n || m_n))
+   * This function computes:
+   * S = (R_0 + ... + R_n) + X * (H(X || R_0 || m_0) + ... + H(X || R_n || m_n))
+   *
+   * @param msgs the set of messages that will be signed.
+   * @param nonces the public component of the nonces that will be used.
+   * @param pubkey the public key for which the signatures will be valid.
+   * @return Pubkey the signature point.
+   */
+  static Pubkey ComputeSigPointBatch(
+      const std::vector<ByteData256> &msgs,
+      const std::vector<SchnorrPubkey> &nonces, const SchnorrPubkey &pubkey);
 
   /**
    * @brief Verify a Schnorr signature.
