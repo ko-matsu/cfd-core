@@ -399,6 +399,8 @@ uint8_t *AllocWallyBuffer(const uint8_t *source, size_t length) {
   int ret;
   if (malloc_func == nullptr) {
     struct wally_operations ops;
+    memset(&ops, 0, sizeof(ops));
+    ops.struct_size = sizeof(ops);
     ret = wally_get_operations(&ops);
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_get_operations NG[{}]", ret);
@@ -425,6 +427,8 @@ void FreeWallyBuffer(void *source) {
   int ret;
   if (free_func == nullptr) {
     struct wally_operations ops;
+    memset(&ops, 0, sizeof(ops));
+    ops.struct_size = sizeof(ops);
     ret = wally_get_operations(&ops);
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_get_operations NG[{}]", ret);
