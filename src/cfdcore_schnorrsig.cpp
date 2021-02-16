@@ -330,7 +330,7 @@ Pubkey SchnorrUtil::ComputeSigPointBatch(
     rs = Pubkey(ByteData("02").Concat(nonces[0].GetData()));
   } else {
     std::vector<Pubkey> pub_nonces;
-    for (const auto& nonce : nonces) {
+    for (const auto &nonce : nonces) {
       pub_nonces.push_back(Pubkey(ByteData("02").Concat(nonce.GetData())));
     }
     rs = Pubkey::CombinePubkey(pub_nonces);

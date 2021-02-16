@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -2229,15 +2230,16 @@ void ConfidentialTransaction::BlindTransaction(
   int ret;
   memset(empty_factor.data(), 0, empty_factor.size());
 
-  auto add_map_func = [](const std::vector<uint8_t>& asset_id,
-      const Amount& amount, bool is_output,
-      std::map<std::vector<uint8_t>, int64_t>* amount_map) -> void {
+  auto add_map_func =
+      [](const std::vector<uint8_t> &asset_id, const Amount &amount,
+         bool is_output,
+         std::map<std::vector<uint8_t>, int64_t> *amount_map) -> void {
     if (amount == 0) return;
     int64_t value = amount.GetSatoshiValue() * ((is_output) ? -1 : 1);
     if (amount_map->find(asset_id) == amount_map->end()) {
       amount_map->emplace(asset_id, value);
     } else {
-      auto& map_value = amount_map->at(asset_id);
+      auto &map_value = amount_map->at(asset_id);
       map_value += value;
     }
   };
@@ -2345,8 +2347,9 @@ void ConfidentialTransaction::BlindTransaction(
         info(
             CFD_LOG_SOURCE, "generator_data asset=[{}]",
             generator_data.GetHex());
-        add_map_func(asset_bytes, vin_[index].GetIssuanceAmount().GetAmount(),
-            false, &amount_map);
+        add_map_func(
+            asset_bytes, vin_[index].GetIssuanceAmount().GetAmount(), false,
+            &amount_map);
       }
       if ((!is_reissue) && (!vin_[index].GetInflationKeys().IsEmpty())) {
         const std::vector<uint8_t> &token_bytes =
@@ -2376,8 +2379,9 @@ void ConfidentialTransaction::BlindTransaction(
         info(
             CFD_LOG_SOURCE, "generator_data token=[{}]",
             generator_data.GetHex());
-        add_map_func(token_bytes, vin_[index].GetInflationKeys().GetAmount(),
-            false, &amount_map);
+        add_map_func(
+            token_bytes, vin_[index].GetInflationKeys().GetAmount(), false,
+            &amount_map);
       }
       // Marked for blinding
       if (asset_blind) {
@@ -2559,12 +2563,14 @@ void ConfidentialTransaction::BlindTransaction(
   }
 
   if (has_amount_check) {
-    for (auto& item : amount_map) {
+    for (auto &item : amount_map) {
       if (item.second != 0) {
         ConfidentialAssetId temp_asset(ByteData(item.first));
-        warn(CFD_LOG_SOURCE, "unmatch input/output amount. ({},{})",
+        warn(
+            CFD_LOG_SOURCE, "unmatch input/output amount. ({},{})",
             temp_asset.GetHex(), item.second);
-        throw CfdException(kCfdIllegalArgumentError, "unmatch input/output amount.");
+        throw CfdException(
+            kCfdIllegalArgumentError, "unmatch input/output amount.");
       }
     }
   }
