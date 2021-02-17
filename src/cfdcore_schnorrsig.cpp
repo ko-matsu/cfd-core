@@ -49,6 +49,11 @@ SchnorrSignature::SchnorrSignature(const ByteData &data)
 SchnorrSignature::SchnorrSignature(const std::string &data)
     : SchnorrSignature(ByteData(data)) {}
 
+SchnorrSignature::SchnorrSignature(const SchnorrSignature &object) {
+  data_ = object.data_;
+  sighash_type_ = object.sighash_type_;
+}
+
 ByteData SchnorrSignature::GetData(bool append_sighash_type) const {
   if ((!append_sighash_type) || (sighash_type_.GetSigHashFlag() == 0) ||
       (data_.GetDataSize() != SchnorrSignature::kSchnorrSignatureSize)) {
@@ -195,6 +200,10 @@ SchnorrPubkey SchnorrPubkey::CreateTweakAddFromPrivkey(
 }
 
 ByteData SchnorrPubkey::GetData() const { return data_.GetData(); }
+
+ByteData256 SchnorrPubkey::GetByteData256() const {
+  return ByteData256(data_);
+}
 
 std::string SchnorrPubkey::GetHex() const { return data_.GetHex(); }
 

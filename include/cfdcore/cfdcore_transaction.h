@@ -434,14 +434,15 @@ class CFD_CORE_EXPORT Transaction : public AbstractTransaction {
    * @param[in] txin_index    TxIn's index
    * @param[in] sighash_type  SigHashType(@see cfdcore_util.h)
    * @param[in] utxo_list     utxo list (for amount & scriptPubkey)
-   * @param[in] annex         annex data
    * @param[in] script_data   tap script data
+   * @param[in] annex         annex data
    * @return signature hash
    */
   ByteData256 GetSchnorrSignatureHash(
       uint32_t txin_index, SigHashType sighash_type,
-      const std::vector<TxOut>& utxo_list, const ByteData& annex = ByteData(),
-      const TapScriptData* script_data = nullptr) const;
+      const std::vector<TxOut>& utxo_list,
+      const TapScriptData* script_data = nullptr,
+      const ByteData& annex = ByteData()) const;
   /**
    * @brief witness情報かどうかを取得する.
    * @retval true   witness

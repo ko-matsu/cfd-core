@@ -64,6 +64,12 @@ class CFD_CORE_EXPORT SchnorrPubkey {
    */
   ByteData GetData() const;
   /**
+   * @brief Get the underlying ByteData256 object
+   *
+   * @return ByteData256
+   */
+  ByteData256 GetByteData256() const;
+  /**
    * @brief Get the hex string.
    *
    * @return hex string.
@@ -131,7 +137,7 @@ class CFD_CORE_EXPORT SchnorrPubkey {
    * @param[in] parity  the parity of the pubkey.
    * @return pubkey
    */
-  Pubkey CreatePubkey(bool parity) const;
+  Pubkey CreatePubkey(bool parity = false) const;
 
   /**
    * @brief get schnorr public key from private key.
@@ -214,6 +220,12 @@ class CFD_CORE_EXPORT SchnorrSignature {
    * @param data the data representing the adaptor signature
    */
   explicit SchnorrSignature(const std::string &data);
+  /**
+   * @brief Construct a new Schnorr Signature object from a Signature object.
+   *
+   * @param[in] object the data representing the adaptor signature
+   */
+  SchnorrSignature(const SchnorrSignature &object);
 
   /**
    * @brief Get the underlying ByteData object

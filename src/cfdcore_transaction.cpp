@@ -801,8 +801,8 @@ ByteData256 Transaction::GetSignatureHash(
 
 ByteData256 Transaction::GetSchnorrSignatureHash(
     uint32_t txin_index, SigHashType sighash_type,
-    const std::vector<TxOut> &utxo_list, const ByteData &annex,
-    const TapScriptData *script_data) const {
+    const std::vector<TxOut> &utxo_list, const TapScriptData *script_data,
+    const ByteData &annex) const {
   CheckTxInIndex(txin_index, __LINE__, __FUNCTION__);
   if (this->vin_.size() > utxo_list.size()) {
     warn(CFD_LOG_SOURCE, "not enough utxo list.");
@@ -829,11 +829,13 @@ ByteData256 Transaction::GetSchnorrSignatureHash(
   }
   bool has_sighash_all = (sighash_type_value & 0x01) ? true : false;
 
+  uint8_t ext_flag = 0;  // 0 - 127
   uint8_t has_tap_script = 0;
   uint8_t key_version = 0;
   if ((script_data != nullptr) && (!script_data->tap_leaf_hash.IsEmpty())) {
     has_tap_script = 1;
   }
+  ext_flag |= has_tap_script;
 
   Serializer builder;
   auto top = HashUtil::Sha256("TapSighash");
@@ -871,7 +873,7 @@ ByteData256 Transaction::GetSchnorrSignatureHash(
     builder.AddDirectBytes(HashUtil::Sha256(outputs_buf.Output()));
   }
 
-  uint8_t spend_type = (has_tap_script << 1) + (annex.IsEmpty() ? 0 : 1);
+  uint8_t spend_type = (ext_flag << 1) + (annex.IsEmpty() ? 0 : 1);
   builder.AddDirectByte(spend_type);
   if (is_anyone_can_pay) {
     builder.AddDirectBytes(vin_[txin_index].GetTxid().GetData());
