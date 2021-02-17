@@ -26,5 +26,6 @@ CFDCORE_PKGINCLUDE_FILES = \
   cfdcore_logger_interface.h \
   cfdcore_schnorrsig.h \
   cfdcore_ecdsa_adaptor.h \
+  cfdcore_taproot.h \
   $(CFDCORE_ELEMENTS_PKGINCLUDE_FILES)
 

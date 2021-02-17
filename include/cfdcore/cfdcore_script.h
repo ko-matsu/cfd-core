@@ -29,6 +29,8 @@ constexpr size_t kScriptHashP2shLength = 23;
 constexpr size_t kScriptHashP2wpkhLength = 22;
 /// Script size on P2WSH.
 constexpr size_t kScriptHashP2wshLength = 34;
+/// Script size on Taproot.
+constexpr size_t kScriptHashTaprootLength = 34;
 /// WitnessProgram's minimum size.
 constexpr size_t kMinWitnessProgramLength = 4;
 /// WitnessProgram's maximum size.
@@ -81,6 +83,7 @@ enum ScriptType {
   kOpPushData4 = 0x4e,            //!< kOpPushData4
   kOp1Negate = 0x4f,              //!< kOp1Negate
   kOpReserved = 0x50,             //!< kOpReserved
+  kOpSuccess80 = 0x50,            //!< kOpSuccess80 (BIP-342)
   kOp_1 = 0x51,                   //!< kOp_1
   kOpTrue = 0x51,                 //!< kOpTrue
   kOp_2 = 0x52,                   //!< kOp_2
@@ -100,6 +103,7 @@ enum ScriptType {
   kOp_16 = 0x60,                  //!< kOp_16
   kOpNop = 0x61,                  //!< kOpNop
   kOpVer = 0x62,                  //!< kOpVer
+  kOpSuccess98 = 0x62,            //!< kOpSuccess98 (BIP-342)
   kOpIf = 0x63,                   //!< kOpIf
   kOpNotIf = 0x64,                //!< kOpNotIf
   kOpVerIf = 0x65,                //!< kOpVerIf
@@ -131,19 +135,31 @@ enum ScriptType {
   kOpSubstr = 0x7f,               //!< kOpSubstr
   kOpLeft = 0x80,                 //!< kOpLeft
   kOpRight = 0x81,                //!< kOpRight
+  kOpSuccess126 = 0x7e,           //!< kOpSuccess126 (BIP-342)
+  kOpSuccess127 = 0x7f,           //!< kOpSuccess127 (BIP-342)
+  kOpSuccess128 = 0x80,           //!< kOpSuccess128 (BIP-342)
+  kOpSuccess129 = 0x81,           //!< kOpSuccess129 (BIP-342)
   kOpSize = 0x82,                 //!< kOpSize
   kOpInvert = 0x83,               //!< kOpInvert
   kOpAnd = 0x84,                  //!< kOpAnd
   kOpOr = 0x85,                   //!< kOpOr
   kOpXor = 0x86,                  //!< kOpXor
+  kOpSuccess131 = 0x83,           //!< kOpSuccess131 (BIP-342)
+  kOpSuccess132 = 0x84,           //!< kOpSuccess132 (BIP-342)
+  kOpSuccess133 = 0x85,           //!< kOpSuccess133 (BIP-342)
+  kOpSuccess134 = 0x86,           //!< kOpSuccess134 (BIP-342)
   kOpEqual = 0x87,                //!< kOpEqual
   kOpEqualVerify = 0x88,          //!< kOpEqualVerify
   kOpReserved1 = 0x89,            //!< kOpReserved1
   kOpReserved2 = 0x8a,            //!< kOpReserved2
+  kOpSuccess137 = 0x89,           //!< kOpSuccess137 (BIP-342)
+  kOpSuccess138 = 0x8a,           //!< kOpSuccess138 (BIP-342)
   kOp1Add = 0x8b,                 //!< kOp1Add
   kOp1Sub = 0x8c,                 //!< kOp1Sub
   kOp2Mul = 0x8d,                 //!< kOp2Mul
   kOp2Div = 0x8e,                 //!< kOp2Div
+  kOpSuccess141 = 0x8d,           //!< kOpSuccess141 (BIP-342)
+  kOpSuccess142 = 0x8e,           //!< kOpSuccess142 (BIP-342)
   kOpNegate = 0x8f,               //!< kOpNegate
   kOpAbs = 0x90,                  //!< kOpAbs
   kOpNot = 0x91,                  //!< kOpNot
@@ -155,6 +171,11 @@ enum ScriptType {
   kOpMod = 0x97,                  //!< kOpMod
   kOpLShift = 0x98,               //!< kOpLShift
   kOpRShift = 0x99,               //!< kOpRShift
+  kOpSuccess149 = 0x95,           //!< kOpSuccess149 (BIP-342)
+  kOpSuccess150 = 0x96,           //!< kOpSuccess150 (BIP-342)
+  kOpSuccess151 = 0x97,           //!< kOpSuccess151 (BIP-342)
+  kOpSuccess152 = 0x98,           //!< kOpSuccess152 (BIP-342)
+  kOpSuccess153 = 0x99,           //!< kOpSuccess153 (BIP-342)
   kOpBoolAnd = 0x9a,              //!< kOpBoolAnd
   kOpBoolOr = 0x9b,               //!< kOpBoolOr
   kOpNumEqual = 0x9c,             //!< kOpNumEqual
@@ -189,6 +210,75 @@ enum ScriptType {
   kOpNop8 = 0xb7,                 //!< kOpNop8
   kOpNop9 = 0xb8,                 //!< kOpNop9
   kOpNop10 = 0xb9,                //!< kOpNop10
+  kOpCheckSigAdd = 0xba,          //!< kOpCheckSigAdd (BIP-342)
+  kOpSuccess187 = 0xbb,           //!< kOpSuccess187 (BIP-342)
+  kOpSuccess188 = 0xbc,           //!< kOpSuccess188 (BIP-342)
+  kOpSuccess189 = 0xbd,           //!< kOpSuccess189 (BIP-342)
+  kOpSuccess190 = 0xbe,           //!< kOpSuccess190 (BIP-342)
+  kOpSuccess191 = 0xbf,           //!< kOpSuccess191 (BIP-342)
+  kOpSuccess192 = 0xc0,           //!< kOpSuccess192 (BIP-342)
+  kOpSuccess193 = 0xc1,           //!< kOpSuccess193 (BIP-342)
+  kOpSuccess194 = 0xc2,           //!< kOpSuccess194 (BIP-342)
+  kOpSuccess195 = 0xc3,           //!< kOpSuccess195 (BIP-342)
+  kOpSuccess196 = 0xc4,           //!< kOpSuccess196 (BIP-342)
+  kOpSuccess197 = 0xc5,           //!< kOpSuccess197 (BIP-342)
+  kOpSuccess198 = 0xc6,           //!< kOpSuccess198 (BIP-342)
+  kOpSuccess199 = 0xc7,           //!< kOpSuccess199 (BIP-342)
+  kOpSuccess200 = 0xc8,           //!< kOpSuccess200 (BIP-342)
+  kOpSuccess201 = 0xc9,           //!< kOpSuccess201 (BIP-342)
+  kOpSuccess202 = 0xca,           //!< kOpSuccess202 (BIP-342)
+  kOpSuccess203 = 0xcb,           //!< kOpSuccess203 (BIP-342)
+  kOpSuccess204 = 0xcc,           //!< kOpSuccess204 (BIP-342)
+  kOpSuccess205 = 0xcd,           //!< kOpSuccess205 (BIP-342)
+  kOpSuccess206 = 0xce,           //!< kOpSuccess206 (BIP-342)
+  kOpSuccess207 = 0xcf,           //!< kOpSuccess207 (BIP-342)
+  kOpSuccess208 = 0xd0,           //!< kOpSuccess208 (BIP-342)
+  kOpSuccess209 = 0xd1,           //!< kOpSuccess209 (BIP-342)
+  kOpSuccess210 = 0xd2,           //!< kOpSuccess210 (BIP-342)
+  kOpSuccess211 = 0xd3,           //!< kOpSuccess211 (BIP-342)
+  kOpSuccess212 = 0xd4,           //!< kOpSuccess212 (BIP-342)
+  kOpSuccess213 = 0xd5,           //!< kOpSuccess213 (BIP-342)
+  kOpSuccess214 = 0xd6,           //!< kOpSuccess214 (BIP-342)
+  kOpSuccess215 = 0xd7,           //!< kOpSuccess215 (BIP-342)
+  kOpSuccess216 = 0xd8,           //!< kOpSuccess216 (BIP-342)
+  kOpSuccess217 = 0xd9,           //!< kOpSuccess217 (BIP-342)
+  kOpSuccess218 = 0xda,           //!< kOpSuccess218 (BIP-342)
+  kOpSuccess219 = 0xdb,           //!< kOpSuccess219 (BIP-342)
+  kOpSuccess220 = 0xdc,           //!< kOpSuccess220 (BIP-342)
+  kOpSuccess221 = 0xdd,           //!< kOpSuccess221 (BIP-342)
+  kOpSuccess222 = 0xde,           //!< kOpSuccess222 (BIP-342)
+  kOpSuccess223 = 0xdf,           //!< kOpSuccess223 (BIP-342)
+  kOpSuccess224 = 0xe0,           //!< kOpSuccess224 (BIP-342)
+  kOpSuccess225 = 0xe1,           //!< kOpSuccess225 (BIP-342)
+  kOpSuccess226 = 0xe2,           //!< kOpSuccess226 (BIP-342)
+  kOpSuccess227 = 0xe3,           //!< kOpSuccess227 (BIP-342)
+  kOpSuccess228 = 0xe4,           //!< kOpSuccess228 (BIP-342)
+  kOpSuccess229 = 0xe5,           //!< kOpSuccess229 (BIP-342)
+  kOpSuccess230 = 0xe6,           //!< kOpSuccess230 (BIP-342)
+  kOpSuccess231 = 0xe7,           //!< kOpSuccess231 (BIP-342)
+  kOpSuccess232 = 0xe8,           //!< kOpSuccess232 (BIP-342)
+  kOpSuccess233 = 0xe9,           //!< kOpSuccess233 (BIP-342)
+  kOpSuccess234 = 0xea,           //!< kOpSuccess234 (BIP-342)
+  kOpSuccess235 = 0xeb,           //!< kOpSuccess235 (BIP-342)
+  kOpSuccess236 = 0xec,           //!< kOpSuccess236 (BIP-342)
+  kOpSuccess237 = 0xed,           //!< kOpSuccess237 (BIP-342)
+  kOpSuccess238 = 0xee,           //!< kOpSuccess238 (BIP-342)
+  kOpSuccess239 = 0xef,           //!< kOpSuccess239 (BIP-342)
+  kOpSuccess240 = 0xf0,           //!< kOpSuccess240 (BIP-342)
+  kOpSuccess241 = 0xf1,           //!< kOpSuccess241 (BIP-342)
+  kOpSuccess242 = 0xf2,           //!< kOpSuccess242 (BIP-342)
+  kOpSuccess243 = 0xf3,           //!< kOpSuccess243 (BIP-342)
+  kOpSuccess244 = 0xf4,           //!< kOpSuccess244 (BIP-342)
+  kOpSuccess245 = 0xf5,           //!< kOpSuccess245 (BIP-342)
+  kOpSuccess246 = 0xf6,           //!< kOpSuccess246 (BIP-342)
+  kOpSuccess247 = 0xf7,           //!< kOpSuccess247 (BIP-342)
+  kOpSuccess248 = 0xf8,           //!< kOpSuccess248 (BIP-342)
+  kOpSuccess249 = 0xf9,           //!< kOpSuccess249 (BIP-342)
+  kOpSuccess250 = 0xfa,           //!< kOpSuccess250 (BIP-342)
+  kOpSuccess251 = 0xfb,           //!< kOpSuccess251 (BIP-342)
+  kOpSuccess252 = 0xfc,           //!< kOpSuccess252 (BIP-342)
+  kOpSuccess253 = 0xfd,           //!< kOpSuccess253 (BIP-342)
+  kOpSuccess254 = 0xfe,           //!< kOpSuccess254 (BIP-342)
   kOpInvalidOpCode = 0xff,        //!< kOpInvalidOpCode
 #ifndef CFD_DISABLE_ELEMENTS
   kOpDeterministricRandom = 0xc0,     //!< kOpDeterministricRandom
@@ -307,8 +397,7 @@ class CFD_CORE_EXPORT ScriptOperator {
   static const ScriptOperator OP_LESSTHAN;         //!< OP_LESSTHAN
   static const ScriptOperator OP_GREATERTHAN;      //!< OP_GREATERTHAN
   static const ScriptOperator OP_LESSTHANOREQUAL;  //!< OP_LESSTHANOREQUAL
-  static const ScriptOperator
-      OP_GREATERTHANOREQUAL;              //!< OP_GREATERTHANOREQUAL  //NOLINT
+  static const ScriptOperator OP_GREATERTHANOREQUAL;  //!< OP_GREATERTHANOREQUAL  //NOLINT
   static const ScriptOperator OP_MIN;     //!< OP_MIN
   static const ScriptOperator OP_MAX;     //!< OP_MAX
   static const ScriptOperator OP_WITHIN;  //!< OP_WITHIN
@@ -321,14 +410,11 @@ class CFD_CORE_EXPORT ScriptOperator {
   static const ScriptOperator OP_CHECKSIG;        //!< OP_CHECKSIG
   static const ScriptOperator OP_CHECKSIGVERIFY;  //!< OP_CHECKSIGVERIFY
   static const ScriptOperator OP_CHECKMULTISIG;   //!< OP_CHECKMULTISIG
-  static const ScriptOperator
-      OP_CHECKMULTISIGVERIFY;           //!< OP_CHECKMULTISIGVERIFY  //NOLINT
+  static const ScriptOperator OP_CHECKMULTISIGVERIFY;  //!< OP_CHECKMULTISIGVERIFY  //NOLINT
   static const ScriptOperator OP_NOP1;  //!< OP_NOP1
-  static const ScriptOperator
-      OP_CHECKLOCKTIMEVERIFY;           //!< OP_CHECKLOCKTIMEVERIFY  //NOLINT
+  static const ScriptOperator OP_CHECKLOCKTIMEVERIFY;  //!< OP_CHECKLOCKTIMEVERIFY  //NOLINT
   static const ScriptOperator OP_NOP2;  //!< OP_NOP2
-  static const ScriptOperator
-      OP_CHECKSEQUENCEVERIFY;            //!< OP_CHECKSEQUENCEVERIFY  //NOLINT
+  static const ScriptOperator OP_CHECKSEQUENCEVERIFY;  //!< OP_CHECKSEQUENCEVERIFY  //NOLINT
   static const ScriptOperator OP_NOP3;   //!< OP_NOP3
   static const ScriptOperator OP_NOP4;   //!< OP_NOP4
   static const ScriptOperator OP_NOP5;   //!< OP_NOP5
@@ -337,6 +423,7 @@ class CFD_CORE_EXPORT ScriptOperator {
   static const ScriptOperator OP_NOP8;   //!< OP_NOP8
   static const ScriptOperator OP_NOP9;   //!< OP_NOP9
   static const ScriptOperator OP_NOP10;  //!< OP_NOP10
+  static const ScriptOperator OP_CHECKSIGADD;    //!< OP_CHECKSIGADD
   static const ScriptOperator OP_INVALIDOPCODE;  //!< OP_INVALIDOPCODE
 #ifndef CFD_DISABLE_ELEMENTS
   static const ScriptOperator
@@ -350,6 +437,93 @@ class CFD_CORE_EXPORT ScriptOperator {
   static const ScriptOperator OP_PUBKEYHASH;    //!< OP_PUBKEYHASH
   static const ScriptOperator OP_PUBKEY;        //!< OP_PUBKEY
 #endif  // CFD_DISABLE_ELEMENTS
+  static const ScriptOperator OP_SUCCESS80;   //!< OP_SUCCESS80 (BIP-342)
+  static const ScriptOperator OP_SUCCESS98;   //!< OP_SUCCESS98 (BIP-342)
+  static const ScriptOperator OP_SUCCESS126;  //!< OP_SUCCESS126 (BIP-342)
+  static const ScriptOperator OP_SUCCESS127;  //!< OP_SUCCESS127 (BIP-342)
+  static const ScriptOperator OP_SUCCESS128;  //!< OP_SUCCESS128 (BIP-342)
+  static const ScriptOperator OP_SUCCESS129;  //!< OP_SUCCESS129 (BIP-342)
+  static const ScriptOperator OP_SUCCESS131;  //!< OP_SUCCESS131 (BIP-342)
+  static const ScriptOperator OP_SUCCESS132;  //!< OP_SUCCESS132 (BIP-342)
+  static const ScriptOperator OP_SUCCESS133;  //!< OP_SUCCESS133 (BIP-342)
+  static const ScriptOperator OP_SUCCESS134;  //!< OP_SUCCESS134 (BIP-342)
+  static const ScriptOperator OP_SUCCESS137;  //!< OP_SUCCESS137 (BIP-342)
+  static const ScriptOperator OP_SUCCESS138;  //!< OP_SUCCESS138 (BIP-342)
+  static const ScriptOperator OP_SUCCESS141;  //!< OP_SUCCESS141 (BIP-342)
+  static const ScriptOperator OP_SUCCESS142;  //!< OP_SUCCESS142 (BIP-342)
+  static const ScriptOperator OP_SUCCESS149;  //!< OP_SUCCESS149 (BIP-342)
+  static const ScriptOperator OP_SUCCESS150;  //!< OP_SUCCESS150 (BIP-342)
+  static const ScriptOperator OP_SUCCESS151;  //!< OP_SUCCESS151 (BIP-342)
+  static const ScriptOperator OP_SUCCESS152;  //!< OP_SUCCESS152 (BIP-342)
+  static const ScriptOperator OP_SUCCESS153;  //!< OP_SUCCESS153 (BIP-342)
+  static const ScriptOperator OP_SUCCESS187;  //!< OP_SUCCESS187 (BIP-342)
+  static const ScriptOperator OP_SUCCESS188;  //!< OP_SUCCESS188 (BIP-342)
+  static const ScriptOperator OP_SUCCESS189;  //!< OP_SUCCESS189 (BIP-342)
+  static const ScriptOperator OP_SUCCESS190;  //!< OP_SUCCESS190 (BIP-342)
+  static const ScriptOperator OP_SUCCESS191;  //!< OP_SUCCESS191 (BIP-342)
+  static const ScriptOperator OP_SUCCESS192;  //!< OP_SUCCESS192 (BIP-342)
+  static const ScriptOperator OP_SUCCESS193;  //!< OP_SUCCESS193 (BIP-342)
+  static const ScriptOperator OP_SUCCESS194;  //!< OP_SUCCESS194 (BIP-342)
+  static const ScriptOperator OP_SUCCESS195;  //!< OP_SUCCESS195 (BIP-342)
+  static const ScriptOperator OP_SUCCESS196;  //!< OP_SUCCESS196 (BIP-342)
+  static const ScriptOperator OP_SUCCESS197;  //!< OP_SUCCESS197 (BIP-342)
+  static const ScriptOperator OP_SUCCESS198;  //!< OP_SUCCESS198 (BIP-342)
+  static const ScriptOperator OP_SUCCESS199;  //!< OP_SUCCESS199 (BIP-342)
+  static const ScriptOperator OP_SUCCESS200;  //!< OP_SUCCESS200 (BIP-342)
+  static const ScriptOperator OP_SUCCESS201;  //!< OP_SUCCESS201 (BIP-342)
+  static const ScriptOperator OP_SUCCESS202;  //!< OP_SUCCESS202 (BIP-342)
+  static const ScriptOperator OP_SUCCESS203;  //!< OP_SUCCESS203 (BIP-342)
+  static const ScriptOperator OP_SUCCESS204;  //!< OP_SUCCESS204 (BIP-342)
+  static const ScriptOperator OP_SUCCESS205;  //!< OP_SUCCESS205 (BIP-342)
+  static const ScriptOperator OP_SUCCESS206;  //!< OP_SUCCESS206 (BIP-342)
+  static const ScriptOperator OP_SUCCESS207;  //!< OP_SUCCESS207 (BIP-342)
+  static const ScriptOperator OP_SUCCESS208;  //!< OP_SUCCESS208 (BIP-342)
+  static const ScriptOperator OP_SUCCESS209;  //!< OP_SUCCESS209 (BIP-342)
+  static const ScriptOperator OP_SUCCESS210;  //!< OP_SUCCESS210 (BIP-342)
+  static const ScriptOperator OP_SUCCESS211;  //!< OP_SUCCESS211 (BIP-342)
+  static const ScriptOperator OP_SUCCESS212;  //!< OP_SUCCESS212 (BIP-342)
+  static const ScriptOperator OP_SUCCESS213;  //!< OP_SUCCESS213 (BIP-342)
+  static const ScriptOperator OP_SUCCESS214;  //!< OP_SUCCESS214 (BIP-342)
+  static const ScriptOperator OP_SUCCESS215;  //!< OP_SUCCESS215 (BIP-342)
+  static const ScriptOperator OP_SUCCESS216;  //!< OP_SUCCESS216 (BIP-342)
+  static const ScriptOperator OP_SUCCESS217;  //!< OP_SUCCESS217 (BIP-342)
+  static const ScriptOperator OP_SUCCESS218;  //!< OP_SUCCESS218 (BIP-342)
+  static const ScriptOperator OP_SUCCESS219;  //!< OP_SUCCESS219 (BIP-342)
+  static const ScriptOperator OP_SUCCESS220;  //!< OP_SUCCESS220 (BIP-342)
+  static const ScriptOperator OP_SUCCESS221;  //!< OP_SUCCESS221 (BIP-342)
+  static const ScriptOperator OP_SUCCESS222;  //!< OP_SUCCESS222 (BIP-342)
+  static const ScriptOperator OP_SUCCESS223;  //!< OP_SUCCESS223 (BIP-342)
+  static const ScriptOperator OP_SUCCESS224;  //!< OP_SUCCESS224 (BIP-342)
+  static const ScriptOperator OP_SUCCESS225;  //!< OP_SUCCESS225 (BIP-342)
+  static const ScriptOperator OP_SUCCESS226;  //!< OP_SUCCESS226 (BIP-342)
+  static const ScriptOperator OP_SUCCESS227;  //!< OP_SUCCESS227 (BIP-342)
+  static const ScriptOperator OP_SUCCESS228;  //!< OP_SUCCESS228 (BIP-342)
+  static const ScriptOperator OP_SUCCESS229;  //!< OP_SUCCESS229 (BIP-342)
+  static const ScriptOperator OP_SUCCESS230;  //!< OP_SUCCESS230 (BIP-342)
+  static const ScriptOperator OP_SUCCESS231;  //!< OP_SUCCESS231 (BIP-342)
+  static const ScriptOperator OP_SUCCESS232;  //!< OP_SUCCESS232 (BIP-342)
+  static const ScriptOperator OP_SUCCESS233;  //!< OP_SUCCESS233 (BIP-342)
+  static const ScriptOperator OP_SUCCESS234;  //!< OP_SUCCESS234 (BIP-342)
+  static const ScriptOperator OP_SUCCESS235;  //!< OP_SUCCESS235 (BIP-342)
+  static const ScriptOperator OP_SUCCESS236;  //!< OP_SUCCESS236 (BIP-342)
+  static const ScriptOperator OP_SUCCESS237;  //!< OP_SUCCESS237 (BIP-342)
+  static const ScriptOperator OP_SUCCESS238;  //!< OP_SUCCESS238 (BIP-342)
+  static const ScriptOperator OP_SUCCESS239;  //!< OP_SUCCESS239 (BIP-342)
+  static const ScriptOperator OP_SUCCESS240;  //!< OP_SUCCESS240 (BIP-342)
+  static const ScriptOperator OP_SUCCESS241;  //!< OP_SUCCESS241 (BIP-342)
+  static const ScriptOperator OP_SUCCESS242;  //!< OP_SUCCESS242 (BIP-342)
+  static const ScriptOperator OP_SUCCESS243;  //!< OP_SUCCESS243 (BIP-342)
+  static const ScriptOperator OP_SUCCESS244;  //!< OP_SUCCESS244 (BIP-342)
+  static const ScriptOperator OP_SUCCESS245;  //!< OP_SUCCESS245 (BIP-342)
+  static const ScriptOperator OP_SUCCESS246;  //!< OP_SUCCESS246 (BIP-342)
+  static const ScriptOperator OP_SUCCESS247;  //!< OP_SUCCESS247 (BIP-342)
+  static const ScriptOperator OP_SUCCESS248;  //!< OP_SUCCESS248 (BIP-342)
+  static const ScriptOperator OP_SUCCESS249;  //!< OP_SUCCESS249 (BIP-342)
+  static const ScriptOperator OP_SUCCESS250;  //!< OP_SUCCESS250 (BIP-342)
+  static const ScriptOperator OP_SUCCESS251;  //!< OP_SUCCESS251 (BIP-342)
+  static const ScriptOperator OP_SUCCESS252;  //!< OP_SUCCESS252 (BIP-342)
+  static const ScriptOperator OP_SUCCESS253;  //!< OP_SUCCESS253 (BIP-342)
+  static const ScriptOperator OP_SUCCESS254;  //!< OP_SUCCESS254 (BIP-342)
 // @formatter:on
   // clang-format on
 
@@ -367,6 +541,14 @@ class CFD_CORE_EXPORT ScriptOperator {
    * @return script operator.
    */
   static ScriptOperator Get(const std::string &message);
+
+  /**
+   * @brief Check if it is OP_SUCCESSxx.
+   * @param[in] op_code   OP Code
+   * @retval true   OP_SUCCESSxx
+   * @retval false  other
+   */
+  static bool IsOpSuccess(ScriptType op_code);
 
   /**
    * @brief get data type.
