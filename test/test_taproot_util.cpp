@@ -225,7 +225,8 @@ TEST(TaprootUtil, ParseAndVerifyTapScript) {
       &pk, &nodes, &tapscript, &script_stack, &annex);
   EXPECT_EQ("", sig.GetHex());
   EXPECT_FALSE(parity);
-  EXPECT_EQ(TaprootMerkleTree::kTapScriptLeafVersion, tapleaf_flag);
+  uint8_t ver = TaprootMerkleTree::kTapScriptLeafVersion;
+  EXPECT_EQ(ver, tapleaf_flag);
   EXPECT_EQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb", pk.GetHex());
   EXPECT_EQ(2, nodes.size());
   if (nodes.size() == 2) {
@@ -265,7 +266,8 @@ TEST(TaprootUtil, ParseAndVerifyTapScriptParityBit) {
       &pk, &nodes, &tapscript, &script_stack, &annex);
   EXPECT_EQ("", sig.GetHex());
   EXPECT_TRUE(parity);
-  EXPECT_EQ(TaprootMerkleTree::kTapScriptLeafVersion, tapleaf_flag);
+  uint8_t ver = TaprootMerkleTree::kTapScriptLeafVersion;
+  EXPECT_EQ(ver, tapleaf_flag);
   EXPECT_EQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb", pk.GetHex());
   EXPECT_EQ(2, nodes.size());
   if (nodes.size() == 2) {

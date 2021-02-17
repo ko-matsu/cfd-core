@@ -29,7 +29,8 @@ TEST(TaprootMerkleTree, Empty) {
   EXPECT_TRUE(is_parity);
 
   TaprootMerkleTree tree;
-  EXPECT_EQ(TaprootMerkleTree::kTapScriptLeafVersion, tree.GetLeafVersion());
+  uint8_t ver = TaprootMerkleTree::kTapScriptLeafVersion;
+  EXPECT_EQ(ver, tree.GetLeafVersion());
   EXPECT_EQ("83d956a5b36109f8f667aa9b366e8479942e32396455b5f43b6df917768e4d45",
       tree.GetTapLeafHash().GetHex());
   EXPECT_EQ("83d956a5b36109f8f667aa9b366e8479942e32396455b5f43b6df917768e4d45",

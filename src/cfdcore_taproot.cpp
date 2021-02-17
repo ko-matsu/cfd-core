@@ -196,11 +196,9 @@ void TaprootUtil::ParseTaprootSignData(
   static constexpr size_t kControlMinimumSize =
       SchnorrPubkey::kSchnorrPubkeySize + 1;
 
-  bool exist_annex = false;
   size_t size = witness_stack.size();
   if ((size >= 2) && (!witness_stack.back().IsEmpty()) &&
       (witness_stack.back().GetHeadData() == kAnnexTag)) {
-    exist_annex = true;
     if (annex != nullptr) *annex = witness_stack.back();
     --size;
   }
