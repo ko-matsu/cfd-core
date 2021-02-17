@@ -2511,8 +2511,7 @@ void Psbt::SetTxInRecord(
   uint8_t type = SetPsbtInput(key_vec, val_vec, &psbt_pointer->inputs[index]);
 
   struct wally_map *map_ptr = nullptr;
-  if ((type >= Psbt::kPsbtInputNonWitnessUtxo) &&
-      (type <= Psbt::kPsbtInputFinalScriptWitness)) {
+  if (type <= Psbt::kPsbtInputFinalScriptWitness) {
     if (type == Psbt::kPsbtInputPartialSig) {
       map_ptr = &psbt_pointer->inputs[index].signatures;
     } else if (type == Psbt::kPsbtInputBip32Derivation) {

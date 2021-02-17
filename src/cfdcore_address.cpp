@@ -197,6 +197,7 @@ Address::Address()
       address_(""),
       hash_(),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_() {
   memset(checksum_, 0, sizeof(checksum_));
   info(CFD_LOG_SOURCE, "call Address()");
@@ -209,6 +210,7 @@ Address::Address(const std::string& address_string)
       address_(address_string),
       hash_(),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_() {
   memset(checksum_, 0, sizeof(checksum_));
   DecodeAddress(address_string, nullptr);
@@ -223,6 +225,7 @@ Address::Address(
       address_(address_string),
       hash_(),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_() {
   memset(checksum_, 0, sizeof(checksum_));
   const std::vector<AddressFormatData>* params = nullptr;
@@ -241,6 +244,7 @@ Address::Address(
       address_(address_string),
       hash_(),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_() {
   memset(checksum_, 0, sizeof(checksum_));
   const std::vector<AddressFormatData> params = {network_parameter};
@@ -259,6 +263,7 @@ Address::Address(NetType type, const Pubkey& pubkey, uint8_t prefix)
       address_(""),
       hash_(),
       pubkey_(pubkey),
+      schnorr_pubkey_(),
       redeem_script_() {
   memset(checksum_, 0, sizeof(checksum_));
   CalculateP2PKH(prefix);
@@ -276,6 +281,7 @@ Address::Address(
       address_(""),
       hash_(),
       pubkey_(pubkey),
+      schnorr_pubkey_(),
       redeem_script_(),
       format_data_(network_parameter) {
   memset(checksum_, 0, sizeof(checksum_));
@@ -295,6 +301,7 @@ Address::Address(
       address_(""),
       hash_(),
       pubkey_(pubkey),
+      schnorr_pubkey_(),
       redeem_script_(),
       format_data_(GetTargetFormatData(network_parameters, type)) {
   memset(checksum_, 0, sizeof(checksum_));
@@ -317,6 +324,7 @@ Address::Address(NetType type, const Script& script, uint8_t prefix)
       address_(""),
       hash_(),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_(script) {
   memset(checksum_, 0, sizeof(checksum_));
   CalculateP2SH(prefix);
@@ -334,6 +342,7 @@ Address::Address(
       address_(""),
       hash_(),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_(script),
       format_data_(network_parameter) {
   memset(checksum_, 0, sizeof(checksum_));
@@ -353,6 +362,7 @@ Address::Address(
       address_(""),
       hash_(),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_(script),
       format_data_(GetTargetFormatData(network_parameters, type)) {
   memset(checksum_, 0, sizeof(checksum_));
@@ -378,6 +388,7 @@ Address::Address(
       address_(""),
       hash_(),
       pubkey_(pubkey),
+      schnorr_pubkey_(),
       redeem_script_() {
   memset(checksum_, 0, sizeof(checksum_));
   CalculateP2WPKH(bech32_hrp);
@@ -395,6 +406,7 @@ Address::Address(
       address_(""),
       hash_(),
       pubkey_(pubkey),
+      schnorr_pubkey_(),
       redeem_script_(),
       format_data_(network_parameter) {
   memset(checksum_, 0, sizeof(checksum_));
@@ -414,6 +426,7 @@ Address::Address(
       address_(""),
       hash_(),
       pubkey_(pubkey),
+      schnorr_pubkey_(),
       redeem_script_(),
       format_data_(GetTargetFormatData(network_parameters, type)) {
   memset(checksum_, 0, sizeof(checksum_));
@@ -439,6 +452,7 @@ Address::Address(
       address_(""),
       hash_(),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_(script) {
   memset(checksum_, 0, sizeof(checksum_));
   CalculateP2WSH(bech32_hrp);
@@ -456,6 +470,7 @@ Address::Address(
       address_(""),
       hash_(),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_(script),
       format_data_(network_parameter) {
   memset(checksum_, 0, sizeof(checksum_));
@@ -475,6 +490,7 @@ Address::Address(
       address_(""),
       hash_(),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_(script),
       format_data_(GetTargetFormatData(network_parameters, type)) {
   memset(checksum_, 0, sizeof(checksum_));
@@ -485,6 +501,69 @@ Address::Address(
       AddressType::kP2wshAddress, format_data_.GetBech32Hrp());
 }
 
+Address::Address(
+    NetType type, WitnessVersion witness_ver, const SchnorrPubkey& pubkey)
+    : Address(type, witness_ver, pubkey, "") {
+  // do nothing
+}
+
+Address::Address(
+    NetType type, WitnessVersion witness_ver, const SchnorrPubkey& pubkey,
+    const std::string& bech32_hrp)
+    : type_((!bech32_hrp.empty()) ? kCustomChain : type),
+      addr_type_(AddressType::kTaprootAddress),
+      witness_ver_(witness_ver),
+      address_(""),
+      hash_(),
+      pubkey_(),
+      schnorr_pubkey_(pubkey),
+      redeem_script_() {
+  memset(checksum_, 0, sizeof(checksum_));
+  CalculateTaproot(bech32_hrp);
+  info(
+      CFD_LOG_SOURCE, "call Address({},{},{})", type_, addr_type_, bech32_hrp);
+}
+
+Address::Address(
+    NetType type, WitnessVersion witness_ver, const SchnorrPubkey& pubkey,
+    const AddressFormatData& network_parameter)
+    : type_(type),
+      addr_type_(AddressType::kTaprootAddress),
+      witness_ver_(witness_ver),
+      address_(""),
+      hash_(),
+      pubkey_(),
+      schnorr_pubkey_(pubkey),
+      redeem_script_(),
+      format_data_(network_parameter) {
+  memset(checksum_, 0, sizeof(checksum_));
+  SetNetType(format_data_);
+  CalculateTaproot(network_parameter.GetBech32Hrp());
+  info(
+      CFD_LOG_SOURCE, "call Address({},{},{})", type_, addr_type_,
+      network_parameter.GetBech32Hrp());
+}
+
+Address::Address(
+    NetType type, WitnessVersion witness_ver, const SchnorrPubkey& pubkey,
+    const std::vector<AddressFormatData>& network_parameters)
+    : type_(type),
+      addr_type_(AddressType::kTaprootAddress),
+      witness_ver_(witness_ver),
+      address_(""),
+      hash_(),
+      pubkey_(),
+      schnorr_pubkey_(pubkey),
+      redeem_script_(),
+      format_data_(GetTargetFormatData(network_parameters, type)) {
+  memset(checksum_, 0, sizeof(checksum_));
+  SetNetType(format_data_);
+  CalculateTaproot(format_data_.GetBech32Hrp());
+  info(
+      CFD_LOG_SOURCE, "call Address({},{},{})", type_, addr_type_,
+      format_data_.GetBech32Hrp());
+}
+
 Address::Address(NetType type, AddressType addr_type, const ByteData160& hash)
     : type_(type),
       addr_type_(addr_type),
@@ -492,6 +571,7 @@ Address::Address(NetType type, AddressType addr_type, const ByteData160& hash)
       address_(""),
       hash_(hash.GetBytes()),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_() {
   memset(checksum_, 0, sizeof(checksum_));
   if (addr_type == kP2pkhAddress) {
@@ -515,6 +595,7 @@ Address::Address(
       address_(""),
       hash_(hash.GetBytes()),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_(),
       format_data_(network_parameter) {
   memset(checksum_, 0, sizeof(checksum_));
@@ -547,10 +628,18 @@ Address::Address(
       address_(""),
       hash_(hash),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_() {
   memset(checksum_, 0, sizeof(checksum_));
 
-  if (witness_ver_ != WitnessVersion::kVersionNone) {
+  if (witness_ver_ == WitnessVersion::kVersion1) {
+    if (hash.GetDataSize() != SchnorrPubkey::kSchnorrPubkeySize) {
+      throw CfdException(kCfdIllegalArgumentError, "invalid hash size error.");
+    }
+    SetAddressType(kTaprootAddress);
+    CalculateTaproot(ByteData256(hash));
+    schnorr_pubkey_ = SchnorrPubkey(hash);
+  } else if (witness_ver_ != WitnessVersion::kVersionNone) {
     if (hash.GetDataSize() == kByteData160Length) {
       SetAddressType(kP2wpkhAddress);
       CalculateP2WPKH(ByteData160(hash.GetBytes()));
@@ -574,11 +663,19 @@ Address::Address(
       address_(""),
       hash_(hash),
       pubkey_(),
+      schnorr_pubkey_(),
       redeem_script_(),
       format_data_(network_parameter) {
   memset(checksum_, 0, sizeof(checksum_));
 
-  if (witness_ver_ != WitnessVersion::kVersionNone) {
+  if (witness_ver_ == WitnessVersion::kVersion1) {
+    if (hash.GetDataSize() != SchnorrPubkey::kSchnorrPubkeySize) {
+      throw CfdException(kCfdIllegalArgumentError, "invalid hash size error.");
+    }
+    SetAddressType(kTaprootAddress);
+    CalculateTaproot(ByteData256(hash));
+    schnorr_pubkey_ = SchnorrPubkey(hash);
+  } else if (witness_ver_ != WitnessVersion::kVersionNone) {
     if (hash.GetDataSize() == kByteData160Length) {
       SetAddressType(kP2wpkhAddress);
       SetNetType(format_data_);
@@ -770,8 +867,45 @@ void Address::CalculateP2WPKH(
   address_ = WallyUtil::ConvertStringAndFree(output);
 }
 
+void Address::CalculateTaproot(const std::string& bech32_hrp) {
+  hash_ = schnorr_pubkey_.GetData();
+  CalculateTaproot(ByteData256(hash_), bech32_hrp);
+}
+
+void Address::CalculateTaproot(
+    const ByteData256& hash_data, const std::string& bech32_hrp) {
+  std::vector<uint8_t> pubkey_hash = hash_data.GetBytes();
+  pubkey_hash.insert(
+      pubkey_hash.begin(), static_cast<uint8_t>(kByteData256Length));
+  pubkey_hash.insert(pubkey_hash.begin(), witness_ver_ + kOp_1 - 1);
+
+  std::string human_code = bech32_hrp;
+  if (human_code.empty() && (kMainnet <= type_) && (type_ <= kRegtest)) {
+    human_code = kBitcoinAddressFormatList[type_].GetBech32Hrp();
+    format_data_ = kBitcoinAddressFormatList[type_];
+    SetNetType(format_data_);
+  }
+  char* output = NULL;
+  int ret = wally_addr_segwit_from_bytes(
+      pubkey_hash.data(), pubkey_hash.size(), human_code.data(), 0, &output);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "wally_addr_segwit_from_bytes error. ret={}.", ret);
+    info(
+        CFD_LOG_SOURCE, "input hash={}",
+        StringUtil::ByteToString(pubkey_hash));
+    if (ret == WALLY_EINVAL) {
+      throw CfdException(
+          kCfdIllegalArgumentError, "Segwit-address create error.");
+    } else {
+      throw CfdException(kCfdInternalError, "Segwit-address create error.");
+    }
+  }
+
+  address_ = WallyUtil::ConvertStringAndFree(output);
+}
+
 void Address::DecodeAddress(
-    std::string bs58,
+    std::string address_string,
     const std::vector<AddressFormatData>* network_parameters) {
   static const std::string kBech32Separator = "1";
   static const auto StartsWith = [](const std::string& message,
@@ -779,6 +913,7 @@ void Address::DecodeAddress(
     return (message.find(bech32_hrp + kBech32Separator) == 0);
   };
 
+  std::string bs58 = address_string;
   std::string segwit_prefix = "";
   int ret = -1;
 
@@ -823,12 +958,24 @@ void Address::DecodeAddress(
     }
 
     data_part.resize(written);
-    witness_ver_ = kVersion0;
+    Script script(ByteData(data_part.data(), written));
+    if (!script.IsWitnessProgram()) {
+      throw CfdException(kCfdInternalError, "address decode check error.");
+    }
+    witness_ver_ = script.GetWitnessVersion();
 
-    if (written == kScriptHashP2wpkhLength) {
-      SetAddressType(kP2wpkhAddress);
-    } else if (written == kScriptHashP2wshLength) {
-      SetAddressType(kP2wshAddress);
+    if (witness_ver_ == kVersion1) {
+      if (written != (SchnorrPubkey::kSchnorrPubkeySize + 2)) {
+        throw CfdException(
+            kCfdInternalError, "segwit v1 address decode check error.");
+      }
+      SetAddressType(kTaprootAddress);
+    } else if (witness_ver_ == kVersion0) {
+      if (written == kScriptHashP2wpkhLength) {
+        SetAddressType(kP2wpkhAddress);
+      } else if (written == kScriptHashP2wshLength) {
+        SetAddressType(kP2wshAddress);
+      }
     }
 
     // Delete 0byte:WitnessVersion and 1byte:data_part
@@ -891,6 +1038,7 @@ void Address::DecodeAddress(
 
   // Setting for Hash.
   hash_ = ByteData(data_part);
+  if (witness_ver_ == kVersion1) schnorr_pubkey_ = SchnorrPubkey(hash_);
   SetNetType(format_data_);
   info(
       CFD_LOG_SOURCE, "DecodeAddress nettype={},{}", format_data_.GetNetType(),
@@ -931,6 +1079,10 @@ AddressFormatData Address::GetTargetFormatData(
 Script Address::GetLockingScript() const {
   Script locking_script;
   switch (addr_type_) {
+    case AddressType::kTaprootAddress:
+      locking_script =
+          ScriptUtil::CreateTaprootLockingScript(ByteData256(hash_));
+      break;
     case AddressType::kP2pkhAddress: {
       ByteData160 pubkey_hash(hash_.GetBytes());
       locking_script = ScriptUtil::CreateP2pkhLockingScript(pubkey_hash);

@@ -578,6 +578,11 @@ class CFD_CORE_EXPORT Serializer {
    * @param[in] buffer        buffer
    */
   void AddDirectBytes(const ByteData& buffer);
+  /**
+   * @brief add direct byte array.
+   * @param[in] buffer        buffer
+   */
+  void AddDirectBytes(const ByteData256& buffer);
 
   /**
    * @brief add variable buffer.
@@ -615,6 +620,11 @@ class CFD_CORE_EXPORT Serializer {
    * @param[in] number     value
    */
   void AddDirectNumber(uint64_t number);
+  /**
+   * @brief add direct number.
+   * @param[in] number     value
+   */
+  void AddDirectNumber(int64_t number);
 
   /**
    * @brief Output byte array.

@@ -6,6 +6,7 @@
 #include "cfdcore/cfdcore_util.h"
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_elements_address.h"
+#include "cfdcore/cfdcore_schnorrsig.h"
 
 using cfd::core::Address;
 using cfd::core::NetType;
@@ -19,6 +20,7 @@ using cfd::core::HashUtil;
 using cfd::core::Script;
 using cfd::core::ScriptBuilder;
 using cfd::core::ScriptOperator;
+using cfd::core::SchnorrPubkey;
 using cfd::core::CfdException;
 using cfd::core::AddressFormatData;
 using cfd::core::GetBitcoinAddressFormatList;
@@ -172,6 +174,42 @@ TEST(Address, P2wshAddressTest) {
   EXPECT_EQ(NetType::kRegtest, address.GetNetType());
 }
 
+TEST(Address, TaprootAddressTest) {
+  try {
+    const SchnorrPubkey pubkey = SchnorrPubkey(
+        "1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb");
+    Address address;
+    address = Address(NetType::kMainnet,
+                    WitnessVersion::kVersion1, pubkey);
+    EXPECT_STREQ("bc1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8naspp3kr4",
+                address.GetAddress().c_str());
+    EXPECT_EQ(NetType::kMainnet, address.GetNetType());
+    EXPECT_EQ(AddressType::kTaprootAddress, address.GetAddressType());
+    EXPECT_EQ(WitnessVersion::kVersion1, address.GetWitnessVersion());
+    EXPECT_STREQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+                address.GetHash().GetHex().c_str());
+    EXPECT_STREQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+                address.GetSchnorrPubkey().GetHex().c_str());
+    EXPECT_STREQ("", address.GetScript().GetHex().c_str());
+    EXPECT_STREQ("51201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+        address.GetLockingScript().GetHex().c_str());
+
+    EXPECT_NO_THROW((address = Address(NetType::kTestnet,
+                    WitnessVersion::kVersion1, pubkey)));
+    EXPECT_STREQ("tb1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8naskf8ee6",
+                address.GetAddress().c_str());
+    EXPECT_EQ(NetType::kTestnet, address.GetNetType());
+
+    EXPECT_NO_THROW((address = Address(NetType::kRegtest,
+                    WitnessVersion::kVersion1, pubkey)));
+    EXPECT_STREQ("bcrt1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8nasmsdlvq",
+                address.GetAddress().c_str());
+    EXPECT_EQ(NetType::kRegtest, address.GetNetType());
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+}
+
 TEST(Address, NoSegwitAddressFromHashTest) {
   const Pubkey pubkey = Pubkey(
       "027592aab5d43618dda13fba71e3993cd7517a712d3da49664c06ee1bd3d1f70af");
@@ -267,6 +305,39 @@ TEST(Address, SegwitAddressFromHashTest) {
                CfdException);
 }
 
+TEST(Address, TaprootAddressFromHashTest) {
+  try {
+    const ByteData pubkey = ByteData(
+        "1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb");
+    Address address;
+    address = Address(NetType::kMainnet, WitnessVersion::kVersion1, pubkey);
+    EXPECT_STREQ("bc1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8naspp3kr4",
+                address.GetAddress().c_str());
+    EXPECT_EQ(NetType::kMainnet, address.GetNetType());
+    EXPECT_EQ(AddressType::kTaprootAddress, address.GetAddressType());
+    EXPECT_EQ(WitnessVersion::kVersion1, address.GetWitnessVersion());
+    EXPECT_STREQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+                address.GetHash().GetHex().c_str());
+    EXPECT_STREQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+                address.GetSchnorrPubkey().GetHex().c_str());
+    EXPECT_STREQ("", address.GetScript().GetHex().c_str());
+    EXPECT_STREQ("51201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+        address.GetLockingScript().GetHex().c_str());
+
+    address = Address(NetType::kTestnet, WitnessVersion::kVersion1, pubkey);
+    EXPECT_STREQ("tb1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8naskf8ee6",
+                address.GetAddress().c_str());
+    EXPECT_EQ(NetType::kTestnet, address.GetNetType());
+
+    address = Address(NetType::kRegtest, WitnessVersion::kVersion1, pubkey);
+    EXPECT_STREQ("bcrt1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8nasmsdlvq",
+                address.GetAddress().c_str());
+    EXPECT_EQ(NetType::kRegtest, address.GetNetType());
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+}
+
 TEST(Address, NoSegwitAddressFromStringTest) {
   Address address;
   // P2PKH
@@ -333,6 +404,17 @@ TEST(Address, SegwitAddressFromStringTest) {
   EXPECT_EQ(NetType::kRegtest, address.GetNetType());
   EXPECT_EQ(AddressType::kP2wpkhAddress, address.GetAddressType());
   EXPECT_EQ(WitnessVersion::kVersion0, address.GetWitnessVersion());
+
+  EXPECT_NO_THROW((address = Address("bcrt1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8nasmsdlvq")));
+  EXPECT_STREQ("bcrt1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8nasmsdlvq",
+               address.GetAddress().c_str());
+  EXPECT_EQ(NetType::kRegtest, address.GetNetType());
+  EXPECT_EQ(AddressType::kTaprootAddress, address.GetAddressType());
+  EXPECT_EQ(WitnessVersion::kVersion1, address.GetWitnessVersion());
+  EXPECT_STREQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+              address.GetHash().GetHex().c_str());
+  EXPECT_STREQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+              address.GetSchnorrPubkey().GetHex().c_str());
 
   // Illegal data
   EXPECT_THROW((address = Address("bcrt1qjfw5q2ygp0gvn450h3lu0hlwjanfsc5u4fujx6")),

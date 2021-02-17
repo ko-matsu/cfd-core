@@ -305,6 +305,11 @@ void Serializer::AddDirectBytes(const ByteData& buffer) {
   AddDirectBytes(buf.data(), buf.size());
 }
 
+void Serializer::AddDirectBytes(const ByteData256& buffer) {
+  auto buf = buffer.GetBytes();
+  AddDirectBytes(buf.data(), buf.size());
+}
+
 void Serializer::AddVariableBuffer(
     const uint8_t* buffer, uint32_t buffer_size) {
   AddVariableInt(buffer_size);
@@ -344,6 +349,14 @@ void Serializer::AddDirectNumber(uint32_t number) {
 }
 
 void Serializer::AddDirectNumber(uint64_t number) {
+  CheckNeedSize(sizeof(number));
+  uint8_t* buf = &buffer_.data()[offset_];
+  // TODO(k-matsuzawa) need endian support.
+  memcpy(buf, &number, sizeof(number));
+  offset_ += sizeof(number);
+}
+
+void Serializer::AddDirectNumber(int64_t number) {
   CheckNeedSize(sizeof(number));
   uint8_t* buf = &buffer_.data()[offset_];
   // TODO(k-matsuzawa) need endian support.

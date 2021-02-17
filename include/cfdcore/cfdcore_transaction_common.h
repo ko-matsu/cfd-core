@@ -30,7 +30,8 @@ enum HashType {
   kP2pkh = 0,   //!< P2pkh
   kP2sh = 1,    //!< P2sh
   kP2wpkh = 2,  //!< P2wpkh
-  kP2wsh = 3    //!< P2wsh
+  kP2wsh = 3,   //!< P2wsh
+  kTaproot = 6  //!< Taproot
 };
 
 /**
