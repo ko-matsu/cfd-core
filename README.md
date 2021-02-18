@@ -1,17 +1,52 @@
 # Crypto Finance Development Kit Core (CFD-CORE)
 
-core moduels for cfd libraries
-
-<!-- TODO: Write Summary and Overview
+Core library for cfd libraries.
 
 ## Overview
 
--->
+This library is development kit for crypto finance application.
+Useful when developing applications for cryptocurrencies.
+
+### Target Network
+
+- Bitcoin
+- Liquid Network
+
+### Support function by cfd-core
+
+- Bitcoin
+  - Bitcoin Script (builder, viewer)
+  - Transaction
+  - PSBT (v0)
+  - ECDSA Pubkey/Privkey (Tweak, Negate, Sign, Verify)
+  - BIP32, BIP39
+  - Schnorr
+  - Output Descriptor
+  - Taproot
+  - Address (Segwit-v0, Segwit-v1, P2PKH/P2SH)
+- Liquid Network
+  - Confidential Transaction (Blind, Unblind)
+    - Issuance, Reissuance, PegIn, PegOut
+  - Confidential Address
+
+### Libraries for each language
+
+- C++ : cfd-core
+  - Core library. Definition base class.
+- C/C++ : cfd
+  - Extend the cfd-core library. Defines the C language API and extension classes.
+- Libraries to link cfd library:
+  - JavaScript : cfd-js
+  - WebAssembly : cfd-js-wasm
+  - Python : cfd-python
+  - C# : cfd-csharp
+  - Go : cfd-go
+  - Rust : cfd-rust
 
 ## Dependencies
 
 - C/C++ Compiler
-  - can compile c++11
+  - can compile c++11
 - CMake (3.14.3 or higher)
 - When using npm scripts and cmake-js
   - node.js (stable version)
@@ -89,7 +124,7 @@ cmake -D ENABLE_SHARED=1 -DCMAKE_BUILD_TYPE=Release --build build
 cmake --build build
 ```
 
-**CMake options**
+### CMake options
 
 - `-DENABLE_ELEMENTS`: Enable functionalies for elements sidechain. [ON/OFF] (default:ON)
 - `-DENABLE_SHARED`: Enable building a shared library. [ON/OFF] (default:OFF)
