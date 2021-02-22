@@ -135,7 +135,8 @@ enum AddressType {
   kP2wpkhAddress,      //!< Native segwit address (PublicKey Hash)
   kP2shP2wshAddress,   //!< P2sh wrapped address (Script Hash)
   kP2shP2wpkhAddress,  //!< P2sh wrapped address (Pubkey Hash)
-  kTaprootAddress      //!< Taproot (segwit v1) address
+  kTaprootAddress,     //!< Taproot (segwit v1) address
+  kWitnessUnknown      //!< witness unknown address
 };
 
 /**
@@ -526,12 +527,12 @@ class CFD_CORE_EXPORT Address {
    */
   void CalculateTaproot(const std::string& bech32_hrp = "");
   /**
-   * @brief calculate Taproot Address
-   * @param[in] hash_data   pubkey hash
+   * @brief calculate Bech32m Address
+   * @param[in] hash_data   hash data
    * @param[in] bech32_hrp  bech32 hrp
    */
-  void CalculateTaproot(
-      const ByteData256& hash_data,  // pubkey
+  void CalculateBech32m(
+      const ByteData& hash_data,  // hash data
       const std::string& bech32_hrp = "");
 
   /**

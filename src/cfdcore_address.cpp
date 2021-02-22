@@ -632,14 +632,7 @@ Address::Address(
       redeem_script_() {
   memset(checksum_, 0, sizeof(checksum_));
 
-  if (witness_ver_ == WitnessVersion::kVersion1) {
-    if (hash.GetDataSize() != SchnorrPubkey::kSchnorrPubkeySize) {
-      throw CfdException(kCfdIllegalArgumentError, "invalid hash size error.");
-    }
-    SetAddressType(kTaprootAddress);
-    CalculateTaproot(ByteData256(hash));
-    schnorr_pubkey_ = SchnorrPubkey(hash);
-  } else if (witness_ver_ != WitnessVersion::kVersionNone) {
+  if (witness_ver_ == WitnessVersion::kVersion0) {
     if (hash.GetDataSize() == kByteData160Length) {
       SetAddressType(kP2wpkhAddress);
       CalculateP2WPKH(ByteData160(hash.GetBytes()));
@@ -651,6 +644,15 @@ Address::Address(
       info(CFD_LOG_SOURCE, "illegal hash data. hash={}", hash.GetHex());
       throw CfdException(kCfdIllegalArgumentError, "hash value error.");
     }
+  } else if (witness_ver_ != WitnessVersion::kVersionNone) {
+    if ((witness_ver_ == WitnessVersion::kVersion1) &&
+        (hash.GetDataSize() == SchnorrPubkey::kSchnorrPubkeySize)) {
+      SetAddressType(kTaprootAddress);
+      schnorr_pubkey_ = SchnorrPubkey(hash);
+    } else {
+      SetAddressType(kWitnessUnknown);
+    }
+    CalculateBech32m(hash);
   }
 }
 
@@ -668,14 +670,7 @@ Address::Address(
       format_data_(network_parameter) {
   memset(checksum_, 0, sizeof(checksum_));
 
-  if (witness_ver_ == WitnessVersion::kVersion1) {
-    if (hash.GetDataSize() != SchnorrPubkey::kSchnorrPubkeySize) {
-      throw CfdException(kCfdIllegalArgumentError, "invalid hash size error.");
-    }
-    SetAddressType(kTaprootAddress);
-    CalculateTaproot(ByteData256(hash));
-    schnorr_pubkey_ = SchnorrPubkey(hash);
-  } else if (witness_ver_ != WitnessVersion::kVersionNone) {
+  if (witness_ver_ == WitnessVersion::kVersion0) {
     if (hash.GetDataSize() == kByteData160Length) {
       SetAddressType(kP2wpkhAddress);
       SetNetType(format_data_);
@@ -691,6 +686,16 @@ Address::Address(
       info(CFD_LOG_SOURCE, "illegal hash data. hash={}", hash.GetHex());
       throw CfdException(kCfdIllegalArgumentError, "hash value error.");
     }
+  } else if (witness_ver_ != WitnessVersion::kVersionNone) {
+    if ((witness_ver_ == WitnessVersion::kVersion1) &&
+        (hash.GetDataSize() == SchnorrPubkey::kSchnorrPubkeySize)) {
+      SetAddressType(kTaprootAddress);
+      schnorr_pubkey_ = SchnorrPubkey(hash);
+    } else {
+      SetAddressType(kWitnessUnknown);
+    }
+    SetNetType(format_data_);
+    CalculateBech32m(hash, network_parameter.GetBech32Hrp());
   }
 }
 
@@ -869,11 +874,11 @@ void Address::CalculateP2WPKH(
 
 void Address::CalculateTaproot(const std::string& bech32_hrp) {
   hash_ = schnorr_pubkey_.GetData();
-  CalculateTaproot(ByteData256(hash_), bech32_hrp);
+  CalculateBech32m(hash_, bech32_hrp);
 }
 
-void Address::CalculateTaproot(
-    const ByteData256& hash_data, const std::string& bech32_hrp) {
+void Address::CalculateBech32m(
+    const ByteData& hash_data, const std::string& bech32_hrp) {
   std::vector<uint8_t> pubkey_hash = hash_data.GetBytes();
   pubkey_hash.insert(
       pubkey_hash.begin(), static_cast<uint8_t>(kByteData256Length));
