@@ -216,7 +216,7 @@ class CFD_CORE_EXPORT DescriptorKeyInfo {
 };
 
 /**
- * @brief key型descriptorの参照クラスです.
+ * @brief It is a reference class of key type descriptor.
  */
 class CFD_CORE_EXPORT DescriptorKeyReference {
  public:
