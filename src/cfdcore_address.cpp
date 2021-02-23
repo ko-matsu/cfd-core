@@ -2,8 +2,7 @@
 /**
  * @file cfdcore_address.cpp
  * 
- * @brief \~japanese Addressを表現するクラス
- *   \~english Class to show address.
+ * @brief Class to show address.
  */
 #include "cfdcore/cfdcore_address.h"
 
@@ -14,6 +13,7 @@
 
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_script.h"
+#include "cfdcore/cfdcore_taproot.h"
 #include "cfdcore/cfdcore_util.h"
 #include "cfdcore_wally_util.h"  // NOLINT
 #include "univalue.h"            // NOLINT
@@ -558,6 +558,78 @@ Address::Address(
       format_data_(GetTargetFormatData(network_parameters, type)) {
   memset(checksum_, 0, sizeof(checksum_));
   SetNetType(format_data_);
+  CalculateTaproot(format_data_.GetBech32Hrp());
+  info(
+      CFD_LOG_SOURCE, "call Address({},{},{})", type_, addr_type_,
+      format_data_.GetBech32Hrp());
+}
+
+Address::Address(
+    NetType type, WitnessVersion witness_ver, const TaprootScriptTree& tree,
+    const SchnorrPubkey& internal_pubkey)
+    : Address(type, witness_ver, tree, internal_pubkey, "") {
+  // do nothing
+}
+
+Address::Address(
+    NetType type, WitnessVersion witness_ver, const TaprootScriptTree& tree,
+    const SchnorrPubkey& internal_pubkey, const std::string& bech32_hrp)
+    : type_((!bech32_hrp.empty()) ? kCustomChain : type),
+      addr_type_(AddressType::kTaprootAddress),
+      witness_ver_(witness_ver),
+      address_(""),
+      hash_(),
+      pubkey_(),
+      schnorr_pubkey_(),
+      script_tree_(tree),
+      redeem_script_() {
+  memset(checksum_, 0, sizeof(checksum_));
+  schnorr_pubkey_ = tree.GetTweakedPubkey(internal_pubkey);
+  CalculateTaproot(bech32_hrp);
+  info(
+      CFD_LOG_SOURCE, "call Address({},{},{})", type_, addr_type_, bech32_hrp);
+}
+
+Address::Address(
+    NetType type, WitnessVersion witness_ver, const TaprootScriptTree& tree,
+    const SchnorrPubkey& internal_pubkey,
+    const AddressFormatData& network_parameter)
+    : type_(type),
+      addr_type_(AddressType::kTaprootAddress),
+      witness_ver_(witness_ver),
+      address_(""),
+      hash_(),
+      pubkey_(),
+      schnorr_pubkey_(),
+      script_tree_(tree),
+      redeem_script_(),
+      format_data_(network_parameter) {
+  memset(checksum_, 0, sizeof(checksum_));
+  SetNetType(format_data_);
+  schnorr_pubkey_ = tree.GetTweakedPubkey(internal_pubkey);
+  CalculateTaproot(network_parameter.GetBech32Hrp());
+  info(
+      CFD_LOG_SOURCE, "call Address({},{},{})", type_, addr_type_,
+      network_parameter.GetBech32Hrp());
+}
+
+Address::Address(
+    NetType type, WitnessVersion witness_ver, const TaprootScriptTree& tree,
+    const SchnorrPubkey& internal_pubkey,
+    const std::vector<AddressFormatData>& network_parameters)
+    : type_(type),
+      addr_type_(AddressType::kTaprootAddress),
+      witness_ver_(witness_ver),
+      address_(""),
+      hash_(),
+      pubkey_(),
+      schnorr_pubkey_(),
+      script_tree_(tree),
+      redeem_script_(),
+      format_data_(GetTargetFormatData(network_parameters, type)) {
+  memset(checksum_, 0, sizeof(checksum_));
+  SetNetType(format_data_);
+  schnorr_pubkey_ = tree.GetTweakedPubkey(internal_pubkey);
   CalculateTaproot(format_data_.GetBech32Hrp());
   info(
       CFD_LOG_SOURCE, "call Address({},{},{})", type_, addr_type_,

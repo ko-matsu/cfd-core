@@ -15,6 +15,7 @@
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_schnorrsig.h"
 #include "cfdcore/cfdcore_script.h"
+#include "cfdcore/cfdcore_taproot.h"
 
 namespace cfd {
 namespace core {
@@ -353,6 +354,52 @@ class CFD_CORE_EXPORT Address {
       const std::vector<AddressFormatData>& network_parameters);
 
   /**
+   * @brief Constructor. (for Taproot)
+   * @param[in] type        NetType
+   * @param[in] witness_ver Witness version
+   * @param[in] tree                tapscript tree
+   * @param[in] internal_pubkey     internal PublicKey
+   */
+  Address(
+      NetType type, WitnessVersion witness_ver, const TaprootScriptTree& tree,
+      const SchnorrPubkey& internal_pubkey);
+  /**
+   * @brief Constructor. (for Taproot)
+   * @param[in] type        NetType
+   * @param[in] witness_ver Witness version
+   * @param[in] tree                tapscript tree
+   * @param[in] internal_pubkey     internal PublicKey
+   * @param[in] bech32_hrp  bech32 hrp
+   */
+  Address(
+      NetType type, WitnessVersion witness_ver, const TaprootScriptTree& tree,
+      const SchnorrPubkey& internal_pubkey, const std::string& bech32_hrp);
+  /**
+   * @brief Constructor. (for Taproot)
+   * @param[in] type        NetType
+   * @param[in] witness_ver Witness version
+   * @param[in] tree                tapscript tree
+   * @param[in] internal_pubkey     internal PublicKey
+   * @param[in] network_parameter   network parameter
+   */
+  Address(
+      NetType type, WitnessVersion witness_ver, const TaprootScriptTree& tree,
+      const SchnorrPubkey& internal_pubkey,
+      const AddressFormatData& network_parameter);
+  /**
+   * @brief Constructor. (for Taproot)
+   * @param[in] type        NetType
+   * @param[in] witness_ver Witness version
+   * @param[in] tree                tapscript tree
+   * @param[in] internal_pubkey     internal PublicKey
+   * @param[in] network_parameters  network parameter list
+   */
+  Address(
+      NetType type, WitnessVersion witness_ver, const TaprootScriptTree& tree,
+      const SchnorrPubkey& internal_pubkey,
+      const std::vector<AddressFormatData>& network_parameters);
+
+  /**
    * @brief Constructor. (for P2PKH/P2SH)
    * @param[in] type          NetType
    * @param[in] addr_type     Address type
@@ -449,6 +496,11 @@ class CFD_CORE_EXPORT Address {
    * @return Schnorr Pubkey
    */
   SchnorrPubkey GetSchnorrPubkey() const { return schnorr_pubkey_; }
+  /**
+   * @brief Get taproot script tree.
+   * @return taproot script tree
+   */
+  TaprootScriptTree GetScriptTree() const { return script_tree_; }
 
   /**
    * @brief Get Redeem Script.
@@ -583,7 +635,8 @@ class CFD_CORE_EXPORT Address {
   //! PublicKey
   Pubkey pubkey_;
 
-  SchnorrPubkey schnorr_pubkey_;  //!< Schnorr PublicKey
+  SchnorrPubkey schnorr_pubkey_;   //!< Schnorr PublicKey
+  TaprootScriptTree script_tree_;  //!< Taproot ScriptTree
 
   //! Redeem Script
   Script redeem_script_;
