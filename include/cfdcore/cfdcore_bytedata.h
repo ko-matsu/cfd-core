@@ -2,7 +2,7 @@
 /**
  * @file cfdcore_bytedata.h
  *
- * @brief ByteData関連クラス定義
+ * @brief The ByteData related class definition.
  */
 
 #ifndef CFD_CORE_INCLUDE_CFDCORE_CFDCORE_BYTEDATA_H_
@@ -22,24 +22,24 @@ class ByteData256;
 
 /**
  * @class ByteData
- * @brief 可変サイズのByte配列データクラス
+ * @brief The variable size byte array data class.
  */
 class CFD_CORE_EXPORT ByteData {
  public:
   /**
-   * @brief デフォルトコンストラクタ
+   * @brief default constructor.
    */
   ByteData();
 
   /**
-   * @brief コンストラクタ
-   * @param[in] vector  格納Byte配列
+   * @brief constructor
+   * @param[in] vector  byte array.
    */
   ByteData(const std::vector<uint8_t>& vector);  // NOLINT
 
   /**
-   * @brief コンストラクタ
-   * @param[in] hex  Byteデータ HEX文字列
+   * @brief constructor
+   * @param[in] hex  hex string.
    */
   explicit ByteData(const std::string& hex);
 
@@ -51,42 +51,42 @@ class CFD_CORE_EXPORT ByteData {
   explicit ByteData(const uint8_t* buffer, uint32_t size);
 
   /**
-   * @brief HEX文字列を取得する.
-   * @return HEX文字列
+   * @brief Get a hex string.
+   * @return hex string.
    */
   std::string GetHex() const;
 
   /**
-   * @brief Byte配列を取得する.
-   * @return Byte配列
+   * @brief Get a byte array.
+   * @return byte array.
    */
   std::vector<uint8_t> GetBytes() const;
 
   /**
-   * @brief データサイズを取得する.
-   * @return Byte配列サイズ
+   * @brief Get a byte data size.
+   * @return byte data size.
    */
   size_t GetDataSize() const;
 
   /**
-   * @brief データが空か取得する.
-   * @retval true  データが空
-   * @retval false データが存在
+   * @brief Check is data empty.
+   * @retval true   empty.
+   * @retval false  not empty.
    * @deprecated replace to IsEmpty .
    */
   bool Empty() const;
   /**
-   * @brief データが空か取得する.
-   * @retval true  データが空
-   * @retval false データが存在
+   * @brief Check is data empty.
+   * @retval true   empty.
+   * @retval false  not empty.
    */
   bool IsEmpty() const;
 
   /**
-   * @brief ByteData比較
-   * @param bytedata 比較対象のオブジェクト
-   * @retval true 一致した場合
-   * @retval false 不一致の場合
+   * @brief Check equals.
+   * @param bytedata  compare target object.
+   * @retval true   equals.
+   * @retval false  not equals.
    */
   bool Equals(const ByteData& bytedata) const;
 
@@ -98,13 +98,13 @@ class CFD_CORE_EXPORT ByteData {
   uint8_t GetHeadData() const;
 
   /**
-   * @brief byte data情報をserializeする.
+   * @brief Serialize byte data.
    * @return serialize data
    */
   ByteData Serialize() const;
 
   /**
-   * @brief serializeされたbyte dataのサイズを取得する。
+   * @brief Get the serialized size.
    * @return serialize data size
    */
   size_t GetSerializeSize() const;
@@ -192,48 +192,48 @@ class CFD_CORE_EXPORT ByteData {
   void Push(const ByteData256& back_insert_data);
 
   /**
-   * @brief 可変長サイズ情報(バッファ)を取得する.
+   * @brief Get the variable integer buffer.
    * @param[in] value    size value
    * @return variable size buffer
    */
   static ByteData GetVariableInt(uint64_t value);
 
   /**
-   * @brief 指定された2つのバッファのHEX値を比較する.
+   * @brief Compare the HEX values ​​of the two specified buffers.
    * @param[in] source        source target
    * @param[in] destination   destination target
-   * @retval true   大きい
-   * @retval false  小さい
+   * @retval true   Large
+   * @retval false  Small or equals.
    */
   static bool IsLarge(const ByteData& source, const ByteData& destination);
 
  private:
   /**
-   * @brief データ格納Byte配列
+   * @brief データbyte array.
    */
   std::vector<uint8_t> data_;
 };
 
 /**
  * @class ByteData160
- * @brief サイズ固定(20byte)のByte配列データクラス
+ * @brief Fixed size (20 bytes) Byte array data class
  */
 class CFD_CORE_EXPORT ByteData160 {
  public:
   /**
-   * @brief デフォルトコンストラクタ
+   * @brief default constructor
    */
   ByteData160();
 
   /**
-   * @brief コンストラクタ
-   * @param[in] vector  20byteデータ格納Byte配列
+   * @brief constructor
+   * @param[in] vector  byte array(20byte).
    */
   ByteData160(const std::vector<uint8_t>& vector);  // NOLINT
 
   /**
-   * @brief コンストラクタ
-   * @param[in] hex  ByteデータHEX文字列
+   * @brief constructor
+   * @param[in] hex  hex string.
    */
   explicit ByteData160(const std::string& hex);
 
@@ -244,41 +244,41 @@ class CFD_CORE_EXPORT ByteData160 {
   explicit ByteData160(const ByteData& byte_data);
 
   /**
-   * @brief HEX文字列を取得する.
-   * @return HEX文字列
+   * @brief Get a hex string.
+   * @return hex string.
    */
   std::string GetHex() const;
 
   /**
-   * @brief Byte配列を取得する.
-   * @return Byte配列
+   * @brief Get a byte array.
+   * @return byte array.
    */
   std::vector<uint8_t> GetBytes() const;
 
   /**
-   * @brief データが空か取得する.
-   * @retval true  データが空
-   * @retval false データが存在
+   * @brief Check is data empty.
+   * @retval true   empty.
+   * @retval false  not empty.
    * @deprecated replace to IsEmpty .
    */
   bool Empty() const;
   /**
-   * @brief データが空か取得する.
-   * @retval true  データが空
-   * @retval false データが存在
+   * @brief Check is data empty.
+   * @retval true   empty.
+   * @retval false  not empty.
    */
   bool IsEmpty() const;
 
   /**
-   * @brief ByteData比較
-   * @param bytedata 比較対象のオブジェクト
-   * @retval true 一致した場合
-   * @retval false 不一致の場合
+   * @brief Check equals.
+   * @param bytedata  compare target object.
+   * @retval true   equals.
+   * @retval false  not equals.
    */
   bool Equals(const ByteData160& bytedata) const;
 
   /**
-   * @brief byte data情報を取得する.
+   * @brief Get a byte data object.
    * @return byte data
    */
   ByteData GetData() const;
@@ -357,38 +357,38 @@ class CFD_CORE_EXPORT ByteData160 {
   }
 
   /**
-   * @brief byte data情報をserializeする.
+   * @brief Serialize byte data.
    * @return serialize data
    */
   ByteData Serialize() const;
 
  private:
   /**
-   * @brief 20byte固定データ格納Byte配列
+   * @brief 20byte fixed data.
    */
   std::vector<uint8_t> data_;
 };
 
 /**
  * @class ByteData256
- * @brief サイズ固定(32byte)のByte配列データクラス
+ * @brief Fixed size (32 bytes) Byte array data class.
  */
 class CFD_CORE_EXPORT ByteData256 {
  public:
   /**
-   * @brief デフォルトコンストラクタ
+   * @brief default constructor
    */
   ByteData256();
 
   /**
-   * @brief コンストラクタ
-   * @param[in] vector  32byteデータ格納Byte配列
+   * @brief constructor
+   * @param[in] vector  byte array(32byte).
    */
   ByteData256(const std::vector<uint8_t>& vector);  // NOLINT
 
   /**
-   * @brief コンストラクタ
-   * @param[in] hex  ByteデータHEX文字列
+   * @brief constructor
+   * @param[in] hex  hex string.
    */
   explicit ByteData256(const std::string& hex);
 
@@ -399,41 +399,41 @@ class CFD_CORE_EXPORT ByteData256 {
   explicit ByteData256(const ByteData& byte_data);
 
   /**
-   * @brief HEX文字列を取得する.
-   * @return HEX文字列
+   * @brief Get a hex string.
+   * @return hex string.
    */
   std::string GetHex() const;
 
   /**
-   * @brief Byte配列を取得する.
-   * @return Byte配列
+   * @brief Get a byte array.
+   * @return byte array.
    */
   std::vector<uint8_t> GetBytes() const;
 
   /**
-   * @brief データが空か取得する.
-   * @retval true  データが空
-   * @retval false データが存在
+   * @brief Check is data empty.
+   * @retval true   empty.
+   * @retval false  not empty.
    * @deprecated replace to IsEmpty .
    */
   bool Empty() const;
   /**
-   * @brief データが空か取得する.
-   * @retval true  データが空
-   * @retval false データが存在
+   * @brief Check is data empty.
+   * @retval true   empty.
+   * @retval false  not empty.
    */
   bool IsEmpty() const;
 
   /**
-   * @brief ByteData比較
-   * @param bytedata 比較対象のオブジェクト
-   * @retval true 一致した場合
-   * @retval false 不一致の場合
+   * @brief Check equals.
+   * @param bytedata  compare target object.
+   * @retval true   equals.
+   * @retval false  not equals.
    */
   bool Equals(const ByteData256& bytedata) const;
 
   /**
-   * @brief byte data情報を取得する.
+   * @brief Get a byte data object.
    * @return byte data
    */
   ByteData GetData() const;
@@ -512,14 +512,14 @@ class CFD_CORE_EXPORT ByteData256 {
   }
 
   /**
-   * @brief byte data情報をserializeする.
+   * @brief Serialize byte data.
    * @return serialize data
    */
   ByteData Serialize() const;
 
  private:
   /**
-   * @brief 32byte固定データ格納Byte配列
+   * @brief 32byte fixed data.
    */
   std::vector<uint8_t> data_;
 };
