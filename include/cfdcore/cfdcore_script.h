@@ -2,7 +2,7 @@
 /**
  * @file cfdcore_script.h
  *
- * @brief Script関連クラス定義
+ * @brief The script related class definition.
  *
  */
 #ifndef CFD_CORE_INCLUDE_CFDCORE_CFDCORE_SCRIPT_H_
@@ -296,13 +296,13 @@ enum ScriptType {
 class Script;
 
 /**
- * @brief Script操作定義クラス。
+ * @brief Script Operation definition class.
  * @details
- * OP_XXXXの定義値についてですが、使用時は以下に注意してください。
- * - static linkする場合は、グローバル変数の初期値に使用しないこと。
- *   - 初期化順序の関係で、未初期化状態で設定されることがあります。
- *   - グローバル変数の初期値に使う場合、
- *     ScriptOperatorではなくScriptTypeを使用して下さい。
+ * Regarding the definition value of OP_XXXX, please note the following when using it.
+ * - When statically linking, do not use it as the initial value of global variables.
+ *   - Due to the initialization order, it may be set in the uninitialized state.
+ *   - When using it as the initial value of a global variable, \
+ *     use ScriptType instead of ScriptOperator.
  */
 class CFD_CORE_EXPORT ScriptOperator {
  public:
@@ -604,54 +604,50 @@ class CFD_CORE_EXPORT ScriptOperator {
   ScriptOperator &operator=(const ScriptOperator &object);
 
   /**
-   * @brief 等価比較オペレータ
-   * @param[in] object     比較対象
-   * @retval true 等価
-   * @retval false 不等価
-   * @return 等価であればtrue, それ以外はfalse
+   * @brief Equals operator.
+   * @param[in] object     object
+   * @retval true   equals
+   * @retval false  not equals
    */
   bool operator==(const ScriptOperator &object) const;
   /**
-   * @brief 不等価比較オペレータ
-   * @param[in] object     比較対象
-   * @retval true 不等価
-   * @retval false 等価
-   * @return 不等価であればtrue, それ以外はfalse
+   * @brief Not Equals operator.
+   * @param[in] object     object
+   * @retval true   not equals
+   * @retval false  equals
    */
   bool operator!=(const ScriptOperator &object) const;
   /**
-   * @brief 比較オペレータ
-   * @param[in] object     比較対象
-   * @retval true 条件に合致
-   * @retval false 条件に合致せず
+   * @brief Compare operator.
+   * @param[in] object     object
+   * @retval true   match
+   * @retval false  unmatch
    */
   bool operator<(const ScriptOperator &object) const;
   /**
-   * @brief 比較オペレータ
-   * @param[in] object     比較対象
-   * @retval true 条件に合致
-   * @retval false 条件に合致せず
+   * @brief Compare operator.
+   * @param[in] object     object
+   * @retval true   match
+   * @retval false  unmatch
    */
   bool operator<=(const ScriptOperator &object) const;
   /**
-   * @brief 比較オペレータ
-   * @param[in] object     比較対象
-   * @retval true 条件に合致
-   * @retval false 条件に合致せず
+   * @brief Compare operator.
+   * @param[in] object     object
+   * @retval true   match
+   * @retval false  unmatch
    */
   bool operator>(const ScriptOperator &object) const;
   /**
-   * @brief 比較オペレータ
-   * @param[in] object     比較対象
-   * @retval true 条件に合致
-   * @retval false 条件に合致せず
+   * @brief Compare operator.
+   * @param[in] object     object
+   * @retval true   match
+   * @retval false  unmatch
    */
   bool operator>=(const ScriptOperator &object) const;
 
   /**
    * @brief default constructor.
-   *
-   * リスト型使用時のため.
    */
   ScriptOperator()
       : data_type_(kOpInvalidOpCode), text_data_("OP_INVALIDOPCODE") {
@@ -677,117 +673,116 @@ class CFD_CORE_EXPORT ScriptOperator {
 };
 
 /**
- * @brief Script要素保持クラス。
+ * @brief Script element class.
  */
 class CFD_CORE_EXPORT ScriptElement {
  public:
   /**
-   * @brief コンストラクタ.
-   * @param[in] element     オブジェクト
+   * @brief constructor.
+   * @param[in] element     object
    */
   ScriptElement(const ScriptElement &element);
   /**
-   * @brief コンストラクタ.
+   * @brief constructor.
    * @param[in] type     OP_CODE
    */
   explicit ScriptElement(const ScriptType &type);
   /**
-   * @brief コンストラクタ.
+   * @brief constructor.
    * @param[in] op_code     OP_CODE
    */
   explicit ScriptElement(const ScriptOperator &op_code);
   /**
-   * @brief コンストラクタ.
+   * @brief constructor.
    * @param[in] binary_data   binary data
    */
   explicit ScriptElement(const ByteData &binary_data);
   /**
-   * @brief コンストラクタ.
+   * @brief constructor.
    * @param[in] value       script number.
    */
   explicit ScriptElement(int64_t value);
   /**
-   * @brief デストラクタ.
+   * @brief destructor.
    */
   virtual ~ScriptElement() {
     // do nothing
   }
   /**
-   * @brief コピーコンストラクタ.
-   * @param[in] element     オブジェクト
-   * @return オブジェクト
+   * @brief copy constructor.
+   * @param[in] element     object
+   * @return object
    */
   ScriptElement &operator=(const ScriptElement &element);
 
   /**
-   * @brief 要素種別を取得する.
-   * @return 要素種別.
+   * @brief Get the element type.
+   * @return element type.
    */
   ScriptElementType GetType() const;
   /**
-   * @brief OP_CODEを取得する.
+   * @brief Get the OP_CODE.
    * @return OP_CODE
    */
   const ScriptOperator &GetOpCode() const;
   /**
-   * @brief バイナリ値を取得する.
-   * @return バイナリ値
+   * @brief Get a binary data.
+   * @return binary data.
    */
   ByteData GetBinaryData() const;
   /**
-   * @brief 数値情報を取得する.
-   * @return 数値情報
+   * @brief Get a numeric value.
+   * @return numeric value.
    */
   int64_t GetNumber() const;
 
   /**
-   * @brief バイト配列を取得する.
-   * @return バイト配列
+   * @brief Get a byte array.
+   * @return byte array.
    */
   ByteData GetData() const;
   /**
-   * @brief 文字列情報を取得する.
-   * @return 文字列情報
+   * @brief Get a stirng data.
+   * @return string data.
    */
   std::string ToString() const;
 
   /**
-   * @brief OP_CODE型の情報かどうか判定する.
+   * @brief Determine if it is OP_CODE type information.
    * @retval true   OP_CODE
-   * @retval false  その他
+   * @retval false  other
    */
   bool IsOpCode() const { return type_ == kElementOpCode; }
 
   /**
-   * @brief 数値型の情報かどうか判定する.
-   * @retval true   数値型
-   * @retval false  その他
+   * @brief Determine if it is numeric type information.
+   * @retval true   Numeric type
+   * @retval false  other type
    */
   bool IsNumber() const {
-    // 数値型明示 or 数値が入っている or OP_0 の何れかなら数値とみなす
+    // If either the numeric type is specified, the number is included, \
+    // or OP_0 is specified, it is regarded as a number.
     return (type_ == kElementNumber) || (value_ != 0) ||
            (op_code_.GetDataType() == kOp_0);
   }
 
   /**
-   * @brief バイナリ情報かどうか判定する.
-   * @retval true   バイナリ情報
-   * @retval false  その他
+   * @brief Determine if it is binary information.
+   * @retval true   Binary information
+   * @retval false  other
    */
   bool IsBinary() const { return type_ == kElementBinary; }
 
   /**
-   * @brief バイナリ値から数値型に変換する.
-   * @param[out] int64_value    数値
-   * @retval true   数値型変換OK
-   * @retval false  数値型変換NG
+   * @brief Convert from a binary value to a numeric type.
+   * @param[out] int64_value    numeric
+   * @retval true   conversion OK
+   * @retval false  conversion fail.
    */
   bool ConvertBinaryToNumber(int64_t *int64_value = nullptr) const;
 
   /**
-   * @brief デフォルトコンストラクタ.
-   *
-   * リスト作成のため.
+   * @brief default constructor.
    */
   ScriptElement()
       : type_(kElementOpCode), op_code_(), binary_data_(), value_(0) {
@@ -795,15 +790,15 @@ class CFD_CORE_EXPORT ScriptElement {
   }
 
  private:
-  ScriptElementType type_;  ///< 要素種別
+  ScriptElementType type_;  ///< element type
   ScriptOperator op_code_;  ///< OP_CODE
-  ByteData binary_data_;    ///< バイナリ情報
-  int64_t value_;           ///< 数値
+  ByteData binary_data_;    ///< binary data
+  int64_t value_;           ///< numeric value
 
   /**
-   * @brief             Scriptに追加する数値をbyteデータに変換する
-   * @param[in] value   scriptに追加する数値
-   * @return            numberをserializeしたbyteデータ
+   * @brief Convert the numerical value to be added to Script to byte data.
+   * @param[in] value   Numerical value to add to script
+   * @return Byte data with serialized number
    */
   static std::vector<uint8_t> SerializeScriptNum(int64_t value);
 };
@@ -1027,7 +1022,7 @@ class CFD_CORE_EXPORT Script {
 };
 
 /**
- * @brief script builderクラス.
+ * @brief script builder class.
  */
 class CFD_CORE_EXPORT ScriptBuilder {
  public:
@@ -1124,95 +1119,95 @@ class CFD_CORE_EXPORT ScriptBuilder {
 };
 
 /**
- * @brief Scriptを作成する関数群クラス
+ * @brief Utility class that creates Script.
  */
 class CFD_CORE_EXPORT ScriptUtil {
  public:
   /**
-   * @brief P2PKのlocking scriptを作成する.
-   * @param[in] pubkey Pubkeyインスタンス
-   * @return Scriptインスタンス
-   * @details 下記の内容のScriptを作成する.
+   * @brief Create a P2PK locking script.
+   * @param[in] pubkey Pubkey
+   * @return Script
+   * @details Create a Script with the following content.
    * @code{.unparse}
    * <pubkey> OP_CHECKSIG
    * @endcode
    */
   static Script CreateP2pkLockingScript(const Pubkey &pubkey);
   /**
-   * @brief P2PKHのlocking scriptを作成する.
-   * @param[in] pubkey_hash pubkey hashが格納されたByteData160インスタンス
-   * @return Scriptインスタンス
-   * @details 下記の内容のScriptを作成する.
+   * @brief Create a P2PKH locking script.
+   * @param[in] pubkey_hash pubkey hash
+   * @return Script
+   * @details Create a Script with the following content.
    * @code{.unparse}
    * OP_DUP OP_HASH160 <hash160(pubkey)> OP_EQUALVERIFY OP_CHECKSIG
    * @endcode
    */
   static Script CreateP2pkhLockingScript(const ByteData160 &pubkey_hash);
   /**
-   * @brief P2PKHのlocking scriptを作成する.
-   * @param[in] pubkey Pubkeyインスタンス
-   * @return Scriptインスタンス
-   * @details 下記の内容のScriptを作成する.
+   * @brief Create a P2PKH locking script.
+   * @param[in] pubkey Pubkey
+   * @return Script
+   * @details Create a Script with the following content.
    * @code{.unparse}
    * OP_DUP OP_HASH160 <hash160(pubkey)> OP_EQUALVERIFY OP_CHECKSIG
    * @endcode
    */
   static Script CreateP2pkhLockingScript(const Pubkey &pubkey);
   /**
-   * @brief P2SHのlocking scriptを作成する.
-   * @param[in] script_hash script hashが格納されたByteData160インスタンス
-   * @return Scriptインスタンス
-   * @details 下記の内容のScriptを作成する.
+   * @brief Create a P2SH locking script.
+   * @param[in] script_hash script hash
+   * @return Script
+   * @details Create a Script with the following content.
    * @code{.unparse}
    * OP_HASH160 <hash160(redeemScript)> OP_EQUAL
    * @endcode
    */
   static Script CreateP2shLockingScript(const ByteData160 &script_hash);
   /**
-   * @brief P2SHのlocking scriptを作成する.
-   * @param[in] redeem_script redeem scriptのScriptインスタンス
-   * @return Scriptインスタンス
-   * @details 下記の内容のScriptを作成する.
+   * @brief Create a P2SH locking script.
+   * @param[in] redeem_script redeem script
+   * @return Script
+   * @details Create a Script with the following content.
    * @code{.unparse}
    * OP_HASH160 <hash160(redeemScript)> OP_EQUAL
    * @endcode
    */
   static Script CreateP2shLockingScript(const Script &redeem_script);
   /**
-   * @brief P2WPKHのlocking scriptを作成する.
-   * @param[in] pubkey_hash pubkey hashが格納されたByteData160インスタンス
-   * @return Scriptインスタンス
-   * @details 下記の内容のScriptを作成する.
+   * @brief Create a P2WPKH locking script.
+   * @param[in] pubkey_hash pubkey hash
+   * @return Script
+   * @details Create a Script with the following content.
    * @code{.unparse}
    * OP_0 <hash160(pubkey)>
    * @endcode
    */
   static Script CreateP2wpkhLockingScript(const ByteData160 &pubkey_hash);
   /**
-   * @brief P2WPKHのlocking scriptを作成する.
-   * @param[in] pubkey Pubkeyインスタンス
-   * @return Scriptインスタンス
-   * @details 下記の内容のScriptを作成する.
+   * @brief Create a P2WPKH locking script.
+   * @param[in] pubkey Pubkey
+   * @return Script
+   * @details Create a Script with the following content.
    * @code{.unparse}
    * OP_0 <hash160(pubkey)>
    * @endcode
    */
   static Script CreateP2wpkhLockingScript(const Pubkey &pubkey);
   /**
-   * @brief P2WSHのlocking scriptを作成する.
-   * @param[in] script_hash script hashのByteData256インスタンス
-   * @return Scriptインスタンス
-   * @details 下記の内容のScriptを作成する.
+   * @brief Create a P2WSH locking script.
+   * @param[in] script_hash  script hash
+   * @return Script
+   * @details Create a Script with the following content.
    * @code{.unparse}
    * OP_0 <sha256(redeemScript)>
    * @endcode
    */
   static Script CreateP2wshLockingScript(const ByteData256 &script_hash);
   /**
-   * @brief P2WSHのlocking scriptを作成する.
-   * @param[in] redeem_script redeem scriptのScriptインスタンス
-   * @return Scriptインスタンス
-   * @details 下記の内容のScriptを作成する.
+   * @brief Create a P2WSH locking script.
+   * @param[in] redeem_script redeem script
+   * @return Script
+   * @details Create a Script with the following content.
    * @code{.unparse}
    * OP_0 <sha256(redeemScript)>
    * @endcode
@@ -1229,32 +1224,37 @@ class CFD_CORE_EXPORT ScriptUtil {
    */
   static Script CreateTaprootLockingScript(const ByteData256 &data);
   /**
-   * @brief RedeemScriptが有効なものであるかをチェックする.
+   * @brief Check if Redeem Script is valid.
    * @param[in] redeem_script redeem script
-   * @retval true 有効なredeem script
-   * @retval false 有効でないredeem script
+   * @retval true   valid
+   * @retval false  invalid
    */
   static bool IsValidRedeemScript(const Script &redeem_script);
   /**
-   * @brief M-of-N Multisigのredeem scriptを作成する.
-   * @param[in] require_sig_num unlockingに必要なSignature数（Mに相当）
-   * @param[in] pubkeys 署名に対応するPubkey配列（Nに相当）
-   * @return Scriptインスタンス
-   * @details 下記の内容のScriptを作成する.
+   * @brief Create redeem script of the M-of-N Multisig.
+   * @param[in] require_sig_num \
+   *    Number of Signatures required for unlocking (equivalent to M)
+   * @param[in] pubkeys   Pubkey array corresponding to the signature. \
+   *    (equivalent to N)
+   * @return Script
+   * @details Create a Script with the following content.
    * @code{.unparse}
    * OP_<requireSigNum> <pubkey> ... OP_n OP_CHECKMULTISIG
    * @endcode
    */
   static Script CreateMultisigRedeemScript(
       uint32_t require_sig_num, const std::vector<Pubkey> &pubkeys);
+
 #ifndef CFD_DISABLE_ELEMENTS
   /**
-   * @brief Pegoutのlocking scriptを作成する.
-   * @param[in] genesisblock_hash mainchainのgenesisblock hash
-   * @param[in] parent_locking_script 送り先 bitcoin address の locking script
-   * @param[in] btc_pubkey_bytes DerivePubTweak関数で作られたpubkey情報
-   * @param[in] whitelist_proof whitelistの証明
-   * @return Scriptインスタンス
+   * @brief Create a Pegout locking script.
+   * @param[in] genesisblock_hash   mainchain genesis block hash
+   * @param[in] parent_locking_script  \
+   *    Destination bitcoin address locking script
+   * @param[in] btc_pubkey_bytes  \
+   *    Pubkey information created by the DerivePubTweak function
+   * @param[in] whitelist_proof   Proof of whitelist
+   * @return Script
    * @code{.unparse}
    * OP_RETURN <genesis block hash> <bitcoin address lockingScript> <tweaked pubkey bytes> <whitelistproof>
    * @endcode

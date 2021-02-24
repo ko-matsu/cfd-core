@@ -13,7 +13,7 @@
 #include "cfdcore/cfdcore_util.h"
 #include "cfdcore/cfdcore_bytedata.h"
 
-using cfd::core::TaprootMerkleTree;
+using cfd::core::TaprootScriptTree;
 using cfd::core::TaprootUtil;
 using cfd::core::ByteData;
 using cfd::core::ByteData256;
@@ -63,7 +63,7 @@ TEST(TaprootUtil, CreateTapScriptControl) {
     ByteData256("4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d"),
     ByteData256("dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54")
   };
-  TaprootMerkleTree tree(redeem_script);
+  TaprootScriptTree tree(redeem_script);
   tree.AddBranch(nodes[0]);
   tree.AddBranch(SchnorrPubkey(nodes[1]));
   // auto pk = tree.GetTweakedPubkey(schnorr_pubkey);
@@ -136,7 +136,7 @@ TEST(TaprootUtil, CreateTapScriptControlParityBit) {
     ByteData256("4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d"),
     ByteData256("dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d57")
   };
-  TaprootMerkleTree tree(redeem_script);
+  TaprootScriptTree tree(redeem_script);
   tree.AddBranch(nodes[0]);
   tree.AddBranch(SchnorrPubkey(nodes[1]));
   // auto pk = tree.GetTweakedPubkey(schnorr_pubkey);
@@ -225,7 +225,7 @@ TEST(TaprootUtil, ParseAndVerifyTapScript) {
       &pk, &nodes, &tapscript, &script_stack, &annex);
   EXPECT_EQ("", sig.GetHex());
   EXPECT_FALSE(parity);
-  uint8_t ver = TaprootMerkleTree::kTapScriptLeafVersion;
+  uint8_t ver = TaprootScriptTree::kTapScriptLeafVersion;
   EXPECT_EQ(ver, tapleaf_flag);
   EXPECT_EQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb", pk.GetHex());
   EXPECT_EQ(2, nodes.size());
@@ -266,7 +266,7 @@ TEST(TaprootUtil, ParseAndVerifyTapScriptParityBit) {
       &pk, &nodes, &tapscript, &script_stack, &annex);
   EXPECT_EQ("", sig.GetHex());
   EXPECT_TRUE(parity);
-  uint8_t ver = TaprootMerkleTree::kTapScriptLeafVersion;
+  uint8_t ver = TaprootScriptTree::kTapScriptLeafVersion;
   EXPECT_EQ(ver, tapleaf_flag);
   EXPECT_EQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb", pk.GetHex());
   EXPECT_EQ(2, nodes.size());

@@ -25,39 +25,38 @@ namespace core {
 using logger::warn;
 
 // ----------------------------------------------------------------------------
-// TaprootMerkleTree
+// TapBranch
 // ----------------------------------------------------------------------------
-TaprootMerkleTree::TaprootMerkleTree()
-    : leaf_version_(kTapScriptLeafVersion) {}
+TapBranch::TapBranch() : has_leaf_(false), leaf_version_(0) {}
 
-TaprootMerkleTree::TaprootMerkleTree(const Script& script)
-    : TaprootMerkleTree(kTapScriptLeafVersion, script) {}
-
-TaprootMerkleTree::TaprootMerkleTree(
-    uint8_t leaf_version, const Script& script)
-    : leaf_version_(leaf_version), script_(script) {
-  if (!TaprootUtil::IsValidLeafVersion(leaf_version)) {
-    warn(CFD_LOG_SOURCE, "Unsupported leaf version. [{}]", leaf_version);
-    throw CfdException(
-        CfdError::kCfdIllegalArgumentError, "Unsupported leaf version.");
-  }
+TapBranch::TapBranch(const ByteData256& commitment)
+    : has_leaf_(false), leaf_version_(0) {
+  root_commitment_ = commitment;
 }
 
-TaprootMerkleTree::TaprootMerkleTree(const TaprootMerkleTree& tap_tree) {
+TapBranch::TapBranch(const TapBranch& tap_tree) {
+  has_leaf_ = tap_tree.has_leaf_;
   leaf_version_ = tap_tree.leaf_version_;
   script_ = tap_tree.script_;
-  nodes_ = tap_tree.nodes_;
+  root_commitment_ = tap_tree.root_commitment_;
+  branch_list_ = tap_tree.branch_list_;
 }
 
-void TaprootMerkleTree::AddBranch(const SchnorrPubkey& pubkey) {
-  nodes_.emplace_back(pubkey.GetByteData256());
+void TapBranch::AddBranch(const SchnorrPubkey& pubkey) {
+  AddBranch(pubkey.GetByteData256());
 }
 
-void TaprootMerkleTree::AddBranch(const ByteData256& tweak) {
-  nodes_.emplace_back(tweak);
+void TapBranch::AddBranch(const ByteData256& commitment) {
+  branch_list_.emplace_back(commitment);
 }
 
-ByteData256 TaprootMerkleTree::GetTapLeafHash() const {
+void TapBranch::AddBranch(const TapBranch& branch) {
+  branch_list_.emplace_back(branch);
+}
+
+ByteData256 TapBranch::GetRootHash() const {
+  if (!has_leaf_) return root_commitment_;
+
   Serializer builder;
   auto tagged_hash = HashUtil::Sha256("TapLeaf");
   builder.AddDirectBytes(tagged_hash);
@@ -67,12 +66,14 @@ ByteData256 TaprootMerkleTree::GetTapLeafHash() const {
   return HashUtil::Sha256(builder.Output());
 }
 
-ByteData256 TaprootMerkleTree::GetCurrentBranchHash() const {
-  ByteData256 hash = GetTapLeafHash();
+ByteData256 TapBranch::GetCurrentBranchHash() const {
+  ByteData256 hash = GetRootHash();
+  if (branch_list_.empty()) return hash;
 
   auto tagged_hash = HashUtil::Sha256("TapBranch");
   ByteData tapbranch_base = tagged_hash.Concat(tagged_hash);
-  for (const auto& node : nodes_) {
+  auto nodes = GetNodeList();
+  for (const auto& node : nodes) {
     const auto& node_bytes = node.GetBytes();
     const auto& hash_bytes = hash.GetBytes();
     if (std::lexicographical_compare(
@@ -86,7 +87,142 @@ ByteData256 TaprootMerkleTree::GetCurrentBranchHash() const {
   return hash;
 }
 
-ByteData256 TaprootMerkleTree::GetTweak(
+bool TapBranch::HasTapLeaf() const { return has_leaf_; }
+
+uint8_t TapBranch::GetLeafVersion() const { return leaf_version_; }
+
+Script TapBranch::GetScript() const { return script_; }
+
+std::vector<TapBranch> TapBranch::GetBranchList() const {
+  return branch_list_;
+}
+
+std::vector<ByteData256> TapBranch::GetNodeList() const {
+  std::vector<ByteData256> list;
+  for (const auto& branch : branch_list_) {
+    list.emplace_back(branch.GetCurrentBranchHash());
+  }
+  return list;
+}
+
+std::string TapBranch::ToString() const {
+  std::string buf;
+  if (has_leaf_) {
+    buf = "tapleaf(" + std::to_string(leaf_version_) + ",tapscript(" +
+          script_.GetHex() + "))";
+  } else {
+    buf = root_commitment_.GetHex();
+  }
+  if (branch_list_.empty()) return buf;
+
+  ByteData256 hash = GetRootHash();
+  auto tagged_hash = HashUtil::Sha256("TapBranch");
+  ByteData tapbranch_base = tagged_hash.Concat(tagged_hash);
+  auto nodes = GetNodeList();
+  for (const auto& branch : branch_list_) {
+    const auto node = branch.GetCurrentBranchHash();
+    const auto& node_bytes = node.GetBytes();
+    const auto& hash_bytes = hash.GetBytes();
+    if (std::lexicographical_compare(
+            hash_bytes.begin(), hash_bytes.end(), node_bytes.begin(),
+            node_bytes.end())) {
+      hash = HashUtil::Sha256(tapbranch_base.Concat(hash, node));
+      buf = "tap_br(" + buf + "," + branch.ToString() + ")";
+    } else {
+      hash = HashUtil::Sha256(tapbranch_base.Concat(node, hash));
+      buf = "tap_br(" + branch.ToString() + "," + buf + ")";
+    }
+  }
+  return buf;
+}
+
+#if 0  // for feature
+TapBranch TapBranch::FromString(const std::string& text) {
+  // tap_br(tap_br(A,B),tap_br(tap_br(C),tapleaf(192,1122330011221100)))
+  for (size_t idx = 0; idx < text.size(); ++idx) {
+    const char& str = text[idx];
+  }
+  return TapBranch();
+}
+#endif
+
+// ----------------------------------------------------------------------------
+// TaprootScriptTree
+// ----------------------------------------------------------------------------
+TaprootScriptTree::TaprootScriptTree() {
+  has_leaf_ = true;
+  leaf_version_ = kTapScriptLeafVersion;
+}
+
+TaprootScriptTree::TaprootScriptTree(const Script& script)
+    : TaprootScriptTree(kTapScriptLeafVersion, script) {}
+
+TaprootScriptTree::TaprootScriptTree(
+    uint8_t leaf_version, const Script& script) {
+  has_leaf_ = true;
+  leaf_version_ = leaf_version;
+  script_ = script;
+  if (!TaprootUtil::IsValidLeafVersion(leaf_version)) {
+    warn(CFD_LOG_SOURCE, "Unsupported leaf version. [{}]", leaf_version);
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Unsupported leaf version.");
+  }
+}
+
+TaprootScriptTree::TaprootScriptTree(const TapBranch& leaf_branch) {
+  if (!leaf_branch.HasTapLeaf()) {
+    warn(CFD_LOG_SOURCE, "object is not tapleaf.");
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "object is not tapleaf.");
+  }
+  if (!TaprootUtil::IsValidLeafVersion(leaf_branch.GetLeafVersion())) {
+    warn(
+        CFD_LOG_SOURCE, "Unsupported leaf version. [{}]",
+        leaf_branch.GetLeafVersion());
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Unsupported leaf version.");
+  }
+  has_leaf_ = true;
+  leaf_version_ = leaf_branch.GetLeafVersion();
+  script_ = leaf_branch.GetScript();
+  branch_list_ = leaf_branch.GetBranchList();
+  nodes_ = leaf_branch.GetNodeList();
+}
+
+TaprootScriptTree::TaprootScriptTree(const TaprootScriptTree& tap_tree) {
+  if (!TaprootUtil::IsValidLeafVersion(tap_tree.leaf_version_)) {
+    warn(
+        CFD_LOG_SOURCE, "Unsupported leaf version. [{}]",
+        tap_tree.leaf_version_);
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Unsupported leaf version.");
+  }
+  has_leaf_ = tap_tree.has_leaf_;
+  leaf_version_ = tap_tree.leaf_version_;
+  script_ = tap_tree.script_;
+  root_commitment_ = tap_tree.root_commitment_;
+  branch_list_ = tap_tree.branch_list_;
+  nodes_ = tap_tree.nodes_;
+}
+
+void TaprootScriptTree::AddBranch(const ByteData256& commitment) {
+  TapBranch::AddBranch(commitment);
+  nodes_.emplace_back(commitment);
+}
+
+void TaprootScriptTree::AddBranch(const TapBranch& branch) {
+  TapBranch::AddBranch(branch);
+  nodes_.emplace_back(branch.GetCurrentBranchHash());
+}
+
+void TaprootScriptTree::AddBranch(const TaprootScriptTree& tree) {
+  TapBranch::AddBranch(tree);
+  nodes_.emplace_back(tree.GetCurrentBranchHash());
+}
+
+ByteData256 TaprootScriptTree::GetTapLeafHash() const { return GetRootHash(); }
+
+ByteData256 TaprootScriptTree::GetTweak(
     const SchnorrPubkey& internal_pubkey) const {
   ByteData256 hash = GetCurrentBranchHash();
   auto tagged_hash = HashUtil::Sha256("TapTweak");
@@ -94,13 +230,13 @@ ByteData256 TaprootMerkleTree::GetTweak(
       tagged_hash.Concat(tagged_hash, internal_pubkey.GetData(), hash));
 }
 
-SchnorrPubkey TaprootMerkleTree::GetTweakedPubkey(
+SchnorrPubkey TaprootScriptTree::GetTweakedPubkey(
     const SchnorrPubkey& internal_pubkey, bool* parity) const {
   ByteData256 hash = GetTweak(internal_pubkey);
   return internal_pubkey.CreateTweakAdd(hash, parity);
 }
 
-Privkey TaprootMerkleTree::GetTweakedPrivkey(
+Privkey TaprootScriptTree::GetTweakedPrivkey(
     const Privkey& internal_privkey, bool* parity) const {
   bool is_parity = false;
   auto internal_pubkey =
@@ -114,11 +250,7 @@ Privkey TaprootMerkleTree::GetTweakedPrivkey(
   return privkey.CreateTweakAdd(hash);
 }
 
-uint8_t TaprootMerkleTree::GetLeafVersion() const { return leaf_version_; }
-
-Script TaprootMerkleTree::GetScript() const { return script_; }
-
-std::vector<ByteData256> TaprootMerkleTree::GetNodeList() const {
+std::vector<ByteData256> TaprootScriptTree::GetNodeList() const {
   return nodes_;
 }
 
@@ -139,7 +271,7 @@ bool TaprootUtil::IsValidLeafVersion(uint8_t leaf_version) {
 }
 
 ByteData TaprootUtil::CreateTapScriptControl(
-    const SchnorrPubkey& internal_pubkey, const TaprootMerkleTree& merkle_tree,
+    const SchnorrPubkey& internal_pubkey, const TaprootScriptTree& merkle_tree,
     SchnorrPubkey* witness_program, Script* locking_script) {
   bool parity = false;
   auto pubkey_data =
@@ -167,13 +299,13 @@ bool TaprootUtil::VerifyTaprootCommitment(
     const SchnorrPubkey& internal_pubkey,
     const std::vector<ByteData256>& nodes, const Script& tapscript,
     ByteData256* tapleaf_hash) {
-  if (nodes.size() > TaprootMerkleTree::kTaprootControlMaxNodeCount) {
+  if (nodes.size() > TaprootScriptTree::kTaprootControlMaxNodeCount) {
     warn(CFD_LOG_SOURCE, "control node maximum over. [{}]", nodes.size());
     return false;
   }
 
   // Compute the tapleaf hash.
-  TaprootMerkleTree tree(tapleaf_bit, tapscript);
+  TaprootScriptTree tree(tapleaf_bit, tapscript);
   if (tapleaf_hash != nullptr) *tapleaf_hash = tree.GetTapLeafHash();
 
   // Compute the Merkle root from the leaf and the provided path.
@@ -222,7 +354,7 @@ void TaprootUtil::ParseTaprootSignData(
     }
     size_t max_node =
         (data.GetDataSize() - kControlMinimumSize) / kByteData256Length;
-    if (max_node > TaprootMerkleTree::kTaprootControlMaxNodeCount) {
+    if (max_node > TaprootScriptTree::kTaprootControlMaxNodeCount) {
       warn(
           CFD_LOG_SOURCE, "taproot control node maximum over. [{}]", max_node);
       throw CfdException(

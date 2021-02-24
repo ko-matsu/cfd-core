@@ -9,7 +9,7 @@
 #include "cfdcore/cfdcore_script.h"
 #include "cfdcore/cfdcore_bytedata.h"
 
-using cfd::core::TaprootMerkleTree;
+using cfd::core::TaprootScriptTree;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
 using cfd::core::SchnorrPubkey;
@@ -19,7 +19,7 @@ using cfd::core::ScriptBuilder;
 using cfd::core::ScriptOperator;
 using cfd::core::SchnorrUtil;
 
-TEST(TaprootMerkleTree, Empty) {
+TEST(TaprootScriptTree, Empty) {
   Privkey key("305e293b010d29bf3c888b617763a438fee9054c8cab66eb12ad078f819d9f27");
   Pubkey pubkey = key.GeneratePubkey();
   bool is_parity = false;
@@ -28,8 +28,8 @@ TEST(TaprootMerkleTree, Empty) {
       schnorr_pubkey.GetHex());
   EXPECT_TRUE(is_parity);
 
-  TaprootMerkleTree tree;
-  uint8_t ver = TaprootMerkleTree::kTapScriptLeafVersion;
+  TaprootScriptTree tree;
+  uint8_t ver = TaprootScriptTree::kTapScriptLeafVersion;
   EXPECT_EQ(ver, tree.GetLeafVersion());
   EXPECT_EQ("83d956a5b36109f8f667aa9b366e8479942e32396455b5f43b6df917768e4d45",
       tree.GetTapLeafHash().GetHex());
@@ -47,7 +47,7 @@ TEST(TaprootMerkleTree, Empty) {
   EXPECT_TRUE(pk.Verify(sig, msg));
 }
 
-TEST(TaprootMerkleTree, Branch) {
+TEST(TaprootScriptTree, Branch) {
   Privkey key("305e293b010d29bf3c888b617763a438fee9054c8cab66eb12ad078f819d9f27");
   Pubkey pubkey = key.GeneratePubkey();
   bool is_parity = false;
@@ -64,7 +64,7 @@ TEST(TaprootMerkleTree, Branch) {
     ByteData256("4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d"),
     ByteData256("dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54")
   };
-  TaprootMerkleTree tree(leaf_version, script);
+  TaprootScriptTree tree(leaf_version, script);
   tree.AddBranch(nodes[0]);
   tree.AddBranch(SchnorrPubkey(nodes[1]));
 
@@ -85,7 +85,7 @@ TEST(TaprootMerkleTree, Branch) {
   EXPECT_EQ("9d7a9466774edd50d61e404568ecd7690ec8b2a656bb30ae66858a28a8a776ab",
       tree.GetTweakedPrivkey(key).GetHex());
 
-  TaprootMerkleTree tree2(tree);
+  TaprootScriptTree tree2(tree);
   EXPECT_EQ("9d7a9466774edd50d61e404568ecd7690ec8b2a656bb30ae66858a28a8a776ab",
       tree2.GetTweakedPrivkey(key).GetHex());
 
@@ -94,9 +94,14 @@ TEST(TaprootMerkleTree, Branch) {
   auto sk = tree.GetTweakedPrivkey(key);
   auto sig = SchnorrUtil::Sign(msg, sk);
   EXPECT_TRUE(pk.Verify(sig, msg));
+
+  auto tree_str = tree.ToString();
+  EXPECT_EQ(
+    "tap_br(tap_br(4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d,tapleaf(196,tapscript(51))),dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54)",
+    tree_str);
 }
 
-TEST(TaprootMerkleTree, Branch2) {
+TEST(TaprootScriptTree, Branch2) {
   Privkey key("dd43698cf5f96d33bf895c28d67b5ffbd736c2d4cef91e1f8ce0e38c31a709c8");
   Pubkey pubkey = key.GeneratePubkey();
   bool is_parity = false;
@@ -113,7 +118,7 @@ TEST(TaprootMerkleTree, Branch2) {
     ByteData256("4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d"),
     ByteData256("dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d57")
   };
-  TaprootMerkleTree tree(leaf_version, script);
+  TaprootScriptTree tree(leaf_version, script);
   for (const auto& node : nodes) {
     tree.AddBranch(node);
   }
@@ -142,4 +147,66 @@ TEST(TaprootMerkleTree, Branch2) {
   auto sk = tree.GetTweakedPrivkey(key);
   auto sig = SchnorrUtil::Sign(msg, sk);
   EXPECT_TRUE(pk.Verify(sig, msg));
+}
+
+TEST(TaprootScriptTree, TreeTest1) {
+  Privkey key("dd43698cf5f96d33bf895c28d67b5ffbd736c2d4cef91e1f8ce0e38c31a709c8");
+  ByteData256 tweak1("4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d");
+  ByteData256 tweak2("dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d57");
+  Pubkey pubkey = key.GeneratePubkey();
+  bool is_parity = false;
+  SchnorrPubkey schnorr_pubkey = SchnorrPubkey::FromPubkey(pubkey, &is_parity);
+  EXPECT_EQ("ac52f50b28cdd4d3bcb7f0d5cb533f232e4c4ef12fbf3e718420b84d4e3c3440",
+      schnorr_pubkey.GetHex());
+  EXPECT_TRUE(is_parity);
+  SchnorrPubkey schnorr_pubkey2 = schnorr_pubkey.CreateTweakAdd(tweak1);
+  SchnorrPubkey schnorr_pubkey3 = schnorr_pubkey.CreateTweakAdd(tweak2);
+
+  ScriptBuilder builder;
+
+  builder.AppendData(schnorr_pubkey.GetData());
+  builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+  Script script = builder.Build();
+  TaprootScriptTree tree1(script);
+
+  builder = ScriptBuilder();
+  builder.AppendOperator(ScriptOperator::OP_TRUE);
+  TaprootScriptTree tree2(builder.Build());
+
+  // <pubkey_1> CHECKSIGVERIFY ... <pubkey_(n-1)> CHECKSIGVERIFY <pubkey_n> CHECKSIG
+  builder = ScriptBuilder();
+  builder.AppendData(schnorr_pubkey2.GetData());
+  builder.AppendOperator(ScriptOperator::OP_CHECKSIGVERIFY);
+  builder.AppendData(schnorr_pubkey3.GetData());
+  builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
+  TaprootScriptTree tree3(builder.Build());
+
+  auto exp_hash = "a625d1251a1100263fa9a77b81e9e6f46c2eb8d44b9f27b629875cc102efb0ec";
+  auto exp_str = "tap_br(tap_br(tapleaf(192,tapscript(20ac52f50b28cdd4d3bcb7f0d5cb533f232e4c4ef12fbf3e718420b84d4e3c3440ac)),tapleaf(192,tapscript(51))),tapleaf(192,tapscript(2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac)))";
+  TaprootScriptTree root = tree1;
+  root.AddBranch(tree2);
+  root.AddBranch(tree3);
+  EXPECT_EQ(exp_hash, root.GetCurrentBranchHash().GetHex());
+  EXPECT_EQ(exp_str, root.ToString());
+
+  root = tree2;
+  root.AddBranch(tree1);
+  root.AddBranch(tree3);
+  EXPECT_EQ(exp_hash, root.GetCurrentBranchHash().GetHex());
+  EXPECT_EQ(exp_str, root.ToString());
+
+  auto branch = tree2;
+  branch.AddBranch(tree1);
+  root = tree3;
+  root.AddBranch(branch);
+  EXPECT_EQ(exp_hash, root.GetCurrentBranchHash().GetHex());
+  EXPECT_EQ(exp_str, root.ToString());
+
+  // blind leaf
+  root = tree3;
+  root.AddBranch(branch.GetCurrentBranchHash());
+  EXPECT_EQ(exp_hash, root.GetCurrentBranchHash().GetHex());
+  EXPECT_EQ(
+      "tap_br(af151388d3bfbebcdc87e4a0b4a97bbfa378f2e5a909eb38a6978cb2a71f39c4,tapleaf(192,tapscript(2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac)))",
+      root.ToString());
 }

@@ -18,15 +18,16 @@ Useful when developing applications for cryptocurrencies.
   - Bitcoin Script (builder, viewer)
   - Transaction
   - PSBT (v0)
-  - ECDSA Pubkey/Privkey (Tweak, Negate, Sign, Verify)
+  - ECDSA Pubkey/Privkey (TweakAdd/Mul, Negate, Sign, Verify)
   - BIP32, BIP39
-  - Schnorr
-  - Output Descriptor
-  - Taproot
-  - Address (Segwit-v0, Segwit-v1, P2PKH/P2SH)
+  - Output Descriptor (contains miniscript parser)
+  - Schnorr/Taproot
+  - Bitcoin Address (Segwit-v0, Segwit-v1, P2PKH/P2SH)
 - Liquid Network
-  - Confidential Transaction (Blind, Unblind)
-    - Issuance, Reissuance, PegIn, PegOut
+  - Confidential Transaction
+    - Blind, Unblind
+    - Issuance, Reissuance
+    - PegIn, PegOut
   - Confidential Address
 
 ### Libraries for each language

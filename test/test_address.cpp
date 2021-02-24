@@ -7,6 +7,7 @@
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_schnorrsig.h"
+#include "cfdcore/cfdcore_taproot.h"
 
 using cfd::core::Address;
 using cfd::core::NetType;
@@ -21,6 +22,7 @@ using cfd::core::Script;
 using cfd::core::ScriptBuilder;
 using cfd::core::ScriptOperator;
 using cfd::core::SchnorrPubkey;
+using cfd::core::TaprootScriptTree;
 using cfd::core::CfdException;
 using cfd::core::AddressFormatData;
 using cfd::core::GetBitcoinAddressFormatList;
@@ -203,6 +205,45 @@ TEST(Address, TaprootAddressTest) {
     EXPECT_NO_THROW((address = Address(NetType::kRegtest,
                     WitnessVersion::kVersion1, pubkey)));
     EXPECT_STREQ("bcrt1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8nasmsdlvq",
+                address.GetAddress().c_str());
+    EXPECT_EQ(NetType::kRegtest, address.GetNetType());
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+}
+
+TEST(Address, TaprootScriptAddressTest) {
+  try {
+    const SchnorrPubkey pubkey(
+        "1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb");
+    ScriptBuilder build;
+    build.AppendOperator(ScriptOperator::OP_TRUE);
+    TaprootScriptTree tree(build.Build());
+    Address address;
+    address = Address(NetType::kMainnet,
+                    WitnessVersion::kVersion1, tree, pubkey);
+    EXPECT_STREQ("bc1p3r0p5kdn3yultra5lrzlls74vwgdg057j8rmr4nlj8s8pucss7vsftyvah",
+                address.GetAddress().c_str());
+    EXPECT_EQ(NetType::kMainnet, address.GetNetType());
+    EXPECT_EQ(AddressType::kTaprootAddress, address.GetAddressType());
+    EXPECT_EQ(WitnessVersion::kVersion1, address.GetWitnessVersion());
+    EXPECT_STREQ("88de1a59b38939f58fb4f8c5ffc3d56390d43e9e91c7b1d67f91e070f3108799",
+                address.GetHash().GetHex().c_str());
+    EXPECT_EQ("tapleaf(192,tapscript(51))",
+              address.GetScriptTree().ToString());
+    EXPECT_STREQ("", address.GetScript().GetHex().c_str());
+    EXPECT_STREQ("512088de1a59b38939f58fb4f8c5ffc3d56390d43e9e91c7b1d67f91e070f3108799",
+        address.GetLockingScript().GetHex().c_str());
+
+    EXPECT_NO_THROW((address = Address(NetType::kTestnet,
+                    WitnessVersion::kVersion1, tree, pubkey)));
+    EXPECT_STREQ("tb1p3r0p5kdn3yultra5lrzlls74vwgdg057j8rmr4nlj8s8pucss7vs7rjr8c",
+                address.GetAddress().c_str());
+    EXPECT_EQ(NetType::kTestnet, address.GetNetType());
+
+    EXPECT_NO_THROW((address = Address(NetType::kRegtest,
+                    WitnessVersion::kVersion1, tree, pubkey)));
+    EXPECT_STREQ("bcrt1p3r0p5kdn3yultra5lrzlls74vwgdg057j8rmr4nlj8s8pucss7vsn6c9jz",
                 address.GetAddress().c_str());
     EXPECT_EQ(NetType::kRegtest, address.GetNetType());
   } catch (const CfdException& except) {

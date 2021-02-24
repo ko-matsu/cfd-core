@@ -20,10 +20,111 @@ namespace cfd {
 namespace core {
 
 /**
- * @brief This class implements a taproot merkle tree.
+ * @brief This class implements a taproot script tree branch.
+ */
+class CFD_CORE_EXPORT TapBranch {
+ public:
+  /**
+   * @brief default constructor.
+   */
+  TapBranch();
+  /**
+   * @brief constructor.
+   * @param[in] commitment      commitment
+   */
+  explicit TapBranch(const ByteData256& commitment);
+  /**
+   * @brief copy constructor.
+   * @param[in] branch    branch object
+   */
+  TapBranch(const TapBranch& branch);
+  /**
+   * @brief destructor.
+   */
+  virtual ~TapBranch() {}
+
+  /**
+   * @brief Add branch.
+   * @param[in] pubkey  schnorr pubkey
+   */
+  virtual void AddBranch(const SchnorrPubkey& pubkey);
+  /**
+   * @brief Add branch.
+   * @param[in] commitment    branch commitment.
+   */
+  virtual void AddBranch(const ByteData256& commitment);
+  /**
+   * @brief Add branch.
+   * @param[in] branch    branch.
+   */
+  void AddBranch(const TapBranch& branch);
+  /**
+   * @brief Get a root hash.
+   * @return root hash.
+   */
+  ByteData256 GetRootHash() const;
+  /**
+   * @brief Get a current branch hash.
+   * @return branch hash.
+   */
+  ByteData256 GetCurrentBranchHash() const;
+
+  /**
+   * @brief Exist a tapleaf.
+   * @retval true   exist
+   * @retval false  not exist
+   */
+  bool HasTapLeaf() const;
+  /**
+   * @brief Get a leaf version.
+   * @return leaf version.
+   */
+  uint8_t GetLeafVersion() const;
+
+  /**
+   * @brief Get a tapscript.
+   * @return tapscript.
+   */
+  Script GetScript() const;
+  /**
+   * @brief Get a node list.
+   * @return node list.
+   */
+  std::vector<TapBranch> GetBranchList() const;
+  /**
+   * @brief Get a node list.
+   * @return node list.
+   */
+  virtual std::vector<ByteData256> GetNodeList() const;
+
+  /**
+   * @brief Get a string format. (cfd original)
+   * @return text data.
+   */
+  std::string ToString() const;
+
+  // TODO(k-matsuzawa): for feature
+  /*
+   * @brief Convert from string format. (cfd original)
+   * @param[in] text        string format.
+   * @return object
+   * @see TapBranch::ToString()
+   */
+  // static TapBranch FromString(const std::string& text);
+
+ protected:
+  bool has_leaf_;                       //!< exist leaf
+  uint8_t leaf_version_;                //!< leaf version
+  Script script_;                       //!< tapscript
+  ByteData256 root_commitment_;         //!< root commitment data
+  std::vector<TapBranch> branch_list_;  //!< branch list
+};
+
+/**
+ * @brief This class implements a taproot Merklized Alternative Script Trees.
  * @see https://bitcoinops.org/en/newsletters/2019/05/14/
  */
-class CFD_CORE_EXPORT TaprootMerkleTree {
+class CFD_CORE_EXPORT TaprootScriptTree : public TapBranch {
  public:
   /**
    * @brief The taproot control node maximum count.
@@ -37,49 +138,55 @@ class CFD_CORE_EXPORT TaprootMerkleTree {
   /**
    * @brief constructor.
    */
-  TaprootMerkleTree();
+  TaprootScriptTree();
   /**
    * @brief constructor.
    * @param[in] script  tapscript
    */
-  explicit TaprootMerkleTree(const Script& script);
+  explicit TaprootScriptTree(const Script& script);
   /**
    * @brief constructor.
    * @param[in] leaf_version    leaf version
    * @param[in] script          tapscript
    */
-  explicit TaprootMerkleTree(uint8_t leaf_version, const Script& script);
+  explicit TaprootScriptTree(uint8_t leaf_version, const Script& script);
+  /**
+   * @brief constructor. convert from tapleaf branch.
+   * @param[in] leaf_branch    leaf branch
+   */
+  explicit TaprootScriptTree(const TapBranch& leaf_branch);
   /**
    * @brief copy constructor.
    * @param[in] tap_tree    tree object
    */
-  TaprootMerkleTree(const TaprootMerkleTree& tap_tree);
+  TaprootScriptTree(const TaprootScriptTree& tap_tree);
   /**
    * @brief destructor.
    */
-  virtual ~TaprootMerkleTree() {}
+  virtual ~TaprootScriptTree() {}
 
+  using TapBranch::AddBranch;
   /**
    * @brief Add branch.
-   * @param[in] pubkey  schnorr pubkey
+   * @param[in] commitment    branch commitment.
    */
-  void AddBranch(const SchnorrPubkey& pubkey);
+  virtual void AddBranch(const ByteData256& commitment);
   /**
    * @brief Add branch.
-   * @param[in] node    tweak or other branch or tapleaf hash.
+   * @param[in] branch    branch.
    */
-  void AddBranch(const ByteData256& node);
+  void AddBranch(const TapBranch& branch);
+  /**
+   * @brief Add branch.
+   * @param[in] tree    script tree node.
+   */
+  void AddBranch(const TaprootScriptTree& tree);
 
   /**
    * @brief Get a tapleaf hash.
    * @return tapleaf hash.
    */
   ByteData256 GetTapLeafHash() const;
-  /**
-   * @brief Get a current branch hash.
-   * @return branch hash.
-   */
-  ByteData256 GetCurrentBranchHash() const;
   /**
    * @brief Get tweak.
    * @param[in] internal_pubkey     internal pubkey
@@ -95,7 +202,6 @@ class CFD_CORE_EXPORT TaprootMerkleTree {
    */
   SchnorrPubkey GetTweakedPubkey(
       const SchnorrPubkey& internal_pubkey, bool* parity = nullptr) const;
-
   /**
    * @brief Get a tweaked privkey.
    * @param[in] internal_privkey    internal privkey
@@ -106,26 +212,12 @@ class CFD_CORE_EXPORT TaprootMerkleTree {
       const Privkey& internal_privkey, bool* parity = nullptr) const;
 
   /**
-   * @brief Get a leaf version.
-   * @return leaf version.
-   */
-  uint8_t GetLeafVersion() const;
-
-  /**
-   * @brief Get a tapscript.
-   * @return tapscript.
-   */
-  Script GetScript() const;
-
-  /**
    * @brief Get a node list.
    * @return node list.
    */
-  std::vector<ByteData256> GetNodeList() const;
+  virtual std::vector<ByteData256> GetNodeList() const;
 
  private:
-  uint8_t leaf_version_;            //!< leaf version
-  Script script_;                   //!< tapscript
   std::vector<ByteData256> nodes_;  //!< node list
 };
 
@@ -152,7 +244,7 @@ class CFD_CORE_EXPORT TaprootUtil {
    */
   static ByteData CreateTapScriptControl(
       const SchnorrPubkey& internal_pubkey,
-      const TaprootMerkleTree& merkle_tree,
+      const TaprootScriptTree& merkle_tree,
       SchnorrPubkey* witness_program = nullptr,
       Script* locking_script = nullptr);
 

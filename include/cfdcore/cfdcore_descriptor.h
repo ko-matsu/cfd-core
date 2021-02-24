@@ -2,7 +2,7 @@
 /**
  * @file cfdcore_descriptor.h
  *
- * @brief Output Descriptor関連クラス定義
+ * @brief The Output Descriptor related class definition.
  *
  */
 #ifndef CFD_CORE_INCLUDE_CFDCORE_CFDCORE_DESCRIPTOR_H_
@@ -28,7 +28,7 @@ namespace core {
 constexpr const char* const kArgumentBaseExtkey = "base";
 
 /**
- * @brief DescriptorNode の種別定義.
+ * @brief DescriptorNode type definition.
  */
 enum DescriptorNodeType {
   kDescriptorTypeNull,    //!< null
@@ -38,7 +38,7 @@ enum DescriptorNodeType {
 };
 
 /**
- * @brief DescriptorNode のScript種別定義.
+ * @brief Script type definition of DescriptorNode.
  */
 enum DescriptorScriptType {
   kDescriptorScriptNull,         //!< null
@@ -56,7 +56,7 @@ enum DescriptorScriptType {
 };
 
 /**
- * @brief DescriptorNode のKey種別定義.
+ * @brief Key type definition of DescriptorNode.
  */
 enum DescriptorKeyType {
   kDescriptorKeyNull,       //!< null
@@ -66,7 +66,7 @@ enum DescriptorKeyType {
 };
 
 /**
- * @brief key型descriptorの情報クラスです.
+ * @brief Information class of key type descriptor.
  */
 class CFD_CORE_EXPORT DescriptorKeyInfo {
  public:
@@ -216,7 +216,7 @@ class CFD_CORE_EXPORT DescriptorKeyInfo {
 };
 
 /**
- * @brief key型descriptorの参照クラスです.
+ * @brief It is a reference class of key type descriptor.
  */
 class CFD_CORE_EXPORT DescriptorKeyReference {
  public:
@@ -317,7 +317,7 @@ class CFD_CORE_EXPORT DescriptorKeyReference {
 };
 
 /**
- * @brief Script型descriptorの参照クラスです.
+ * @brief Script type descriptor is a reference class.
  */
 class CFD_CORE_EXPORT DescriptorScriptReference {
  public:
@@ -487,7 +487,7 @@ class CFD_CORE_EXPORT DescriptorScriptReference {
 };
 
 /**
- * @brief Descriptor用Node定義クラス
+ * @brief Node definition class for Descriptor.
  */
 class CFD_CORE_EXPORT DescriptorNode {
  public:
@@ -547,7 +547,7 @@ class CFD_CORE_EXPORT DescriptorNode {
       std::vector<std::string>* array_argument) const;
 
   /**
-   * @brief argumentに必要な数を取得する。
+   * @brief Get the number required for argument.
    * @return argument number.
    */
   uint32_t GetNeedArgumentNum() const;
@@ -560,12 +560,12 @@ class CFD_CORE_EXPORT DescriptorNode {
   std::string ToString(bool append_checksum = true) const;
 
   /**
-   * @brief DescriptorNodeの種別を取得する。
+   * @brief Get the type of DescriptorNode.
    * @return DescriptorNodeType
    */
   DescriptorNodeType GetNodeType() const { return node_type_; }
   /**
-   * @brief DescriptorNodeのScript種別を取得する。
+   * @brief Get the Script type of DescriptorNode.
    * @return DescriptorScriptType
    */
   DescriptorScriptType GetScriptType() const { return script_type_; }
