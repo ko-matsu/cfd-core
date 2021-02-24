@@ -152,16 +152,16 @@ uint32_t TxIn::EstimateTxInSize(
   }
 
   if (is_witness) {
-    witness_size = script_size;
+    witness_size = script_size + 1;  // witness stack count area(1byte)
     if (!use_unlocking_script) {
       // do nothing
     } else if (is_pubkey) {
-      size += 22;  // wpkh locking script length
+      size += 23;  // wpkh locking script length + serialize size(1byte)
     } else {
-      size += 34;  // wsh locking script length
+      size += 35;  // wsh locking script length + serialize size(1byte)
     }
   } else {
-    size += script_size;
+    size += script_size + 1;  // serialize size(1byte)
   }
   if (witness_area_size != nullptr) {
     *witness_area_size = static_cast<uint32_t>(witness_size);
