@@ -104,6 +104,7 @@ uint32_t TxIn::EstimateTxInSize(
       break;
     case AddressType::kTaprootAddress:
       is_taproot = true;
+      use_unlocking_script = false;
       break;
     default:
       if (redeem_script.IsEmpty()) {
@@ -151,16 +152,13 @@ uint32_t TxIn::EstimateTxInSize(
   }
 
   if (is_witness) {
-    if (is_pubkey) {
-      witness_size = script_size;
-      if (use_unlocking_script) {
-        size += 22;  // wpkh locking script length
-      }
+    witness_size = script_size;
+    if (!use_unlocking_script) {
+      // do nothing
+    } else if (is_pubkey) {
+      size += 22;  // wpkh locking script length
     } else {
-      witness_size = script_size;
-      if (use_unlocking_script) {
-        size += 34;  // wsh locking script length
-      }
+      size += 34;  // wsh locking script length
     }
   } else {
     size += script_size;
