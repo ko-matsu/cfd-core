@@ -192,7 +192,7 @@ class CFD_CORE_EXPORT TaprootScriptTree : public TapBranch {
    * @param[in] internal_pubkey     internal pubkey
    * @return tweak.
    */
-  ByteData256 GetTweak(const SchnorrPubkey& internal_pubkey) const;
+  ByteData256 GetTapTweak(const SchnorrPubkey& internal_pubkey) const;
 
   /**
    * @brief Get a tweaked pubkey.
