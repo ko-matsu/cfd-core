@@ -25,7 +25,7 @@ namespace cfd {
 namespace core {
 
 //! OP_CODESEPARATOR default position
-constexpr const uint32_t kDefaultCodeSeparatorPosition= 0xffffffff;
+constexpr const uint32_t kDefaultCodeSeparatorPosition = 0xffffffff;
 
 /**
  * @brief Tapscript data struct.
