@@ -169,7 +169,8 @@ TaprootScriptTree::TaprootScriptTree(const Script& script)
     : TaprootScriptTree(kTapScriptLeafVersion, script) {}
 
 TaprootScriptTree::TaprootScriptTree(
-    uint8_t leaf_version, const Script& script) : TapBranch() {
+    uint8_t leaf_version, const Script& script)
+    : TapBranch() {
   has_leaf_ = true;
   leaf_version_ = leaf_version;
   script_ = script;

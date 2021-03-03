@@ -58,7 +58,6 @@ class CFD_CORE_EXPORT ConfidentialNonce {
   /**
    * @brief copy constructor.
    * @param[in] object    object
-   * @return object
    */
   ConfidentialNonce(const ConfidentialNonce& object);
   /**
@@ -130,7 +129,6 @@ class CFD_CORE_EXPORT ConfidentialAssetId {
   /**
    * @brief copy constructor.
    * @param[in] object    object
-   * @return object
    */
   ConfidentialAssetId(const ConfidentialAssetId& object);
   /**
@@ -222,7 +220,6 @@ class CFD_CORE_EXPORT ConfidentialValue {
   /**
    * @brief copy constructor.
    * @param[in] object    object
-   * @return object
    */
   ConfidentialValue(const ConfidentialValue& object);
   /**
@@ -330,7 +327,6 @@ class CFD_CORE_EXPORT BlindFactor {
   /**
    * @brief copy constructor.
    * @param[in] object    object
-   * @return object
    */
   BlindFactor(const BlindFactor& object);
   /**

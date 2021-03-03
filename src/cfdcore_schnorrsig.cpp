@@ -54,7 +54,7 @@ SchnorrSignature::SchnorrSignature(const SchnorrSignature &object) {
   sighash_type_ = object.sighash_type_;
 }
 
-SchnorrSignature& SchnorrSignature::operator=(const SchnorrSignature& object) {
+SchnorrSignature &SchnorrSignature::operator=(const SchnorrSignature &object) {
   if (this != &object) {
     data_ = object.data_;
     sighash_type_ = object.sighash_type_;

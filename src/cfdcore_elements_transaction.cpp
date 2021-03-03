@@ -290,13 +290,13 @@ ConfidentialNonce::ConfidentialNonce(const Pubkey &pubkey)
   // do nothing
 }
 
-ConfidentialNonce::ConfidentialNonce(const ConfidentialNonce& object) {
+ConfidentialNonce::ConfidentialNonce(const ConfidentialNonce &object) {
   data_ = object.data_;
   version_ = object.version_;
 }
 
-ConfidentialNonce& ConfidentialNonce::operator=(
-    const ConfidentialNonce& object) {
+ConfidentialNonce &ConfidentialNonce::operator=(
+    const ConfidentialNonce &object) {
   if (this != &object) {
     data_ = object.data_;
     version_ = object.version_;
@@ -401,13 +401,13 @@ ConfidentialAssetId::ConfidentialAssetId(const ByteData &byte_data)
   CheckVersion(version_);
 }
 
-ConfidentialAssetId::ConfidentialAssetId(const ConfidentialAssetId& object) {
+ConfidentialAssetId::ConfidentialAssetId(const ConfidentialAssetId &object) {
   data_ = object.data_;
   version_ = object.version_;
 }
 
-ConfidentialAssetId& ConfidentialAssetId::operator=(
-    const ConfidentialAssetId& object) {
+ConfidentialAssetId &ConfidentialAssetId::operator=(
+    const ConfidentialAssetId &object) {
   if (this != &object) {
     data_ = object.data_;
     version_ = object.version_;
@@ -553,13 +553,13 @@ ConfidentialValue::ConfidentialValue(const ByteData &byte_data)
   CheckVersion(version_);
 }
 
-ConfidentialValue::ConfidentialValue(const ConfidentialValue& object) {
+ConfidentialValue::ConfidentialValue(const ConfidentialValue &object) {
   data_ = object.data_;
   version_ = object.version_;
 }
 
-ConfidentialValue& ConfidentialValue::operator=(
-    const ConfidentialValue& object) {
+ConfidentialValue &ConfidentialValue::operator=(
+    const ConfidentialValue &object) {
   if (this != &object) {
     data_ = object.data_;
     version_ = object.version_;
@@ -680,11 +680,9 @@ BlindFactor::BlindFactor(const ByteData256 &byte_data) : data_(byte_data) {
   // do nothing
 }
 
-BlindFactor::BlindFactor(const BlindFactor& object) {
-  data_ = object.data_;
-}
+BlindFactor::BlindFactor(const BlindFactor &object) { data_ = object.data_; }
 
-BlindFactor& BlindFactor::operator=(const BlindFactor& object) {
+BlindFactor &BlindFactor::operator=(const BlindFactor &object) {
   if (this != &object) {
     data_ = object.data_;
   }
