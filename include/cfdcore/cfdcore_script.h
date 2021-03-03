@@ -760,7 +760,7 @@ class CFD_CORE_EXPORT ScriptElement {
    * @retval false  other type
    */
   bool IsNumber() const {
-    // If either the numeric type is specified, the number is included, \
+    // If either the numeric type is specified, the number is included,
     // or OP_0 is specified, it is regarded as a number.
     return (type_ == kElementNumber) || (value_ != 0) ||
            (op_code_.GetDataType() == kOp_0);

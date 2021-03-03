@@ -54,6 +54,15 @@ void TapBranch::AddBranch(const TapBranch& branch) {
   branch_list_.emplace_back(branch);
 }
 
+TapBranch& TapBranch::operator=(const TapBranch& object) {
+  has_leaf_ = object.has_leaf_;
+  leaf_version_ = object.leaf_version_;
+  script_ = object.script_;
+  root_commitment_ = object.root_commitment_;
+  branch_list_ = object.branch_list_;
+  return *this;
+}
+
 ByteData256 TapBranch::GetRootHash() const {
   if (!has_leaf_) return root_commitment_;
 
@@ -203,6 +212,16 @@ TaprootScriptTree::TaprootScriptTree(const TaprootScriptTree& tap_tree) {
   root_commitment_ = tap_tree.root_commitment_;
   branch_list_ = tap_tree.branch_list_;
   nodes_ = tap_tree.nodes_;
+}
+
+TaprootScriptTree& TaprootScriptTree::operator=(const TaprootScriptTree& object) {
+  has_leaf_ = object.has_leaf_;
+  leaf_version_ = object.leaf_version_;
+  script_ = object.script_;
+  root_commitment_ = object.root_commitment_;
+  branch_list_ = object.branch_list_;
+  nodes_ = object.nodes_;
+  return *this;
 }
 
 void TaprootScriptTree::AddBranch(const ByteData256& commitment) {

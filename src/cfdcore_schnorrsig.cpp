@@ -54,6 +54,12 @@ SchnorrSignature::SchnorrSignature(const SchnorrSignature &object) {
   sighash_type_ = object.sighash_type_;
 }
 
+SchnorrSignature& SchnorrSignature::operator=(const SchnorrSignature& object) {
+  data_ = object.data_;
+  sighash_type_ = object.sighash_type_;
+  return *this;
+}
+
 ByteData SchnorrSignature::GetData(bool append_sighash_type) const {
   if ((!append_sighash_type) || (sighash_type_.GetSigHashFlag() == 0) ||
       (data_.GetDataSize() != SchnorrSignature::kSchnorrSignatureSize)) {
