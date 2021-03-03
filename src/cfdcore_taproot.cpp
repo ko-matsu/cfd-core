@@ -222,7 +222,7 @@ void TaprootScriptTree::AddBranch(const TaprootScriptTree& tree) {
 
 ByteData256 TaprootScriptTree::GetTapLeafHash() const { return GetRootHash(); }
 
-ByteData256 TaprootScriptTree::GetTweak(
+ByteData256 TaprootScriptTree::GetTapTweak(
     const SchnorrPubkey& internal_pubkey) const {
   ByteData256 hash = GetCurrentBranchHash();
   auto tagged_hash = HashUtil::Sha256("TapTweak");
@@ -232,7 +232,7 @@ ByteData256 TaprootScriptTree::GetTweak(
 
 SchnorrPubkey TaprootScriptTree::GetTweakedPubkey(
     const SchnorrPubkey& internal_pubkey, bool* parity) const {
-  ByteData256 hash = GetTweak(internal_pubkey);
+  ByteData256 hash = GetTapTweak(internal_pubkey);
   return internal_pubkey.CreateTweakAdd(hash, parity);
 }
 
@@ -244,7 +244,7 @@ Privkey TaprootScriptTree::GetTweakedPrivkey(
   Privkey privkey = internal_privkey;
   if (is_parity) privkey = internal_privkey.CreateNegate();
 
-  ByteData256 hash = GetTweak(internal_pubkey);
+  ByteData256 hash = GetTapTweak(internal_pubkey);
   internal_pubkey.CreateTweakAdd(hash, &is_parity);
   if (parity != nullptr) *parity = is_parity;
   return privkey.CreateTweakAdd(hash);
@@ -313,7 +313,7 @@ bool TaprootUtil::VerifyTaprootCommitment(
     tree.AddBranch(node);
   }
   // Compute the tweak from the Merkle root and the inner pubkey.
-  auto hash = tree.GetTweak(internal_pubkey);
+  auto hash = tree.GetTapTweak(internal_pubkey);
   // Verify that the output pubkey matches the tweaked inner pubkey, after correcting for parity. // NOLINT
   return target_taproot.IsTweaked(internal_pubkey, hash, has_parity);
 }
