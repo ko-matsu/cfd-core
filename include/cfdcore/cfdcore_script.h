@@ -873,6 +873,17 @@ class CFD_CORE_EXPORT Script {
     // do nothing
   }
   /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   */
+  Script(const Script& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  Script& operator=(const Script& object) &;
+  /**
    * @brief get script.
    * @return script
    */

@@ -454,7 +454,9 @@ void Transaction::SetFromHex(const std::string &hex_string) {
 }
 
 Transaction &Transaction::operator=(const Transaction &transaction) & {
-  SetFromHex(transaction.GetHex());
+  if (this != &transaction) {
+    SetFromHex(transaction.GetHex());
+  }
   return *this;
 }
 

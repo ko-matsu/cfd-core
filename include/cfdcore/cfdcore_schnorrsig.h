@@ -228,7 +228,7 @@ class CFD_CORE_EXPORT SchnorrSignature {
   SchnorrSignature(const SchnorrSignature &object);
   /**
    * @brief copy constructor.
-   * @param[in] object    tree object
+   * @param[in] object the data representing the adaptor signature
    * @return object
    */
   SchnorrSignature& operator=(const SchnorrSignature& object);

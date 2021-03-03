@@ -490,8 +490,10 @@ ScriptOperator::ScriptOperator(const ScriptOperator& object)
 }
 
 ScriptOperator& ScriptOperator::operator=(const ScriptOperator& object) {
-  data_type_ = object.data_type_;
-  text_data_ = object.text_data_;
+  if (this != &object) {
+    data_type_ = object.data_type_;
+    text_data_ = object.text_data_;
+  }
   return *this;
 }
 
@@ -600,10 +602,12 @@ ScriptElement::ScriptElement(int64_t value)
 }
 
 ScriptElement& ScriptElement::operator=(const ScriptElement& element) {
-  type_ = element.type_;
-  op_code_ = element.op_code_;
-  binary_data_ = element.binary_data_;
-  value_ = element.value_;
+  if (this != &element) {
+    type_ = element.type_;
+    op_code_ = element.op_code_;
+    binary_data_ = element.binary_data_;
+    value_ = element.value_;
+  }
   return *this;
 }
 
@@ -770,6 +774,19 @@ Script::Script(const std::string& hex) : script_data_(), script_stack_() {
 Script::Script(const ByteData& bytedata)
     : script_data_(bytedata), script_stack_() {
   SetStackData(bytedata);
+}
+
+Script::Script(const Script& object) {
+  script_data_ = object.script_data_;
+  script_stack_ = object.script_stack_;
+}
+
+Script& Script::operator=(const Script& object) & {
+  if (this != &object) {
+    script_data_ = object.script_data_;
+    script_stack_ = object.script_stack_;
+  }
+  return *this;
 }
 
 void Script::SetStackData(const ByteData& bytedata) {

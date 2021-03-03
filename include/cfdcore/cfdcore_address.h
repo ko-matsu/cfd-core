@@ -152,7 +152,13 @@ class CFD_CORE_EXPORT Address {
   Address();
   /**
    * @brief copy constructor.
-   * @param[in] object    tree object
+   * @param[in] object    object
+   * @return object
+   */
+  Address(const Address& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
    * @return object
    */
   Address& operator=(const Address& object);

@@ -104,6 +104,23 @@ ElementsConfidentialAddress::ElementsConfidentialAddress(
   DecodeAddress(confidential_address, prefix_list);
 }
 
+ElementsConfidentialAddress::ElementsConfidentialAddress(
+    const ElementsConfidentialAddress& object) {
+  unblinded_address_ = object.unblinded_address_;
+  confidential_key_ = object.confidential_key_;
+  address_ = object.address_;
+}
+
+ElementsConfidentialAddress& ElementsConfidentialAddress::operator=(
+    const ElementsConfidentialAddress& object) & {
+  if (this != &object) {
+    unblinded_address_ = object.unblinded_address_;
+    confidential_key_ = object.confidential_key_;
+    address_ = object.address_;
+  }
+  return *this;
+}
+
 void ElementsConfidentialAddress::DecodeAddress(
     const std::string& confidential_address,
     const std::vector<AddressFormatData>& prefix_list) {

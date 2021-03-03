@@ -43,6 +43,18 @@ class CFD_CORE_EXPORT Txid {
     // do nothing
   }
   /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  Txid(const Txid& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  Txid& operator=(const Txid& object);
+  /**
    * @brief Get a hex string.
    * @return hex string
    */
@@ -97,6 +109,18 @@ class CFD_CORE_EXPORT BlockHash {
   virtual ~BlockHash() {
     // do nothing
   }
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  BlockHash(const BlockHash& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  BlockHash& operator=(const BlockHash& object);
   /**
    * @brief Get a hex string.
    * @return hex string
