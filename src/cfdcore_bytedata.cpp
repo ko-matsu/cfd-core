@@ -364,6 +364,36 @@ void Serializer::AddDirectNumber(int64_t number) {
   offset_ += sizeof(number);
 }
 
+Serializer& Serializer::operator<<(const ByteData& buffer) {
+  AddDirectBytes(buffer);
+  return *this;
+}
+
+Serializer& Serializer::operator<<(const ByteData256& buffer) {
+  AddDirectBytes(buffer);
+  return *this;
+}
+
+Serializer& Serializer::operator<<(uint8_t byte_data) {
+  AddDirectByte(byte_data);
+  return *this;
+}
+
+Serializer& Serializer::operator<<(uint32_t number) {
+  AddDirectNumber(number);
+  return *this;
+}
+
+Serializer& Serializer::operator<<(uint64_t number) {
+  AddDirectNumber(number);
+  return *this;
+}
+
+Serializer& Serializer::operator<<(int64_t number) {
+  AddDirectNumber(number);
+  return *this;
+}
+
 ByteData Serializer::Output() { return ByteData(buffer_.data(), offset_); }
 
 Deserializer::Deserializer(const std::vector<uint8_t>& buffer)

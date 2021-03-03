@@ -25,6 +25,26 @@ using logger::info;
 using logger::warn;
 
 //////////////////////////////////
+/// Inner File Definition
+//////////////////////////////////
+/**
+ * @brief support hash format data.
+ */
+struct SupportHashFormat {
+  std::string name;  //!< hash name
+  uint8_t type;      //!< hash type
+};
+
+/**
+ * @brief support hash format list.
+ */
+static const SupportHashFormat kFormatList[] = {
+    {"ripemd160", HashUtil::kRipemd160}, {"hash160", HashUtil::kHash160},
+    {"sha256", HashUtil::kSha256},       {"sha256d", HashUtil::kSha256D},
+    {"sha512", HashUtil::kSha512},       {"", 0},
+};
+
+//////////////////////////////////
 /// SigHashType
 //////////////////////////////////
 SigHashType::SigHashType()
@@ -359,6 +379,121 @@ ByteData HashUtil::Sha512(const Pubkey &pubkey) {
 
 ByteData HashUtil::Sha512(const Script &script) {
   return Sha512(script.GetData());
+}
+
+HashUtil::HashUtil(uint8_t hash_type) : hash_type_(hash_type) {
+  for (const auto &item : kFormatList) {
+    if (item.type == 0) break;
+    if (hash_type == item.type) return;
+  }
+  throw CfdException(kCfdInternalError, "unknown hash type.");
+}
+
+HashUtil::HashUtil(const std::string &hash_type) {
+  if (hash_type.length() > 20)
+    throw CfdException(kCfdIllegalArgumentError, "unsupported hash type.");
+
+  std::string name = hash_type;
+  for (size_t index = 0; index < name.length(); ++index) {
+    if ((name[index] >= 'A') && (name[index] <= 'Z')) {
+      name[index] += 'a' - 'A';
+    }
+  }
+  for (const auto &item : kFormatList) {
+    if (item.type == 0) break;
+    if (name == item.name) {
+      hash_type_ = item.type;
+      return;
+    }
+  }
+  throw CfdException(kCfdIllegalArgumentError, "unsupported hash type.");
+}
+
+HashUtil &HashUtil::operator<<(const std::string &str) {
+  buffer_.Push(
+      ByteData(reinterpret_cast<const uint8_t *>(str.data()), str.size()));
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const std::vector<uint8_t> &bytes) {
+  if (!bytes.empty()) buffer_.Push(ByteData(bytes));
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const ByteData &data) {
+  if (!data.IsEmpty()) buffer_.Push(data);
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const ByteData160 &data) {
+  buffer_.Push(data);
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const ByteData256 &data) {
+  buffer_.Push(data);
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const Pubkey &pubkey) {
+  buffer_.Push(pubkey.GetData());
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const Script &script) {
+  buffer_.Push(script.GetData());
+  return *this;
+}
+
+ByteData HashUtil::Output() {
+  switch (hash_type_) {
+    case kRipemd160:
+      return Ripemd160(buffer_).GetData();
+    case kHash160:
+      return Hash160(buffer_).GetData();
+    case kSha256:
+      return Sha256(buffer_).GetData();
+    case kSha256D:
+      return Sha256D(buffer_).GetData();
+    case kSha512:
+      return Sha512(buffer_);
+    default:
+      throw CfdException(kCfdInternalError, "unknown hash type.");
+  }
+}
+
+ByteData160 HashUtil::Output160() {
+  switch (hash_type_) {
+    case kRipemd160:
+      return Ripemd160(buffer_);
+    case kHash160:
+      return Hash160(buffer_);
+    case kSha256:
+      // fall-through
+    case kSha256D:
+      // fall-through
+    case kSha512:
+      // fall-through
+    default:
+      throw CfdException(kCfdInternalError, "unknown hash type.");
+  }
+}
+
+ByteData256 HashUtil::Output256() {
+  switch (hash_type_) {
+    case kSha256:
+      return Sha256(buffer_);
+    case kSha256D:
+      return Sha256D(buffer_);
+    case kRipemd160:
+      // fall-through
+    case kHash160:
+      // fall-through
+    case kSha512:
+      // fall-through
+    default:
+      throw CfdException(kCfdInternalError, "unknown hash type.");
+  }
 }
 
 //////////////////////////////////

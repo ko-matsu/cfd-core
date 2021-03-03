@@ -627,6 +627,43 @@ class CFD_CORE_EXPORT Serializer {
   void AddDirectNumber(int64_t number);
 
   /**
+   * @brief add direct byte array.
+   * @param[in] buffer        buffer
+   * @return serializer object.
+   */
+  Serializer& operator<<(const ByteData& buffer);
+  /**
+   * @brief add direct byte array.
+   * @param[in] buffer        buffer
+   * @return serializer object.
+   */
+  Serializer& operator<<(const ByteData256& buffer);
+  /**
+   * @brief add direct byte data.
+   * @param[in] byte_data     byte data
+   * @return serializer object.
+   */
+  Serializer& operator<<(uint8_t byte_data);
+  /**
+   * @brief add direct number.
+   * @param[in] number     value
+   * @return serializer object.
+   */
+  Serializer& operator<<(uint32_t number);
+  /**
+   * @brief add direct number.
+   * @param[in] number     value
+   * @return serializer object.
+   */
+  Serializer& operator<<(uint64_t number);
+  /**
+   * @brief add direct number.
+   * @param[in] number     value
+   * @return serializer object.
+   */
+  Serializer& operator<<(int64_t number);
+
+  /**
    * @brief Output byte array.
    * @return byte array.
    */
