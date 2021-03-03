@@ -1439,8 +1439,7 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
             locking_script, script_type_, keys, addr_prefixes_);
 
         // p2pk
-        build.AppendData(pubkey);
-        build.AppendOperator(ScriptOperator::OP_CHECKSIG);
+        build << pubkey << ScriptOperator::OP_CHECKSIG;
         locking_script = build.Build();
         result.emplace_back(
             locking_script, script_type_, keys, addr_prefixes_);
@@ -1451,8 +1450,7 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
             script_type_ == DescriptorScriptType::kDescriptorScriptWpkh) {
           locking_script = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
         } else if (script_type_ == DescriptorScriptType::kDescriptorScriptPk) {
-          build.AppendData(pubkey);
-          build.AppendOperator(ScriptOperator::OP_CHECKSIG);
+          build << pubkey << ScriptOperator::OP_CHECKSIG;
           locking_script = build.Build();
         }
         result.emplace_back(
