@@ -41,6 +41,17 @@ Txid::Txid(const ByteData256& data) : data_(ByteData(data.GetBytes())) {
   // do nothing
 }
 
+Txid::Txid(const Txid& object) {
+  data_ = object.data_;
+}
+
+Txid& Txid::operator=(const Txid& object) {
+  if (this != &object) {
+    data_ = object.data_;
+  }
+  return *this;
+}
+
 const std::string Txid::GetHex() const {
   const std::vector<uint8_t>& data = data_.GetBytes();
   std::vector<uint8_t> reverse_buffer(data.crbegin(), data.crend());
@@ -79,6 +90,17 @@ BlockHash::BlockHash(const std::string& hex) : data_() {
 BlockHash::BlockHash(const ByteData256& data)
     : data_(ByteData(data.GetBytes())) {
   // do nothing
+}
+
+BlockHash::BlockHash(const BlockHash& object) {
+  data_ = object.data_;
+}
+
+BlockHash& BlockHash::operator=(const BlockHash& object) {
+  if (this != &object) {
+    data_ = object.data_;
+  }
+  return *this;
 }
 
 const std::string BlockHash::GetHex() const {

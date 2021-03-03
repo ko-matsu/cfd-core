@@ -237,14 +237,16 @@ DescriptorKeyInfo::DescriptorKeyInfo(const DescriptorKeyInfo& object) {
 
 DescriptorKeyInfo& DescriptorKeyInfo::operator=(
     const DescriptorKeyInfo& object) {
-  key_type_ = object.key_type_;
-  pubkey_ = object.pubkey_;
-  privkey_ = object.privkey_;
-  extprivkey_ = object.extprivkey_;
-  extpubkey_ = object.extpubkey_;
-  parent_info_ = object.parent_info_;
-  path_ = object.path_;
-  key_string_ = object.key_string_;
+  if (this != &object) {
+    key_type_ = object.key_type_;
+    pubkey_ = object.pubkey_;
+    privkey_ = object.privkey_;
+    extprivkey_ = object.extprivkey_;
+    extpubkey_ = object.extpubkey_;
+    parent_info_ = object.parent_info_;
+    path_ = object.path_;
+    key_string_ = object.key_string_;
+  }
   return *this;
 }
 
@@ -332,12 +334,14 @@ DescriptorKeyReference::DescriptorKeyReference(
 
 DescriptorKeyReference& DescriptorKeyReference::operator=(
     const DescriptorKeyReference& object) {
-  key_type_ = object.key_type_;
-  pubkey_ = object.pubkey_;
-  extprivkey_ = object.extprivkey_;
-  extpubkey_ = object.extpubkey_;
-  key_data_ = object.key_data_;
-  argument_ = object.argument_;
+  if (this != &object) {
+    key_type_ = object.key_type_;
+    pubkey_ = object.pubkey_;
+    extprivkey_ = object.extprivkey_;
+    extpubkey_ = object.extpubkey_;
+    key_data_ = object.key_data_;
+    argument_ = object.argument_;
+  }
   return *this;
 }
 
@@ -467,15 +471,17 @@ DescriptorScriptReference::DescriptorScriptReference(
 
 DescriptorScriptReference& DescriptorScriptReference::operator=(
     const DescriptorScriptReference& object) {
-  locking_script_ = object.locking_script_;
-  script_type_ = object.script_type_;
-  address_script_ = object.address_script_;
-  is_script_ = object.is_script_;
-  redeem_script_ = object.redeem_script_;
-  child_script_ = object.child_script_;
-  keys_ = object.keys_;
-  req_num_ = object.req_num_;
-  addr_prefixes_ = object.addr_prefixes_;
+  if (this != &object) {
+    locking_script_ = object.locking_script_;
+    script_type_ = object.script_type_;
+    address_script_ = object.address_script_;
+    is_script_ = object.is_script_;
+    redeem_script_ = object.redeem_script_;
+    child_script_ = object.child_script_;
+    keys_ = object.keys_;
+    req_num_ = object.req_num_;
+    addr_prefixes_ = object.addr_prefixes_;
+  }
   return *this;
 }
 
@@ -735,21 +741,23 @@ DescriptorNode::DescriptorNode(const DescriptorNode& object) {
 }
 
 DescriptorNode& DescriptorNode::operator=(const DescriptorNode& object) {
-  name_ = object.name_;
-  value_ = object.value_;
-  key_info_ = object.key_info_;
-  is_uncompressed_key_ = object.is_uncompressed_key_;
-  base_extkey_ = object.base_extkey_;
-  tweak_sum_ = object.tweak_sum_;
-  number_ = object.number_;
-  child_node_ = object.child_node_;
-  checksum_ = object.checksum_;
-  depth_ = object.depth_;
-  need_arg_num_ = object.need_arg_num_;
-  node_type_ = object.node_type_;
-  script_type_ = object.script_type_;
-  key_type_ = object.key_type_;
-  addr_prefixes_ = object.addr_prefixes_;
+  if (this != &object) {
+    name_ = object.name_;
+    value_ = object.value_;
+    key_info_ = object.key_info_;
+    is_uncompressed_key_ = object.is_uncompressed_key_;
+    base_extkey_ = object.base_extkey_;
+    tweak_sum_ = object.tweak_sum_;
+    number_ = object.number_;
+    child_node_ = object.child_node_;
+    checksum_ = object.checksum_;
+    depth_ = object.depth_;
+    need_arg_num_ = object.need_arg_num_;
+    node_type_ = object.node_type_;
+    script_type_ = object.script_type_;
+    key_type_ = object.key_type_;
+    addr_prefixes_ = object.addr_prefixes_;
+  }
   return *this;
 }
 
@@ -1607,7 +1615,9 @@ Descriptor::Descriptor(const Descriptor& object) {
 }
 
 Descriptor& Descriptor::operator=(const Descriptor& object) {
-  root_node_ = object.root_node_;
+  if (this != &object) {
+    root_node_ = object.root_node_;
+  }
   return *this;
 }
 

@@ -55,11 +55,13 @@ void TapBranch::AddBranch(const TapBranch& branch) {
 }
 
 TapBranch& TapBranch::operator=(const TapBranch& object) {
-  has_leaf_ = object.has_leaf_;
-  leaf_version_ = object.leaf_version_;
-  script_ = object.script_;
-  root_commitment_ = object.root_commitment_;
-  branch_list_ = object.branch_list_;
+  if (this != &object) {
+    has_leaf_ = object.has_leaf_;
+    leaf_version_ = object.leaf_version_;
+    script_ = object.script_;
+    root_commitment_ = object.root_commitment_;
+    branch_list_ = object.branch_list_;
+  }
   return *this;
 }
 
@@ -158,7 +160,7 @@ TapBranch TapBranch::FromString(const std::string& text) {
 // ----------------------------------------------------------------------------
 // TaprootScriptTree
 // ----------------------------------------------------------------------------
-TaprootScriptTree::TaprootScriptTree() {
+TaprootScriptTree::TaprootScriptTree() : TapBranch() {
   has_leaf_ = true;
   leaf_version_ = kTapScriptLeafVersion;
 }
@@ -167,7 +169,7 @@ TaprootScriptTree::TaprootScriptTree(const Script& script)
     : TaprootScriptTree(kTapScriptLeafVersion, script) {}
 
 TaprootScriptTree::TaprootScriptTree(
-    uint8_t leaf_version, const Script& script) {
+    uint8_t leaf_version, const Script& script) : TapBranch() {
   has_leaf_ = true;
   leaf_version_ = leaf_version;
   script_ = script;
@@ -178,7 +180,8 @@ TaprootScriptTree::TaprootScriptTree(
   }
 }
 
-TaprootScriptTree::TaprootScriptTree(const TapBranch& leaf_branch) {
+TaprootScriptTree::TaprootScriptTree(const TapBranch& leaf_branch)
+    : TapBranch(leaf_branch) {
   if (!leaf_branch.HasTapLeaf()) {
     warn(CFD_LOG_SOURCE, "object is not tapleaf.");
     throw CfdException(
@@ -198,7 +201,8 @@ TaprootScriptTree::TaprootScriptTree(const TapBranch& leaf_branch) {
   nodes_ = leaf_branch.GetNodeList();
 }
 
-TaprootScriptTree::TaprootScriptTree(const TaprootScriptTree& tap_tree) {
+TaprootScriptTree::TaprootScriptTree(const TaprootScriptTree& tap_tree)
+    : TapBranch(tap_tree) {
   if (!TaprootUtil::IsValidLeafVersion(tap_tree.leaf_version_)) {
     warn(
         CFD_LOG_SOURCE, "Unsupported leaf version. [{}]",
@@ -215,13 +219,15 @@ TaprootScriptTree::TaprootScriptTree(const TaprootScriptTree& tap_tree) {
 }
 
 TaprootScriptTree& TaprootScriptTree::operator=(
-    const TaprootScriptTree& object) {
-  has_leaf_ = object.has_leaf_;
-  leaf_version_ = object.leaf_version_;
-  script_ = object.script_;
-  root_commitment_ = object.root_commitment_;
-  branch_list_ = object.branch_list_;
-  nodes_ = object.nodes_;
+    const TaprootScriptTree& object) & {
+  if (this != &object) {
+    has_leaf_ = object.has_leaf_;
+    leaf_version_ = object.leaf_version_;
+    script_ = object.script_;
+    root_commitment_ = object.root_commitment_;
+    branch_list_ = object.branch_list_;
+    nodes_ = object.nodes_;
+  }
   return *this;
 }
 

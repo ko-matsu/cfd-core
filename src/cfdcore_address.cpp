@@ -203,18 +203,34 @@ Address::Address()
   info(CFD_LOG_SOURCE, "call Address()");
 }
 
-Address& Address::operator=(const Address& object) {
-  type_ = object.type_;
-  addr_type_ = object.addr_type_;
-  witness_ver_ = object.witness_ver_;
-  address_ = object.address_;
-  hash_ = object.hash_;
-  pubkey_ = object.pubkey_;
-  schnorr_pubkey_ = object.schnorr_pubkey_;
-  script_tree_ = object.script_tree_;
-  redeem_script_ = object.redeem_script_;
+Address::Address(const Address& object)
+    : type_(object.type_),
+      addr_type_(object.addr_type_),
+      witness_ver_(object.witness_ver_),
+      address_(object.address_),
+      hash_(object.hash_),
+      pubkey_(object.pubkey_),
+      schnorr_pubkey_(object.schnorr_pubkey_),
+      script_tree_(object.script_tree_),
+      redeem_script_(object.redeem_script_) {
   memcpy(checksum_, object.checksum_, sizeof(checksum_));
   format_data_ = object.format_data_;
+}
+
+Address& Address::operator=(const Address& object) {
+  if (this != &object) {
+    type_ = object.type_;
+    addr_type_ = object.addr_type_;
+    witness_ver_ = object.witness_ver_;
+    address_ = object.address_;
+    hash_ = object.hash_;
+    pubkey_ = object.pubkey_;
+    schnorr_pubkey_ = object.schnorr_pubkey_;
+    script_tree_ = object.script_tree_;
+    redeem_script_ = object.redeem_script_;
+    memcpy(checksum_, object.checksum_, sizeof(checksum_));
+    format_data_ = object.format_data_;
+  }
   return *this;
 }
 

@@ -1880,18 +1880,20 @@ Psbt::Psbt(const Psbt &psbt) : Psbt(psbt.GetData()) {
 }
 
 Psbt &Psbt::operator=(const Psbt &psbt) & {
-  struct wally_psbt *psbt_pointer = nullptr;
-  struct wally_psbt *psbt_src_pointer = nullptr;
-  psbt_src_pointer =
-      static_cast<struct wally_psbt *>(psbt.wally_psbt_pointer_);
-  int ret = wally_psbt_clone_alloc(psbt_src_pointer, 0, &psbt_pointer);
-  if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_psbt_clone_alloc NG[{}]", ret);
-    throw CfdException(kCfdInternalError, "psbt clone error.");
+  if (this != &psbt) {
+    struct wally_psbt *psbt_pointer = nullptr;
+    struct wally_psbt *psbt_src_pointer = nullptr;
+    psbt_src_pointer =
+        static_cast<struct wally_psbt *>(psbt.wally_psbt_pointer_);
+    int ret = wally_psbt_clone_alloc(psbt_src_pointer, 0, &psbt_pointer);
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_psbt_clone_alloc NG[{}]", ret);
+      throw CfdException(kCfdInternalError, "psbt clone error.");
+    }
+    FreeWallyPsbtAddress(wally_psbt_pointer_);  // free
+    wally_psbt_pointer_ = psbt_pointer;
+    base_tx_ = RebuildTransaction(wally_psbt_pointer_);
   }
-  FreeWallyPsbtAddress(wally_psbt_pointer_);  // free
-  wally_psbt_pointer_ = psbt_pointer;
-  base_tx_ = RebuildTransaction(wally_psbt_pointer_);
   return *this;
 }
 

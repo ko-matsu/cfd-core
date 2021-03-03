@@ -69,7 +69,7 @@ class CFD_CORE_EXPORT ElementsConfidentialAddress {
    * @param unblinded_address UnblindedAddress instance
    * @param confidential_key  ConfidentialKey instance
    */
-  ElementsConfidentialAddress(
+  explicit ElementsConfidentialAddress(
       const Address& unblinded_address,
       const ConfidentialKey& confidential_key);
 
@@ -88,6 +88,19 @@ class CFD_CORE_EXPORT ElementsConfidentialAddress {
   explicit ElementsConfidentialAddress(
       const std::string& confidential_address,
       const std::vector<AddressFormatData>& prefix_list);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   */
+  ElementsConfidentialAddress(
+      const ElementsConfidentialAddress& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  ElementsConfidentialAddress& operator=(
+      const ElementsConfidentialAddress& object) &;
 
   /**
    * @brief Get UnblindedAddress

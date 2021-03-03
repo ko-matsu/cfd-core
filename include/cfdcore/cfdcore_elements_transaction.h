@@ -55,6 +55,18 @@ class CFD_CORE_EXPORT ConfidentialNonce {
   virtual ~ConfidentialNonce() {
     // do nothing
   }
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  ConfidentialNonce(const ConfidentialNonce& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  ConfidentialNonce& operator=(const ConfidentialNonce& object);
 
   /**
    * @brief Get byte data.
@@ -115,6 +127,18 @@ class CFD_CORE_EXPORT ConfidentialAssetId {
   virtual ~ConfidentialAssetId() {
     // do nothing
   }
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  ConfidentialAssetId(const ConfidentialAssetId& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  ConfidentialAssetId& operator=(const ConfidentialAssetId& object);
 
   /**
    * @brief Get byte data.
@@ -195,6 +219,18 @@ class CFD_CORE_EXPORT ConfidentialValue {
   virtual ~ConfidentialValue() {
     // do nothing
   }
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  ConfidentialValue(const ConfidentialValue& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  ConfidentialValue& operator=(const ConfidentialValue& object);
 
   /**
    * @brief Get byte data.
@@ -291,6 +327,18 @@ class CFD_CORE_EXPORT BlindFactor {
   virtual ~BlindFactor() {
     // do nothing
   }
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  BlindFactor(const BlindFactor& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  BlindFactor& operator=(const BlindFactor& object);
 
   /**
    * @brief Get byte data.

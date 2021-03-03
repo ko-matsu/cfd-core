@@ -290,6 +290,20 @@ ConfidentialNonce::ConfidentialNonce(const Pubkey &pubkey)
   // do nothing
 }
 
+ConfidentialNonce::ConfidentialNonce(const ConfidentialNonce& object) {
+  data_ = object.data_;
+  version_ = object.version_;
+}
+
+ConfidentialNonce& ConfidentialNonce::operator=(
+    const ConfidentialNonce& object) {
+  if (this != &object) {
+    data_ = object.data_;
+    version_ = object.version_;
+  }
+  return *this;
+}
+
 void ConfidentialNonce::CheckVersion(uint8_t version) {
   if ((version != 0) && (version != 1) && (version != 2) && (version != 3)) {
     warn(CFD_LOG_SOURCE, "Nonce version Invalid. version={}.", version);
@@ -385,6 +399,20 @@ ConfidentialAssetId::ConfidentialAssetId(const ByteData &byte_data)
           CfdError::kCfdIllegalArgumentError, "AssetId size Invalid.");
   }
   CheckVersion(version_);
+}
+
+ConfidentialAssetId::ConfidentialAssetId(const ConfidentialAssetId& object) {
+  data_ = object.data_;
+  version_ = object.version_;
+}
+
+ConfidentialAssetId& ConfidentialAssetId::operator=(
+    const ConfidentialAssetId& object) {
+  if (this != &object) {
+    data_ = object.data_;
+    version_ = object.version_;
+  }
+  return *this;
 }
 
 void ConfidentialAssetId::CheckVersion(uint8_t version) {
@@ -525,6 +553,20 @@ ConfidentialValue::ConfidentialValue(const ByteData &byte_data)
   CheckVersion(version_);
 }
 
+ConfidentialValue::ConfidentialValue(const ConfidentialValue& object) {
+  data_ = object.data_;
+  version_ = object.version_;
+}
+
+ConfidentialValue& ConfidentialValue::operator=(
+    const ConfidentialValue& object) {
+  if (this != &object) {
+    data_ = object.data_;
+    version_ = object.version_;
+  }
+  return *this;
+}
+
 ConfidentialValue::ConfidentialValue(const Amount &amount)
     : ConfidentialValue(ConvertToConfidentialValue(amount)) {
   // do nothing
@@ -636,6 +678,17 @@ BlindFactor::BlindFactor(const ByteData &byte_data)
 
 BlindFactor::BlindFactor(const ByteData256 &byte_data) : data_(byte_data) {
   // do nothing
+}
+
+BlindFactor::BlindFactor(const BlindFactor& object) {
+  data_ = object.data_;
+}
+
+BlindFactor& BlindFactor::operator=(const BlindFactor& object) {
+  if (this != &object) {
+    data_ = object.data_;
+  }
+  return *this;
 }
 
 ByteData256 BlindFactor::GetData() const { return data_; }
@@ -1323,7 +1376,9 @@ void ConfidentialTransaction::SetFromHex(const std::string &hex_string) {
 
 ConfidentialTransaction &ConfidentialTransaction::operator=(
     const ConfidentialTransaction &transaction) & {
-  SetFromHex(transaction.GetHex());
+  if (this != &transaction) {
+    SetFromHex(transaction.GetHex());
+  }
   return *this;
 }
 

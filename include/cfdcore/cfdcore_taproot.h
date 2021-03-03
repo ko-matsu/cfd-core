@@ -37,14 +37,14 @@ class CFD_CORE_EXPORT TapBranch {
    * @brief copy constructor.
    * @param[in] branch    branch object
    */
-  TapBranch(const TapBranch& branch);
+  explicit TapBranch(const TapBranch& branch);
   /**
    * @brief destructor.
    */
   virtual ~TapBranch() {}
   /**
    * @brief copy constructor.
-   * @param[in] object    tree object
+   * @param[in] object    object
    * @return object
    */
   TapBranch& operator=(const TapBranch& object);
@@ -175,7 +175,7 @@ class CFD_CORE_EXPORT TaprootScriptTree : public TapBranch {
    * @param[in] object    tree object
    * @return object
    */
-  TaprootScriptTree& operator=(const TaprootScriptTree& object);
+  TaprootScriptTree& operator=(const TaprootScriptTree& object) &;
 
   using TapBranch::AddBranch;
   /**

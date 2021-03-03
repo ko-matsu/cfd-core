@@ -49,9 +49,11 @@ SigHashType::SigHashType(const SigHashType &sighash_type) {
 }
 
 SigHashType &SigHashType::operator=(const SigHashType &sighash_type) {
-  hash_algorithm_ = sighash_type.hash_algorithm_;
-  is_anyone_can_pay_ = sighash_type.is_anyone_can_pay_;
-  is_fork_id_ = sighash_type.is_fork_id_;
+  if (this != &sighash_type) {
+    hash_algorithm_ = sighash_type.hash_algorithm_;
+    is_anyone_can_pay_ = sighash_type.is_anyone_can_pay_;
+    is_fork_id_ = sighash_type.is_fork_id_;
+  }
   return *this;
 }
 
