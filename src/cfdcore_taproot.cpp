@@ -214,7 +214,8 @@ TaprootScriptTree::TaprootScriptTree(const TaprootScriptTree& tap_tree) {
   nodes_ = tap_tree.nodes_;
 }
 
-TaprootScriptTree& TaprootScriptTree::operator=(const TaprootScriptTree& object) {
+TaprootScriptTree& TaprootScriptTree::operator=(
+    const TaprootScriptTree& object) {
   has_leaf_ = object.has_leaf_;
   leaf_version_ = object.leaf_version_;
   script_ = object.script_;
