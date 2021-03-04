@@ -1590,6 +1590,8 @@ struct wally_psbt *ParsePsbtData(const ByteData &data) {
       // It was able to convert the data correctly.
       return psbt;
     }
+    wally_psbt_free(psbt);
+    psbt = nullptr;
   } else if (ret != WALLY_EINVAL) {
     warn(CFD_LOG_SOURCE, "wally_psbt_from_bytes NG[{}]", ret);
     throw CfdException(kCfdInternalError, "psbt from bytes error.");
