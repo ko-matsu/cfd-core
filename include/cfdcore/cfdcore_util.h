@@ -368,8 +368,107 @@ class CFD_CORE_EXPORT HashUtil {
    */
   static ByteData Sha512(const Script &script);
 
+  // builder ---------------------------------------------------------------
+  //! HashType: Ripemd160
+  static constexpr uint8_t kRipemd160 = 1;
+  //! HashType: Hash160
+  static constexpr uint8_t kHash160 = 2;
+  //! HashType: Sha256
+  static constexpr uint8_t kSha256 = 3;
+  //! HashType: Sha256D
+  static constexpr uint8_t kSha256D = 4;
+  //! HashType: Sha512
+  static constexpr uint8_t kSha512 = 5;
+
+  /**
+   * @brief constructor.
+   * @param[in] hash_type       hash type.
+   */
+  explicit HashUtil(uint8_t hash_type);
+  /**
+   * @brief constructor.
+   * @param[in] hash_type       hash type.
+   */
+  explicit HashUtil(const std::string &hash_type);
+  /**
+   * @brief destructor.
+   */
+  virtual ~HashUtil() {}
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   */
+  HashUtil(const HashUtil &object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  HashUtil &operator=(const HashUtil &object);
+
+  /**
+   * @brief append script operator.
+   * @param[in] operate_object     operator object.
+   * @return hash util object.
+   */
+  HashUtil &operator<<(const std::string &str);
+  /**
+   * @brief Hash the byte data array.
+   * @param[in] bytes byte array
+   * @return hash util object.
+   */
+  HashUtil &operator<<(const std::vector<uint8_t> &bytes);
+  /**
+   * @brief Hash the byte data array.
+   * @param[in] data    byte array
+   * @return hash util object.
+   */
+  HashUtil &operator<<(const ByteData &data);
+  /**
+   * @brief Hash the byte data array.
+   * @param[in] data    byte array
+   * @return hash util object.
+   */
+  HashUtil &operator<<(const ByteData160 &data);
+  /**
+   * @brief Hash the byte data array.
+   * @param[in] data    byte array
+   * @return hash util object.
+   */
+  HashUtil &operator<<(const ByteData256 &data);
+  /**
+   * @brief Hash the pubkey.
+   * @param[in] pubkey Pubkey
+   * @return hash util object.
+   */
+  HashUtil &operator<<(const Pubkey &pubkey);
+  /**
+   * @brief Hash the script bytes with Ripemd160.
+   * @param[in] script Script
+   * @return hash util object.
+   */
+  HashUtil &operator<<(const Script &script);
+  /**
+   * @brief Output data.
+   * @return hashed data
+   */
+  ByteData Output();
+  /**
+   * @brief Output data.
+   * @return hashed data
+   */
+  ByteData160 Output160();
+  /**
+   * @brief Output data.
+   * @return hashed data
+   */
+  ByteData256 Output256();
+
  private:
   HashUtil();
+
+  uint8_t hash_type_;  //!< hash type
+  ByteData buffer_;    //!< buffer
 };
 
 /**
