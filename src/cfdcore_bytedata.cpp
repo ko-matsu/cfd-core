@@ -32,7 +32,7 @@ ByteData::ByteData(const std::vector<uint8_t>& vector) : data_(vector) {}
 ByteData::ByteData(const std::string& hex)
     : data_(StringUtil::StringToByte(hex)) {}
 
-ByteData::ByteData(const uint8_t* buffer, uint32_t size) : data_(0) {
+ByteData::ByteData(const uint8_t* buffer, uint32_t size) : data_(size) {
   if (buffer == nullptr) {
     if (size == 0) {
       // create empty buffer
@@ -90,18 +90,25 @@ bool ByteData::IsLarge(const ByteData& source, const ByteData& destination) {
 }
 
 void ByteData::Push(const ByteData& back_insert_data) {
-  std::vector<uint8_t> insert_bytes = back_insert_data.GetBytes();
-  data_.insert(data_.end(), insert_bytes.begin(), insert_bytes.end());
+  if (back_insert_data.IsEmpty()) return;
+  const std::vector<uint8_t>& insert_bytes = back_insert_data.data_;
+  data_.reserve(data_.size() + insert_bytes.size() + 8);
+  std::copy(insert_bytes.begin(), insert_bytes.end(),
+      std::back_inserter(data_));
 }
 
 void ByteData::Push(const ByteData160& back_insert_data) {
   std::vector<uint8_t> insert_bytes = back_insert_data.GetBytes();
-  data_.insert(data_.end(), insert_bytes.begin(), insert_bytes.end());
+  data_.reserve(data_.size() + insert_bytes.size() + 8);
+  std::copy(insert_bytes.begin(), insert_bytes.end(),
+      std::back_inserter(data_));
 }
 
 void ByteData::Push(const ByteData256& back_insert_data) {
   std::vector<uint8_t> insert_bytes = back_insert_data.GetBytes();
-  data_.insert(data_.end(), insert_bytes.begin(), insert_bytes.end());
+  data_.reserve(data_.size() + insert_bytes.size() + 8);
+  std::copy(insert_bytes.begin(), insert_bytes.end(),
+      std::back_inserter(data_));
 }
 
 //////////////////////////////////
@@ -231,13 +238,26 @@ ByteData ByteData256::Serialize() const {
 //////////////////////////////////
 /// Serializer
 //////////////////////////////////
-Serializer::Serializer() : offset_(0) {
+Serializer::Serializer() : buffer_(8), offset_(0) {
   // do nothing
 }
 
 Serializer::Serializer(uint32_t initial_size)
     : buffer_(initial_size + 9), offset_(0) {
   // do nothing
+}
+
+Serializer::Serializer(const Serializer& object)
+    : buffer_(object.buffer_), offset_(object.offset_) {
+  // do nothing
+}
+
+Serializer& Serializer::operator=(const Serializer& object) {
+  if (this != &object) {
+    buffer_ = object.buffer_;
+    offset_ = object.offset_;
+  }
+  return *this;
 }
 
 void Serializer::CheckNeedSize(uint32_t need_size) {
@@ -404,6 +424,19 @@ Deserializer::Deserializer(const std::vector<uint8_t>& buffer)
 Deserializer::Deserializer(const ByteData& buffer)
     : Deserializer(buffer.GetBytes()) {
   // do nothing
+}
+
+Deserializer::Deserializer(const Deserializer& object)
+    : buffer_(object.buffer_), offset_(object.offset_) {
+  // do nothing
+}
+
+Deserializer& Deserializer::operator=(const Deserializer& object) {
+  if (this != &object) {
+    buffer_ = object.buffer_;
+    offset_ = object.offset_;
+  }
+  return *this;
 }
 
 uint64_t Deserializer::ReadUint64() {

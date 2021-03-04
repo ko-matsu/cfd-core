@@ -555,6 +555,17 @@ class CFD_CORE_EXPORT Serializer {
    * @brief destructor.
    */
   virtual ~Serializer() {}
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   */
+  Serializer(const Serializer& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  Serializer& operator=(const Serializer& object);
 
   /**
    * @brief add variable integer.
@@ -704,6 +715,17 @@ class CFD_CORE_EXPORT Deserializer {
    * @brief destructor.
    */
   virtual ~Deserializer() {}
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   */
+  Deserializer(const Deserializer& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  Deserializer& operator=(const Deserializer& object);
 
   /**
    * @brief read uint64.

@@ -409,6 +409,19 @@ HashUtil::HashUtil(const std::string &hash_type) {
   throw CfdException(kCfdIllegalArgumentError, "unsupported hash type.");
 }
 
+HashUtil::HashUtil(const HashUtil& object) {
+  hash_type_ = object.hash_type_;
+  buffer_ = object.buffer_;
+}
+
+HashUtil& HashUtil::operator=(const HashUtil& object) {
+  if (this != &object) {
+    hash_type_ = object.hash_type_;
+    buffer_ = object.buffer_;
+  }
+  return *this;
+}
+
 HashUtil &HashUtil::operator<<(const std::string &str) {
   buffer_.Push(
       ByteData(reinterpret_cast<const uint8_t *>(str.data()), str.size()));
@@ -448,15 +461,15 @@ HashUtil &HashUtil::operator<<(const Script &script) {
 ByteData HashUtil::Output() {
   switch (hash_type_) {
     case kRipemd160:
-      return Ripemd160(buffer_).GetData();
+      return Ripemd160(buffer_.GetBytes()).GetData();
     case kHash160:
-      return Hash160(buffer_).GetData();
+      return Hash160(buffer_.GetBytes()).GetData();
     case kSha256:
-      return Sha256(buffer_).GetData();
+      return Sha256(buffer_.GetBytes()).GetData();
     case kSha256D:
-      return Sha256D(buffer_).GetData();
+      return Sha256D(buffer_.GetBytes()).GetData();
     case kSha512:
-      return Sha512(buffer_);
+      return Sha512(buffer_.GetBytes());
     default:
       throw CfdException(kCfdInternalError, "unknown hash type.");
   }
@@ -465,9 +478,9 @@ ByteData HashUtil::Output() {
 ByteData160 HashUtil::Output160() {
   switch (hash_type_) {
     case kRipemd160:
-      return Ripemd160(buffer_);
+      return Ripemd160(buffer_.GetBytes());
     case kHash160:
-      return Hash160(buffer_);
+      return Hash160(buffer_.GetBytes());
     case kSha256:
       // fall-through
     case kSha256D:

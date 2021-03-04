@@ -68,26 +68,22 @@ TapBranch& TapBranch::operator=(const TapBranch& object) {
 ByteData256 TapBranch::GetRootHash() const {
   if (!has_leaf_) return root_commitment_;
 
-  auto tagged_hash = HashUtil::Sha256("TapLeaf");
-  //auto& hasher = HashUtil(HashUtil::kSha256)
-  auto& builder = Serializer()
-                 << tagged_hash << tagged_hash
-                 << leaf_version_
-                 << script_.GetData().Serialize();
-  //             << ByteData(&leaf_version_, 1)
-  // return hasher.Output256();
-  return HashUtil::Sha256(builder.Output());
+  static auto kTaggedHash = HashUtil::Sha256("TapLeaf");
+  return (HashUtil(HashUtil::kSha256)
+                 << kTaggedHash << kTaggedHash
+                 << ByteData(&leaf_version_, 1)
+                 << script_.GetData().Serialize()).Output256();
 }
 
 ByteData256 TapBranch::GetCurrentBranchHash() const {
   ByteData256 hash = GetRootHash();
   if (branch_list_.empty()) return hash;
 
-  auto tagged_hash = HashUtil::Sha256("TapBranch");
-  ByteData tapbranch_base = tagged_hash.Concat(tagged_hash);
+  static auto kTaggedHash = HashUtil::Sha256("TapBranch");
+  ByteData tapbranch_base = kTaggedHash.Concat(kTaggedHash);
   auto nodes = GetNodeList();
   for (const auto& node : nodes) {
-    auto& hasher = HashUtil(HashUtil::kSha256) << tapbranch_base;
+    auto hasher = HashUtil(HashUtil::kSha256) << tapbranch_base;
     const auto& node_bytes = node.GetBytes();
     const auto& hash_bytes = hash.GetBytes();
     if (std::lexicographical_compare(
@@ -130,11 +126,11 @@ std::string TapBranch::ToString() const {
   if (branch_list_.empty()) return buf;
 
   ByteData256 hash = GetRootHash();
-  auto tagged_hash = HashUtil::Sha256("TapBranch");
-  ByteData tapbranch_base = tagged_hash.Concat(tagged_hash);
+  static auto kTaggedHash = HashUtil::Sha256("TapBranch");
+  ByteData tapbranch_base = kTaggedHash.Concat(kTaggedHash);
   auto nodes = GetNodeList();
   for (const auto& branch : branch_list_) {
-    auto& hasher = HashUtil(HashUtil::kSha256) << tapbranch_base;
+    auto hasher = HashUtil(HashUtil::kSha256) << tapbranch_base;
     const auto node = branch.GetCurrentBranchHash();
     const auto& node_bytes = node.GetBytes();
     const auto& hash_bytes = hash.GetBytes();
@@ -256,9 +252,9 @@ ByteData256 TaprootScriptTree::GetTapLeafHash() const { return GetRootHash(); }
 ByteData256 TaprootScriptTree::GetTapTweak(
     const SchnorrPubkey& internal_pubkey) const {
   ByteData256 hash = GetCurrentBranchHash();
-  auto tagged_hash = HashUtil::Sha256("TapTweak");
-  auto& hasher = HashUtil(HashUtil::kSha256)
-                 << tagged_hash << tagged_hash << internal_pubkey.GetData()
+  static auto kTaggedHash = HashUtil::Sha256("TapTweak");
+  auto hasher = HashUtil(HashUtil::kSha256)
+                 << kTaggedHash << kTaggedHash << internal_pubkey.GetData()
                  << hash;
   return hasher.Output256();
 }

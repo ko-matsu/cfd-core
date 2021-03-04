@@ -390,6 +390,21 @@ class CFD_CORE_EXPORT HashUtil {
    * @param[in] hash_type       hash type.
    */
   explicit HashUtil(const std::string &hash_type);
+  /**
+   * @brief destructor.
+   */
+  virtual ~HashUtil() {}
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   */
+  HashUtil(const HashUtil& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  HashUtil& operator=(const HashUtil& object);
 
   /**
    * @brief append script operator.
