@@ -55,10 +55,8 @@ TEST(TaprootUtil, CreateTapScriptControl) {
       schnorr_pubkey.GetHex());
   EXPECT_TRUE(is_parity);
 
-  ScriptBuilder builder;
-  builder.AppendData(schnorr_pubkey.GetData());
-  builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
-  Script redeem_script = builder.Build();
+  Script redeem_script = (ScriptBuilder() << schnorr_pubkey.GetData()
+      << ScriptOperator::OP_CHECKSIG).Build();
   std::vector<ByteData256> nodes = {
     ByteData256("4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d"),
     ByteData256("dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54")

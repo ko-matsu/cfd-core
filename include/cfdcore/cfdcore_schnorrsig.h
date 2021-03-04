@@ -231,7 +231,7 @@ class CFD_CORE_EXPORT SchnorrSignature {
    * @param[in] object the data representing the adaptor signature
    * @return object
    */
-  SchnorrSignature& operator=(const SchnorrSignature& object);
+  SchnorrSignature &operator=(const SchnorrSignature &object);
 
   /**
    * @brief Get the underlying ByteData object

@@ -41,9 +41,7 @@ Txid::Txid(const ByteData256& data) : data_(ByteData(data.GetBytes())) {
   // do nothing
 }
 
-Txid::Txid(const Txid& object) {
-  data_ = object.data_;
-}
+Txid::Txid(const Txid& object) { data_ = object.data_; }
 
 Txid& Txid::operator=(const Txid& object) {
   if (this != &object) {
@@ -92,9 +90,7 @@ BlockHash::BlockHash(const ByteData256& data)
   // do nothing
 }
 
-BlockHash::BlockHash(const BlockHash& object) {
-  data_ = object.data_;
-}
+BlockHash::BlockHash(const BlockHash& object) { data_ = object.data_; }
 
 BlockHash& BlockHash::operator=(const BlockHash& object) {
   if (this != &object) {

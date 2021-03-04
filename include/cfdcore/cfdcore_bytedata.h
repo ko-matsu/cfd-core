@@ -555,6 +555,17 @@ class CFD_CORE_EXPORT Serializer {
    * @brief destructor.
    */
   virtual ~Serializer() {}
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   */
+  Serializer(const Serializer& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  Serializer& operator=(const Serializer& object);
 
   /**
    * @brief add variable integer.
@@ -627,6 +638,43 @@ class CFD_CORE_EXPORT Serializer {
   void AddDirectNumber(int64_t number);
 
   /**
+   * @brief add direct byte array.
+   * @param[in] buffer        buffer
+   * @return serializer object.
+   */
+  Serializer& operator<<(const ByteData& buffer);
+  /**
+   * @brief add direct byte array.
+   * @param[in] buffer        buffer
+   * @return serializer object.
+   */
+  Serializer& operator<<(const ByteData256& buffer);
+  /**
+   * @brief add direct byte data.
+   * @param[in] byte_data     byte data
+   * @return serializer object.
+   */
+  Serializer& operator<<(uint8_t byte_data);
+  /**
+   * @brief add direct number.
+   * @param[in] number     value
+   * @return serializer object.
+   */
+  Serializer& operator<<(uint32_t number);
+  /**
+   * @brief add direct number.
+   * @param[in] number     value
+   * @return serializer object.
+   */
+  Serializer& operator<<(uint64_t number);
+  /**
+   * @brief add direct number.
+   * @param[in] number     value
+   * @return serializer object.
+   */
+  Serializer& operator<<(int64_t number);
+
+  /**
    * @brief Output byte array.
    * @return byte array.
    */
@@ -667,6 +715,17 @@ class CFD_CORE_EXPORT Deserializer {
    * @brief destructor.
    */
   virtual ~Deserializer() {}
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   */
+  Deserializer(const Deserializer& object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  Deserializer& operator=(const Deserializer& object);
 
   /**
    * @brief read uint64.

@@ -876,13 +876,13 @@ class CFD_CORE_EXPORT Script {
    * @brief copy constructor.
    * @param[in] object    object
    */
-  Script(const Script& object);
+  Script(const Script &object);
   /**
    * @brief copy constructor.
    * @param[in] object    object
    * @return object
    */
-  Script& operator=(const Script& object) &;
+  Script &operator=(const Script &object) &;
   /**
    * @brief get script.
    * @return script
@@ -1118,6 +1118,67 @@ class CFD_CORE_EXPORT ScriptBuilder {
   ScriptBuilder &AppendElement(const ScriptElement &element);
 
   // ScriptBuilder& AppendData(const ByteData& data, bool is_template);
+
+  /**
+   * @brief append string data.
+   * @param[in] message  string data.
+   * @return script builder object.
+   */
+  ScriptBuilder &operator<<(const std::string &message);
+  /**
+   * @brief append script operator.
+   * @param[in] type      ScriptType.
+   * @return script builder object.
+   */
+  ScriptBuilder &operator<<(ScriptType type);
+  /**
+   * @brief append script operator.
+   * @param[in] operate_object     operator object.
+   * @return script builder object.
+   */
+  ScriptBuilder &operator<<(const ScriptOperator &operate_object);
+  /**
+   * @brief             append script data.
+   * @param[in] data    script data.
+   * @return            script builder object.
+   */
+  ScriptBuilder &operator<<(const ByteData &data);
+  /**
+   * @brief             append script data.
+   * @param[in] data    script data.
+   * @return            script builder object.
+   */
+  ScriptBuilder &operator<<(const ByteData160 &data);
+  /**
+   * @brief             append script data.
+   * @param[in] data    script data.
+   * @return            script builder object.
+   */
+  ScriptBuilder &operator<<(const ByteData256 &data);
+  /**
+   * @brief               append script data.
+   * @param[in] pubkey   public key.
+   * @return              script builder object.
+   */
+  ScriptBuilder &operator<<(const Pubkey &pubkey);
+  /**
+   * @brief               append script data.
+   * @param[in] script    script data.
+   * @return              script builder object.
+   */
+  ScriptBuilder &operator<<(const Script &script);
+  /**
+   * @brief           append script data.
+   * @param[in] data  script number.
+   * @return          script builder object.
+   */
+  ScriptBuilder &operator<<(const int64_t &data);
+  /**
+   * @brief             append script element data.
+   * @param[in] element element data.
+   * @return            script builder object.
+   */
+  ScriptBuilder &operator<<(const ScriptElement &element);
 
   /**
    * @brief   build script.

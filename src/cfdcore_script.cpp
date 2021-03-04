@@ -1284,6 +1284,47 @@ ScriptBuilder& ScriptBuilder::AppendElement(const ScriptElement& element) {
   return *this;
 }
 
+ScriptBuilder& ScriptBuilder::operator<<(const std::string& message) {
+  return AppendString(message);
+}
+
+ScriptBuilder& ScriptBuilder::operator<<(ScriptType type) {
+  return AppendOperator(type);
+}
+
+ScriptBuilder& ScriptBuilder::operator<<(
+    const ScriptOperator& operate_object) {
+  return AppendOperator(operate_object);
+}
+
+ScriptBuilder& ScriptBuilder::operator<<(const ByteData& data) {
+  return AppendData(data);
+}
+
+ScriptBuilder& ScriptBuilder::operator<<(const ByteData160& data) {
+  return AppendData(data);
+}
+
+ScriptBuilder& ScriptBuilder::operator<<(const ByteData256& data) {
+  return AppendData(data);
+}
+
+ScriptBuilder& ScriptBuilder::operator<<(const Pubkey& pubkey) {
+  return AppendData(pubkey);
+}
+
+ScriptBuilder& ScriptBuilder::operator<<(const Script& script) {
+  return AppendData(script);
+}
+
+ScriptBuilder& ScriptBuilder::operator<<(const int64_t& data) {
+  return AppendData(data);
+}
+
+ScriptBuilder& ScriptBuilder::operator<<(const ScriptElement& element) {
+  return AppendElement(element);
+}
+
 Script ScriptBuilder::Build() {
   ByteData data(script_byte_array_);
   if (data.GetDataSize() > Script::kMaxScriptSize) {

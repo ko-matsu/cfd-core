@@ -45,7 +45,6 @@ class CFD_CORE_EXPORT Txid {
   /**
    * @brief copy constructor.
    * @param[in] object    object
-   * @return object
    */
   Txid(const Txid& object);
   /**
@@ -112,7 +111,6 @@ class CFD_CORE_EXPORT BlockHash {
   /**
    * @brief copy constructor.
    * @param[in] object    object
-   * @return object
    */
   BlockHash(const BlockHash& object);
   /**

@@ -476,16 +476,15 @@ TEST(Transaction, GetSchnorrSignatureHash) {
       schnorr_pubkey.GetHex());
   EXPECT_TRUE(is_parity);
 
-  ScriptBuilder builder;
-  builder.AppendOperator(ScriptOperator::OP_1);
-  builder.AppendData(schnorr_pubkey.GetData());
+  Script locking_script = (ScriptBuilder() << ScriptOperator::OP_1
+        << schnorr_pubkey.GetData()).Build();
 
   Transaction tx1(2, 0);
   tx1.AddTxIn(
       Txid("1f9866dc0a19c427347c2db0b5910bdc2c20b78fa9f74f8756b21db890dba8ff"),
       0, 0xffffffff);  // bcrt1qze8fshg0eykfy7nxcr96778xagufv2w429wx40
   Amount amt1(int64_t{2499999000});
-  tx1.AddTxOut(amt1, builder.Build());
+  tx1.AddTxOut(amt1, locking_script);
   EXPECT_EQ("0200000001ffa8db90b81db256874ff7a98fb7202cdc0b91b5b02d7c3427c4190adc66981f0000000000ffffffff0118f50295000000002251201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb00000000", tx1.GetHex());
   Privkey key1 = Privkey::FromWif("cNveTchXQTFjtsMmR7B7MZmebXnU69S7PmDfgrUX6KbT9kyDLH57");
   Pubkey pk1("023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44");
@@ -506,7 +505,7 @@ TEST(Transaction, GetSchnorrSignatureHash) {
   Address addr2("bcrt1qze8fshg0eykfy7nxcr96778xagufv2w429wx40");
   tx2.AddTxOut(Amount(int64_t{2499998000}), addr2.GetLockingScript());
   std::vector<TxOut> utxo_list(1);
-  TxOut utxo(amt1, builder.Build());
+  TxOut utxo(amt1, locking_script);
   utxo_list[0] = utxo;
   auto sighash2 = tx2.GetSchnorrSignatureHash(0, sighash_type, utxo_list);
   EXPECT_EQ("e5b11ddceab1e4fc49a8132ae589a39b07acf49cabb2b0fbf6104bc31da12c02", sighash2.GetHex());
@@ -529,16 +528,15 @@ TEST(Transaction, GetSchnorrSignatureHashNonce) {
       schnorr_pubkey.GetHex());
   EXPECT_TRUE(is_parity);
 
-  ScriptBuilder builder;
-  builder.AppendOperator(ScriptOperator::OP_1);
-  builder.AppendData(schnorr_pubkey.GetData());
+  Script locking_script = (ScriptBuilder() << ScriptOperator::OP_1
+        << schnorr_pubkey.GetData()).Build();
 
   Transaction tx1(2, 0);
   tx1.AddTxIn(
       Txid("1f9866dc0a19c427347c2db0b5910bdc2c20b78fa9f74f8756b21db890dba8ff"),
       0, 0xffffffff);  // bcrt1qze8fshg0eykfy7nxcr96778xagufv2w429wx40
   Amount amt1(int64_t{2499999000});
-  tx1.AddTxOut(amt1, builder.Build());
+  tx1.AddTxOut(amt1, locking_script);
   EXPECT_EQ("0200000001ffa8db90b81db256874ff7a98fb7202cdc0b91b5b02d7c3427c4190adc66981f0000000000ffffffff0118f50295000000002251201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb00000000", tx1.GetHex());
   Privkey key1 = Privkey::FromWif("cNveTchXQTFjtsMmR7B7MZmebXnU69S7PmDfgrUX6KbT9kyDLH57");
   Pubkey pk1("023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44");
@@ -559,7 +557,7 @@ TEST(Transaction, GetSchnorrSignatureHashNonce) {
   Address addr2("bcrt1qze8fshg0eykfy7nxcr96778xagufv2w429wx40");
   tx2.AddTxOut(Amount(int64_t{2499998000}), addr2.GetLockingScript());
   std::vector<TxOut> utxo_list(1);
-  TxOut utxo(amt1, builder.Build());
+  TxOut utxo(amt1, locking_script);
   utxo_list[0] = utxo;
   auto sighash2 = tx2.GetSchnorrSignatureHash(0, sighash_type, utxo_list);
   EXPECT_EQ("e5b11ddceab1e4fc49a8132ae589a39b07acf49cabb2b0fbf6104bc31da12c02", sighash2.GetHex());

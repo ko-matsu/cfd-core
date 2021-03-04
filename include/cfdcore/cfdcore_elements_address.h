@@ -92,8 +92,7 @@ class CFD_CORE_EXPORT ElementsConfidentialAddress {
    * @brief copy constructor.
    * @param[in] object    object
    */
-  ElementsConfidentialAddress(
-      const ElementsConfidentialAddress& object);
+  ElementsConfidentialAddress(const ElementsConfidentialAddress& object);
   /**
    * @brief copy constructor.
    * @param[in] object    object

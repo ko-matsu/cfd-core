@@ -56,9 +56,7 @@ TEST(TaprootScriptTree, Branch) {
       schnorr_pubkey.GetHex());
   EXPECT_TRUE(is_parity);
 
-  ScriptBuilder builder;
-  builder.AppendOperator(ScriptOperator::OP_TRUE);
-  Script script = builder.Build();
+  Script script = (ScriptBuilder() << ScriptOperator::OP_TRUE).Build();
   uint8_t leaf_version = 0xc4;
   std::vector<ByteData256> nodes = {
     ByteData256("4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d"),
@@ -110,9 +108,7 @@ TEST(TaprootScriptTree, Branch2) {
       schnorr_pubkey.GetHex());
   EXPECT_TRUE(is_parity);
 
-  ScriptBuilder builder;
-  builder.AppendOperator(ScriptOperator::OP_TRUE);
-  Script script = builder.Build();
+  Script script = (ScriptBuilder() << ScriptOperator::OP_TRUE).Build();
   uint8_t leaf_version = 0xc4;
   std::vector<ByteData256> nodes = {
     ByteData256("4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d"),
@@ -162,24 +158,18 @@ TEST(TaprootScriptTree, TreeTest1) {
   SchnorrPubkey schnorr_pubkey2 = schnorr_pubkey.CreateTweakAdd(tweak1);
   SchnorrPubkey schnorr_pubkey3 = schnorr_pubkey.CreateTweakAdd(tweak2);
 
-  ScriptBuilder builder;
-
-  builder.AppendData(schnorr_pubkey.GetData());
-  builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
-  Script script = builder.Build();
+  Script script = (ScriptBuilder() << schnorr_pubkey.GetData()
+      << ScriptOperator::OP_CHECKSIG).Build();
   TaprootScriptTree tree1(script);
 
-  builder = ScriptBuilder();
-  builder.AppendOperator(ScriptOperator::OP_TRUE);
-  TaprootScriptTree tree2(builder.Build());
+  Script script_true = (ScriptBuilder() << ScriptOperator::OP_TRUE).Build();
+  TaprootScriptTree tree2(script_true);
 
   // <pubkey_1> CHECKSIGVERIFY ... <pubkey_(n-1)> CHECKSIGVERIFY <pubkey_n> CHECKSIG
-  builder = ScriptBuilder();
-  builder.AppendData(schnorr_pubkey2.GetData());
-  builder.AppendOperator(ScriptOperator::OP_CHECKSIGVERIFY);
-  builder.AppendData(schnorr_pubkey3.GetData());
-  builder.AppendOperator(ScriptOperator::OP_CHECKSIG);
-  TaprootScriptTree tree3(builder.Build());
+  Script tree_2_of_2_sig = (ScriptBuilder() << schnorr_pubkey2.GetData()
+      << ScriptOperator::OP_CHECKSIGVERIFY << schnorr_pubkey3.GetData()
+      << ScriptOperator::OP_CHECKSIG).Build();
+  TaprootScriptTree tree3(tree_2_of_2_sig);
 
   auto exp_hash = "a625d1251a1100263fa9a77b81e9e6f46c2eb8d44b9f27b629875cc102efb0ec";
   auto exp_str = "tap_br(tap_br(tapleaf(192,tapscript(20ac52f50b28cdd4d3bcb7f0d5cb533f232e4c4ef12fbf3e718420b84d4e3c3440ac)),tapleaf(192,tapscript(51))),tapleaf(192,tapscript(2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac)))";
