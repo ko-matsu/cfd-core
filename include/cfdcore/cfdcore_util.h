@@ -407,8 +407,8 @@ class CFD_CORE_EXPORT HashUtil {
   HashUtil &operator=(const HashUtil &object);
 
   /**
-   * @brief append script operator.
-   * @param[in] operate_object     operator object.
+   * @brief Hash the string.
+   * @param[in] str string
    * @return hash util object.
    */
   HashUtil &operator<<(const std::string &str);
