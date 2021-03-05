@@ -38,10 +38,11 @@ const uint32_t kByteData512Length = 64;
  * @brief Sighash flags for transaction signing.
  */
 enum SigHashAlgorithm {
-  kSigHashDefault = 0,    //!< default (= SIGHASH_ALL)
-  kSigHashAll = 0x01,     //!< SIGHASH_ALL
-  kSigHashNone = 0x02,    //!< SIGHASH_NONE
-  kSigHashSingle = 0x03,  //!< SIGHASH_SINGLE
+  kSigHashDefault = 0,      //!< default (= SIGHASH_ALL)
+  kSigHashAll = 0x01,       //!< SIGHASH_ALL
+  kSigHashNone = 0x02,      //!< SIGHASH_NONE
+  kSigHashSingle = 0x03,    //!< SIGHASH_SINGLE
+  kSigHashUnknown = 0xffff  //!< invalid
 };
 
 /**
@@ -63,6 +64,17 @@ class CFD_CORE_EXPORT SigHashType {
    * @brief SIGHASH_ANYONECANPAY flag
    */
   const uint8_t kSigHashAnyOneCanPay = 0x80;
+
+  /**
+   * @brief Create by SigHash flag.
+   * @param[in] flag  SigHash flag
+   * @param[in] is_append_anyone_can_pay add SIGHASH_ANYONECANPAY if true.
+   * @param[in] is_append_fork_id add SIGHASH_FORKID if true.
+   * @return SigHashType
+   */
+  static SigHashType Create(
+      uint8_t flag, bool is_append_anyone_can_pay = false,
+      bool is_append_fork_id = false);
 
   /**
    * @brief default constructor.
@@ -115,10 +127,22 @@ class CFD_CORE_EXPORT SigHashType {
   bool IsForkId() const;
 
   /**
+   * @brief Valid sighash state.
+   * @retval true   valid
+   * @retval false  invalid
+   */
+  bool IsValid() const;
+
+  /**
    * @brief Set parameter from SigHash flag.
    * @param[in] flag  SigHash flag
    */
   void SetFromSigHashFlag(uint8_t flag);
+  /**
+   * @brief Set SIGHASH_ANYONECANPAY flag.
+   * @param[in] is_anyone_can_pay SIGHASH_ANYONECANPAY flag
+   */
+  void SetAnyoneCanPay(bool is_anyone_can_pay);
 
   /**
    * @brief Get string.

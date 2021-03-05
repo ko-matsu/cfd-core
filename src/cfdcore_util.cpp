@@ -77,6 +77,15 @@ SigHashType &SigHashType::operator=(const SigHashType &sighash_type) {
   return *this;
 }
 
+SigHashType SigHashType::Create(
+    uint8_t flag, bool is_append_anyone_can_pay, bool is_append_fork_id) {
+  SigHashType obj;
+  obj.SetFromSigHashFlag(flag);
+  if (is_append_anyone_can_pay) obj.is_anyone_can_pay_ = true;
+  if (is_append_fork_id) obj.is_fork_id_ = true;
+  return obj;
+}
+
 uint32_t SigHashType::GetSigHashFlag() const {
   uint32_t flag = hash_algorithm_;
   if (is_anyone_can_pay_) {
@@ -113,6 +122,10 @@ void SigHashType::SetFromSigHashFlag(uint8_t flag) {
   is_fork_id_ = is_fork_id;
 }
 
+void SigHashType::SetAnyoneCanPay(bool is_anyone_can_pay) {
+  is_anyone_can_pay_ = is_anyone_can_pay;
+}
+
 std::string SigHashType::ToString() const {
   std::string result;
   if (hash_algorithm_ == kSigHashAll) {
@@ -126,6 +139,11 @@ std::string SigHashType::ToString() const {
   }
   if (is_anyone_can_pay_) result += "|ANYONECANPAY";
   return result;
+}
+
+bool SigHashType::IsValid() const {
+  if (hash_algorithm_ <= kSigHashSingle) return true;
+  return false;
 }
 
 //////////////////////////////////
