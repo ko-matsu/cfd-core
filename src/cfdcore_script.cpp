@@ -601,6 +601,14 @@ ScriptElement::ScriptElement(int64_t value)
   }
 }
 
+ScriptElement::ScriptElement(int64_t value, bool is_binary)
+    : ScriptElement(value) {
+  if (is_binary && type_ == kElementOpCode) {
+    type_ = kElementNumber;
+    binary_data_ = ByteData(SerializeScriptNum(value_));
+  }
+}
+
 ScriptElement& ScriptElement::operator=(const ScriptElement& element) {
   if (this != &element) {
     type_ = element.type_;
@@ -945,7 +953,7 @@ void Script::SetStackData(const ByteData& bytedata) {
 
       if (collect_buffer_size <= kMaxScriptNumSize) {
         ScriptElement script_element =
-            ScriptElement(ConvertToNumber(collect_buffer));
+            ScriptElement(ConvertToNumber(collect_buffer), true);
         script_stack_.push_back(script_element);
       } else {
         ByteData byte_array = ByteData(collect_buffer);
@@ -1072,6 +1080,19 @@ bool Script::IsMultisigScript() const {
           ScriptOperator::OP_CHECKMULTISIG) {
     return false;
   }
+  int64_t req_num = script_stack_[0].GetNumber();
+  int64_t num = script_stack_[(script_stack_.size() - 2)].GetNumber();
+  if (req_num <= 16 && !script_stack_[0].IsOpCode()) {
+    return false;
+  }
+  if (num <= 16 && !script_stack_[(script_stack_.size() - 2)].IsOpCode()) {
+    return false;
+  }
+
+  if (req_num > num || req_num == 0 ||
+      num != static_cast<int64_t>(script_stack_.size() - 3)) {
+    return false;
+  }
 
   for (size_t i = 1; i < (script_stack_.size() - 2); ++i) {
     if (!script_stack_[i].IsBinary() ||
@@ -1079,12 +1100,6 @@ bool Script::IsMultisigScript() const {
       return false;
     }
   }
-
-  if (script_stack_[0].GetNumber() >
-      script_stack_[(script_stack_.size() - 2)].GetNumber()) {
-    return false;
-  }
-
   return true;
 }
 
