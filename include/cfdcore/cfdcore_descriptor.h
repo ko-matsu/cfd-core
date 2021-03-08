@@ -533,18 +533,22 @@ class CFD_CORE_EXPORT DescriptorNode {
   /**
    * @brief get reference object.
    * @param[in] array_argument  argument
+   * @param[in] parent          parent object
    * @return reference object
    */
   DescriptorScriptReference GetReference(
-      std::vector<std::string>* array_argument) const;
+      std::vector<std::string>* array_argument,
+      const DescriptorNode* parent = nullptr) const;
 
   /**
    * @brief get reference object list.
    * @param[in] array_argument  argument
+   * @param[in] parent          parent object
    * @return reference object list
    */
   std::vector<DescriptorScriptReference> GetReferences(
-      std::vector<std::string>* array_argument) const;
+      std::vector<std::string>* array_argument,
+      const DescriptorNode* parent = nullptr) const;
 
   /**
    * @brief Get the number required for argument.

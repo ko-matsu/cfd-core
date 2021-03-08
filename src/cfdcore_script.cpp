@@ -1446,7 +1446,8 @@ bool ScriptUtil::IsValidRedeemScript(const Script& redeem_script) {
 
 // OP_n <pubkey> ... OP_<requireSigNum> OP_CHECKMULTISIG
 Script ScriptUtil::CreateMultisigRedeemScript(
-    uint32_t require_signature_num, const std::vector<Pubkey>& pubkeys) {
+    uint32_t require_signature_num, const std::vector<Pubkey>& pubkeys,
+    bool has_witness) {
   if (require_signature_num == 0) {
     warn(CFD_LOG_SOURCE, "Invalid require_sig_num. require_sig_num = 0");
     throw CfdException(
@@ -1468,7 +1469,8 @@ Script ScriptUtil::CreateMultisigRedeemScript(
         CfdError::kCfdIllegalArgumentError,
         "CreateMultisigScript require_num is over.");
   }
-  if (pubkeys.size() > 15) {
+  size_t max_num = (has_witness) ? Script::kMaxMultisigPubkeyNum : 15;
+  if (pubkeys.size() > max_num) {
     warn(CFD_LOG_SOURCE, "pubkey array size is over.");
     throw CfdException(
         CfdError::kCfdIllegalArgumentError,
@@ -1480,15 +1482,12 @@ Script ScriptUtil::CreateMultisigRedeemScript(
 
   // create script
   ScriptBuilder builder;
-  builder.AppendOperator(op_require_num.GetOpCode());
-  for (const Pubkey& pubkey : pubkeys) {
-    builder.AppendData(pubkey);
-  }
-  builder.AppendOperator(op_pubkey_num.GetOpCode());
-  builder.AppendOperator(ScriptOperator::OP_CHECKMULTISIG);
+  builder << op_require_num;
+  for (const Pubkey& pubkey : pubkeys) builder << pubkey;
+  builder << op_pubkey_num << ScriptOperator::OP_CHECKMULTISIG;
   Script redeem_script = builder.Build();
 
-  if (!IsValidRedeemScript(redeem_script)) {
+  if ((!has_witness) && (!IsValidRedeemScript(redeem_script))) {
     warn(CFD_LOG_SOURCE, "Multisig script size is over.");
     throw CfdException(
         CfdError::kCfdIllegalArgumentError,

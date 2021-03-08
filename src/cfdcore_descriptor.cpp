@@ -1188,9 +1188,9 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
       throw CfdException(
           CfdError::kCfdIllegalArgumentError, "Failed to multisig node low.");
     }
-    if ((child_node_[0].number_ == 0) || (child_node_[0].number_ > 16) ||
-        ((child_node_.size() - 1) <
-         static_cast<size_t>(child_node_[0].number_))) {
+    size_t pubkey_num = child_node_.size() - 1;
+    if ((child_node_[0].number_ == 0) ||
+        (pubkey_num < static_cast<size_t>(child_node_[0].number_))) {
       warn(
           CFD_LOG_SOURCE, "Failed to multisig require num. num={}",
           child_node_[0].number_);
@@ -1198,7 +1198,9 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
           CfdError::kCfdIllegalArgumentError,
           "Failed to multisig require num.");
     }
-    if ((child_node_.size() - 1) > 16) {
+    size_t max_pubkey_num =
+        (parent_name == "wsh") ? Script::kMaxMultisigPubkeyNum : 16;
+    if (pubkey_num > max_pubkey_num) {
       warn(
           CFD_LOG_SOURCE, "Failed to multisig pubkey num. num={}",
           child_node_.size() - 1);
@@ -1213,7 +1215,8 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
       script_type_ = p_data->type;
       DescriptorScriptReference ref = GetReference(nullptr);
       Script script = ref.GetLockingScript();
-      if ((script.GetData().GetDataSize() + 3) > 520) {
+      if ((script.GetData().GetDataSize() + 3) >
+          Script::kMaxRedeemScriptSize) {
         warn(
             CFD_LOG_SOURCE, "Failed to script size over. size={}",
             script.GetData().GetDataSize());
@@ -1304,14 +1307,16 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
 }
 
 DescriptorScriptReference DescriptorNode::GetReference(
-    std::vector<std::string>* array_argument) const {
+    std::vector<std::string>* array_argument,
+    const DescriptorNode* parent) const {
   std::vector<DescriptorScriptReference> list;
-  list = GetReferences(array_argument);
+  list = GetReferences(array_argument, parent);
   return list[0];
 }
 
 std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
-    std::vector<std::string>* array_argument) const {
+    std::vector<std::string>* array_argument,
+    const DescriptorNode* parent) const {
   if ((depth_ == 0) && (array_argument) && (array_argument->size() > 1)) {
     std::reverse(array_argument->begin(), array_argument->end());
   }
@@ -1396,14 +1401,21 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
         // https://github.com/bitcoin/bips/blob/master/bip-0067.mediawiki
         std::sort(pubkeys.begin(), pubkeys.end(), Pubkey::IsLarge);
       }
-      locking_script = ScriptUtil::CreateMultisigRedeemScript(reqnum, pubkeys);
+      bool has_witness = false;
+      if ((parent != nullptr) &&
+          (parent->GetScriptType() ==
+           DescriptorScriptType::kDescriptorScriptWsh)) {
+        has_witness = true;
+      }
+      locking_script =
+          ScriptUtil::CreateMultisigRedeemScript(reqnum, pubkeys, has_witness);
       result.emplace_back(
           locking_script, script_type_, keys, addr_prefixes_, reqnum);
     } else if (
         (script_type_ == DescriptorScriptType::kDescriptorScriptSh) ||
         (script_type_ == DescriptorScriptType::kDescriptorScriptWsh)) {
       DescriptorScriptReference ref =
-          child_node_[0].GetReference(array_argument);
+          child_node_[0].GetReference(array_argument, this);
       Script script = ref.GetLockingScript();
       if (script_type_ == DescriptorScriptType::kDescriptorScriptWsh) {
         locking_script = ScriptUtil::CreateP2wshLockingScript(script);

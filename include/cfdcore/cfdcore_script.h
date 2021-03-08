@@ -851,6 +851,8 @@ class CFD_CORE_EXPORT Script {
   static constexpr uint32_t kMaxScriptSize = 10000;
   //! maximum size of RedeemScript
   static constexpr uint32_t kMaxRedeemScriptSize = 520;
+  //! maximum size of multisig
+  static constexpr uint32_t kMaxMultisigPubkeyNum = 20;
 
   /**
    * @brief constructor.
@@ -1308,6 +1310,7 @@ class CFD_CORE_EXPORT ScriptUtil {
    *    Number of Signatures required for unlocking (equivalent to M)
    * @param[in] pubkeys   Pubkey array corresponding to the signature. \
    *    (equivalent to N)
+   * @param[in] has_witness   target is witness script.
    * @return Script
    * @details Create a Script with the following content.
    * @code{.unparse}
@@ -1315,7 +1318,8 @@ class CFD_CORE_EXPORT ScriptUtil {
    * @endcode
    */
   static Script CreateMultisigRedeemScript(
-      uint32_t require_sig_num, const std::vector<Pubkey> &pubkeys);
+      uint32_t require_sig_num, const std::vector<Pubkey> &pubkeys,
+      bool has_witness = true);
 
 #ifndef CFD_DISABLE_ELEMENTS
   /**
