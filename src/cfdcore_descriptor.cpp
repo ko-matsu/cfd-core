@@ -1132,8 +1132,8 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
   }
   if (p_data == nullptr) {
     if ((parent_name == "wsh") || (parent_name == "sh")) {
-      size_t max_size = 10000;
-      if (parent_name == "sh") max_size = 520;
+      size_t max_size = (parent_name == "sh") ? Script::kMaxRedeemScriptSize
+                                              : Script::kMaxScriptSize;
       std::string miniscript = name_ + "(" + value_ + ")";
       std::vector<unsigned char> script(max_size);
       size_t written = 0;
