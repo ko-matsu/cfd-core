@@ -703,6 +703,12 @@ class CFD_CORE_EXPORT ScriptElement {
    */
   explicit ScriptElement(int64_t value);
   /**
+   * @brief constructor.
+   * @param[in] value       script number.
+   * @param[in] is_binary   binary mode.
+   */
+  explicit ScriptElement(int64_t value, bool is_binary);
+  /**
    * @brief destructor.
    */
   virtual ~ScriptElement() {
