@@ -2,8 +2,7 @@
 /**
  * @file cfdcore_transaction.cpp
  *
- * @brief \~japanese Transaction関連クラスの実装ファイルです。
- *   \~english implementation of Transaction related class
+ * @brief implementation of Transaction related class
  */
 #include "cfdcore/cfdcore_transaction.h"
 

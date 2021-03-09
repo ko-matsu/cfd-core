@@ -2,8 +2,7 @@
 /**
  * @file cfdcore_script.cpp
  *
- * @brief \~japanese Script関連クラス実装
- *   \~english implementation of Script related class
+ * @brief implementation of Script related class
  */
 
 #include "cfdcore/cfdcore_script.h"

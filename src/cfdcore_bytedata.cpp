@@ -2,8 +2,7 @@
 /**
  * @file cfdcore_bytedata.cpp
  *
- * @brief \~japanese ByteData関連クラス実装
- *   \~english implimentation of ByteData class
+ * @brief implimentation of ByteData class
  */
 #include "cfdcore/cfdcore_bytedata.h"
 

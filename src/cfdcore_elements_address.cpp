@@ -2,8 +2,7 @@
 /**
  * @file cfdcore_elements_address.cpp
  *
- * @brief \~japanese Elements対応したAddressクラス定義
- *   \~english definition of address class that handles Elements
+ * @brief definition of address class that handles Elements
  */
 #ifndef CFD_DISABLE_ELEMENTS
 
@@ -31,8 +30,7 @@ using logger::warn;
 // global / internal
 // -----------------------------------------------------------------------------
 /**
- * @brief \~japanese blind addressのキーペア一覧を定義するための構造体.
- *   \~english Structure to define a list of key pairs for blind address.
+ * @brief Structure to define a list of key pairs for blind address.
  */
 struct ElementsBlindAddressFormat {
   std::string prefix_key;          //!< prefix key

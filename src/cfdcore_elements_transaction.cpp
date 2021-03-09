@@ -2,8 +2,7 @@
 /**
  * @file cfdcore_elements_transaction.cpp
  *
- * @brief \~japanese Confidential Transaction関連クラスの実装ファイルです。
- *   \~english implementation of Confidential Transaction classes
+ * @brief implementation of Confidential Transaction classes
  */
 #ifndef CFD_DISABLE_ELEMENTS
 
