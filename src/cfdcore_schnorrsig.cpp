@@ -69,7 +69,7 @@ ByteData SchnorrSignature::GetData(bool append_sighash_type) const {
   }
 
   uint8_t sighash_type = sighash_type_.GetSigHashFlag();
-  return data_.Concat(ByteData(&sighash_type, 1));
+  return data_.Concat(ByteData(sighash_type));
 }
 
 std::string SchnorrSignature::GetHex(bool append_sighash_type) const {
@@ -244,7 +244,7 @@ bool SchnorrPubkey::Verify(
 
 Pubkey SchnorrPubkey::CreatePubkey(bool parity) const {
   uint8_t head = (parity) ? 3 : 2;
-  ByteData data = ByteData(&head, 1).Concat(data_);
+  ByteData data = ByteData(head).Concat(data_);
   return Pubkey(data);
 }
 

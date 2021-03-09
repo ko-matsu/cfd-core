@@ -51,6 +51,12 @@ class CFD_CORE_EXPORT ByteData {
   explicit ByteData(const uint8_t* buffer, uint32_t size);
 
   /**
+   * @brief constructor
+   * @param[in] single_byte    1-Byte data
+   */
+  explicit ByteData(const uint8_t single_byte);
+
+  /**
    * @brief Get a hex string.
    * @return hex string.
    */

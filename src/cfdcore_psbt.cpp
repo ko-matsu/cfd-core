@@ -1922,15 +1922,15 @@ Transaction Psbt::RebuildTransaction(const void *wally_psbt_pointer) {
 
 uint32_t Psbt::GetDefaultVersion() { return WALLY_PSBT_HIGHEST_VERSION; }
 
-ByteData Psbt::CreateRecordKey(uint8_t type) { return ByteData(&type, 1); }
+ByteData Psbt::CreateRecordKey(uint8_t type) { return ByteData(type); }
 
 ByteData Psbt::CreateFixRecordKey(
     uint8_t type, const ByteData &fixed_size_key) {
-  return ByteData(&type, 1).Concat(fixed_size_key);
+  return ByteData(type).Concat(fixed_size_key);
 }
 
 ByteData Psbt::CreateRecordKey(uint8_t type, const ByteData &key_bytes) {
-  return ByteData(&type, 1).Concat(key_bytes.Serialize());
+  return ByteData(type).Concat(key_bytes.Serialize());
 }
 
 ByteData Psbt::CreateRecordKey(uint8_t type, const std::string &key) {
@@ -1942,7 +1942,7 @@ ByteData Psbt::CreateRecordKey(uint8_t type, const std::string &key) {
 
 ByteData Psbt::CreateRecordKey(
     uint8_t type, const ByteData &prefix, uint8_t sub_type) {
-  return ByteData(&type, 1).Concat(prefix.Serialize(), ByteData(&sub_type, 1));
+  return ByteData(type).Concat(prefix.Serialize(), ByteData(sub_type));
 }
 
 ByteData Psbt::CreateRecordKey(
@@ -1958,8 +1958,8 @@ ByteData Psbt::CreateRecordKey(
 ByteData Psbt::CreateRecordKey(
     uint8_t type, const ByteData &prefix, uint8_t sub_type,
     const ByteData &sub_key_bytes) {
-  return ByteData(&type, 1).Concat(
-      prefix.Serialize(), ByteData(&sub_type, 1), sub_key_bytes.Serialize());
+  return ByteData(type).Concat(
+      prefix.Serialize(), ByteData(sub_type), sub_key_bytes.Serialize());
 }
 
 ByteData Psbt::CreateRecordKey(
@@ -1977,7 +1977,7 @@ ByteData Psbt::CreateRecordKey(
 }
 
 ByteData Psbt::CreatePubkeyRecordKey(uint8_t type, const Pubkey &pubkey) {
-  return ByteData(&type, 1).Concat(pubkey.GetData());
+  return ByteData(type).Concat(pubkey.GetData());
 }
 
 std::string Psbt::GetBase64() const {

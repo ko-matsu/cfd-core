@@ -70,7 +70,7 @@ ByteData256 TapBranch::GetRootHash() const {
 
   static auto kTaggedHash = HashUtil::Sha256("TapLeaf");
   return (HashUtil(HashUtil::kSha256)
-          << kTaggedHash << kTaggedHash << ByteData(&leaf_version_, 1)
+          << kTaggedHash << kTaggedHash << ByteData(leaf_version_)
           << script_.GetData().Serialize())
       .Output256();
 }

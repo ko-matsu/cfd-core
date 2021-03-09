@@ -46,6 +46,10 @@ ByteData::ByteData(const uint8_t* buffer, uint32_t size) : data_(size) {
   }
 }
 
+ByteData::ByteData(const uint8_t single_byte) : data_(1) {
+  data_[0] = single_byte;
+}
+
 std::string ByteData::GetHex() const {
   return StringUtil::ByteToString(data_);
 }
