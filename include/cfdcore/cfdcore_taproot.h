@@ -239,6 +239,11 @@ class CFD_CORE_EXPORT TaprootScriptTree : public TapBranch {
 class CFD_CORE_EXPORT TaprootUtil {
  public:
   /**
+   * @brief The annex tag.
+   */
+  static constexpr uint8_t kAnnexTag = 0x50;
+
+  /**
    * @brief Check valid leaf version.
    * @param[in] leaf_version    leaf version
    * @retval true   valid

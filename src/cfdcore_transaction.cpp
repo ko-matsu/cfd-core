@@ -15,6 +15,7 @@
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_schnorrsig.h"
+#include "cfdcore/cfdcore_taproot.h"
 #include "cfdcore/cfdcore_util.h"
 #include "cfdcore_transaction_internal.h"  // NOLINT
 #include "cfdcore_wally_util.h"            // NOLINT
@@ -808,6 +809,11 @@ ByteData256 Transaction::GetSchnorrSignatureHash(
     warn(CFD_LOG_SOURCE, "not enough utxo list.");
     throw CfdException(kCfdIllegalArgumentError, "not enough utxo list.");
   }
+  if ((!annex.IsEmpty()) && (annex.GetHeadData() != TaprootUtil::kAnnexTag)) {
+    warn(CFD_LOG_SOURCE, "invalid annex tag.");
+    throw CfdException(kCfdIllegalArgumentError, "invalid annex tag");
+  }
+
   const Script locking_script = utxo_list[txin_index].GetLockingScript();
   if (!locking_script.IsWitnessProgram()) {
     warn(CFD_LOG_SOURCE, "target vin is not segwit.");

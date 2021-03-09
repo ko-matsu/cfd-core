@@ -353,13 +353,12 @@ void TaprootUtil::ParseTaprootSignData(
     uint8_t* tapleaf_bit, SchnorrPubkey* internal_pubkey,
     std::vector<ByteData256>* nodes, Script* tapscript,
     std::vector<ByteData>* stack, ByteData* annex) {
-  static constexpr uint8_t kAnnexTag = 0x50;
   static constexpr size_t kControlMinimumSize =
       SchnorrPubkey::kSchnorrPubkeySize + 1;
 
   size_t size = witness_stack.size();
   if ((size >= 2) && (!witness_stack.back().IsEmpty()) &&
-      (witness_stack.back().GetHeadData() == kAnnexTag)) {
+      (witness_stack.back().GetHeadData() == TaprootUtil::kAnnexTag)) {
     if (annex != nullptr) *annex = witness_stack.back();
     --size;
   }
