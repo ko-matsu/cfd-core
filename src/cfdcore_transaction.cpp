@@ -832,7 +832,7 @@ ByteData256 Transaction::GetSchnorrSignatureHash(
   } else if (sighash_type_value == 0) {
     sighash_type_value = 0x01;  // SIGHASH_ALL
   }
-  bool has_sighash_all = (sighash_type_value & 0x01) ? true : false;
+  bool has_sighash_all = ((sighash_type_value & 0x0f) == 1) ? true : false;
 
   uint8_t ext_flag = 0;  // 0 - 127
   uint8_t has_tap_script = 0;
