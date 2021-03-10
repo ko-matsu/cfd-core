@@ -847,7 +847,7 @@ ByteData256 Transaction::GetSchnorrSignatureHash(
   builder.AddDirectBytes(top);
   builder.AddDirectBytes(top);                // double data
   builder.AddDirectByte(0);                   // EPOCH
-  builder.AddDirectByte(sighash_type_value);  // hash_type
+  builder.AddDirectByte(sighash_type.GetSigHashFlag());
   builder.AddDirectNumber(static_cast<uint32_t>(GetVersion()));
   builder.AddDirectNumber(GetLockTime());
   if (!is_anyone_can_pay) {
