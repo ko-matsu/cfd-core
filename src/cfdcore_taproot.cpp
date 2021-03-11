@@ -118,8 +118,7 @@ std::vector<ByteData256> TapBranch::GetNodeList() const {
 std::string TapBranch::ToString() const {
   std::string buf;
   if (has_leaf_) {
-    buf = "tapleaf(" + std::to_string(leaf_version_) + ",tapscript(" +
-          script_.GetHex() + "))";
+    buf = "{" + std::to_string(leaf_version_) + ":" + script_.GetHex() + "}";
   } else {
     buf = root_commitment_.GetHex();
   }
@@ -138,10 +137,10 @@ std::string TapBranch::ToString() const {
             hash_bytes.begin(), hash_bytes.end(), node_bytes.begin(),
             node_bytes.end())) {
       hash = (hasher << hash << node).Output256();
-      buf = "tap_br(" + buf + "," + branch.ToString() + ")";
+      buf = "{" + buf + "," + branch.ToString() + "}";
     } else {
       hash = (hasher << node << hash).Output256();
-      buf = "tap_br(" + branch.ToString() + "," + buf + ")";
+      buf = "{" + branch.ToString() + "," + buf + "}";
     }
   }
   return buf;

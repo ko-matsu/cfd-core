@@ -845,8 +845,8 @@ ByteData256 Transaction::GetSchnorrSignatureHash(
   Serializer builder;
   auto top = HashUtil::Sha256("TapSighash");
   builder.AddDirectBytes(top);
-  builder.AddDirectBytes(top);                // double data
-  builder.AddDirectByte(0);                   // EPOCH
+  builder.AddDirectBytes(top);  // double data
+  builder.AddDirectByte(0);     // EPOCH
   builder.AddDirectByte(sighash_type.GetSigHashFlag());
   builder.AddDirectNumber(static_cast<uint32_t>(GetVersion()));
   builder.AddDirectNumber(GetLockTime());
