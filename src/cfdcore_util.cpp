@@ -1229,7 +1229,7 @@ std::vector<uint8_t> StringUtil::StringToByte(const std::string &hex_str) {
   } else {
     warn(CFD_LOG_SOURCE, "wally_hex_to_bytes NG[{}].", ret);
     throw CfdException(
-        kCfdIllegalArgumentError, "hex to byte convert error." + hex_str);
+        kCfdIllegalArgumentError, "hex to byte convert error.");
   }
 
   return buffer;
