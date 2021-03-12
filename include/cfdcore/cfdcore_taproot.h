@@ -37,7 +37,7 @@ class CFD_CORE_EXPORT TapBranch {
    * @brief copy constructor.
    * @param[in] branch    branch object
    */
-  explicit TapBranch(const TapBranch& branch);
+  TapBranch(const TapBranch& branch);
   /**
    * @brief destructor.
    */
@@ -74,6 +74,12 @@ class CFD_CORE_EXPORT TapBranch {
    * @return branch hash.
    */
   ByteData256 GetCurrentBranchHash() const;
+  /**
+   * @brief Get a branch hash.
+   * @param[in] depth   depth
+   * @return branch hash.
+   */
+  ByteData256 GetBranchHash(uint8_t depth = 255) const;
 
   /**
    * @brief Exist a tapleaf.
@@ -104,19 +110,36 @@ class CFD_CORE_EXPORT TapBranch {
   virtual std::vector<ByteData256> GetNodeList() const;
 
   /**
+   * @brief find tapscript in this branch.
+   * @param[in] tapscript       tapscript
+   * @retval true       find this branch.
+   * @retval false      not found.
+   */
+  bool IsFindTapScript(const Script& tapscript) const;
+
+  /**
    * @brief Get a string format. (cfd original)
    * @return text data.
    */
   std::string ToString() const;
 
-  // TODO(k-matsuzawa): for feature
-  /*
+  /**
+   * @brief Change tapleaf.
+   * @param[in] tapscript       leaf tapscript.
+   * @param[in] target_nodes    target nodes.
+   * @return object
+   */
+  TapBranch ChangeTapLeaf(
+      const Script& tapscript, const std::vector<ByteData256>& target_nodes =
+                                   std::vector<ByteData256>()) const;
+
+  /**
    * @brief Convert from string format. (cfd original)
    * @param[in] text        string format.
    * @return object
    * @see TapBranch::ToString()
    */
-  // static TapBranch FromString(const std::string& text);
+  static TapBranch FromString(const std::string& text);
 
  protected:
   bool has_leaf_;                       //!< exist leaf
@@ -228,6 +251,19 @@ class CFD_CORE_EXPORT TaprootScriptTree : public TapBranch {
    * @return node list.
    */
   virtual std::vector<ByteData256> GetNodeList() const;
+
+  /**
+   * @brief Convert from string format. (cfd original)
+   * @param[in] text            string format.
+   * @param[in] tapscript       leaf tapscript.
+   * @param[in] target_nodes    target nodes.
+   * @return object
+   * @see TapBranch::FromString()
+   */
+  static TaprootScriptTree FromString(
+      const std::string& text, const Script& tapscript,
+      const std::vector<ByteData256>& target_nodes =
+          std::vector<ByteData256>());
 
  private:
   std::vector<ByteData256> nodes_;  //!< node list

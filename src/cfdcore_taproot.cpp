@@ -7,6 +7,7 @@
 
 #include "cfdcore/cfdcore_taproot.h"
 
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -48,10 +49,18 @@ void TapBranch::AddBranch(const SchnorrPubkey& pubkey) {
 
 void TapBranch::AddBranch(const ByteData256& commitment) {
   branch_list_.emplace_back(commitment);
+  if (branch_list_.size() > TaprootScriptTree::kTaprootControlMaxNodeCount) {
+    throw CfdException(
+        CfdError::kCfdIllegalStateError, "tapbranch maximum over.");
+  }
 }
 
 void TapBranch::AddBranch(const TapBranch& branch) {
   branch_list_.emplace_back(branch);
+  if (branch_list_.size() > TaprootScriptTree::kTaprootControlMaxNodeCount) {
+    throw CfdException(
+        CfdError::kCfdIllegalStateError, "tapbranch maximum over.");
+  }
 }
 
 TapBranch& TapBranch::operator=(const TapBranch& object) {
@@ -76,13 +85,19 @@ ByteData256 TapBranch::GetRootHash() const {
 }
 
 ByteData256 TapBranch::GetCurrentBranchHash() const {
+  return GetBranchHash(static_cast<uint8_t>(branch_list_.size()));
+}
+
+ByteData256 TapBranch::GetBranchHash(uint8_t depth) const {
   ByteData256 hash = GetRootHash();
   if (branch_list_.empty()) return hash;
 
   static auto kTaggedHash = HashUtil::Sha256("TapBranch");
   ByteData tapbranch_base = kTaggedHash.Concat(kTaggedHash);
   auto nodes = GetNodeList();
+  uint8_t index = 0;
   for (const auto& node : nodes) {
+    if (index > depth) break;
     auto hasher = HashUtil(HashUtil::kSha256) << tapbranch_base;
     const auto& node_bytes = node.GetBytes();
     const auto& hash_bytes = hash.GetBytes();
@@ -93,6 +108,7 @@ ByteData256 TapBranch::GetCurrentBranchHash() const {
     } else {
       hash = (hasher << node << hash).Output256();
     }
+    ++index;
   }
   return hash;
 }
@@ -115,10 +131,23 @@ std::vector<ByteData256> TapBranch::GetNodeList() const {
   return list;
 }
 
+bool TapBranch::IsFindTapScript(const Script& tapscript) const {
+  if (has_leaf_ && script_.Equals(tapscript)) return true;
+
+  for (const auto& branch : branch_list_) {
+    if (branch.IsFindTapScript(tapscript)) return true;
+  }
+  return false;
+}
+
 std::string TapBranch::ToString() const {
   std::string buf;
   if (has_leaf_) {
-    buf = "{" + std::to_string(leaf_version_) + ":" + script_.GetHex() + "}";
+    std::string ver_str;
+    if (leaf_version_ != TaprootScriptTree::kTapScriptLeafVersion) {
+      ver_str = ByteData(leaf_version_).GetHex() + ":";
+    }
+    buf = "{" + ver_str + script_.GetHex() + "}";
   } else {
     buf = root_commitment_.GetHex();
   }
@@ -146,15 +175,227 @@ std::string TapBranch::ToString() const {
   return buf;
 }
 
-#if 0  // for feature
+TapBranch TapBranch::ChangeTapLeaf(
+    const Script& tapscript,
+    const std::vector<ByteData256>& target_nodes) const {
+  if (!IsFindTapScript(tapscript)) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "This tapscript not exist in this tree.");
+  }
+  auto nodes = GetNodeList();
+  if (has_leaf_ && script_.Equals(tapscript)) {
+    if (target_nodes.empty() || (target_nodes == nodes)) return *this;
+  }
+
+  auto reverse_nodes = target_nodes;
+  if (!reverse_nodes.empty()) {
+    std::reverse(reverse_nodes.begin(), reverse_nodes.end());
+  }
+  std::string reverse_nodes_str;
+  for (const auto& node : reverse_nodes) reverse_nodes_str += node.GetHex();
+
+  std::vector<size_t> target_branch_indexes;
+  std::vector<size_t> checked_nodes_size_list;
+
+  std::vector<TapBranch> new_branches;
+  for (size_t index = 0; index < branch_list_.size(); ++index) {
+    const auto& branch = branch_list_[index];
+    if (branch.IsFindTapScript(tapscript)) {
+      std::vector<ByteData256> check_nodes;
+      if (reverse_nodes.empty()) {
+        target_branch_indexes.emplace_back(index);
+        checked_nodes_size_list.emplace_back(0);
+      } else {
+        auto branch_nodes = branch.GetNodeList();
+        for (size_t idx = nodes.size() - 1; idx > index; --idx) {
+          check_nodes.emplace_back(nodes[idx]);
+        }
+        if (index == 0) {
+          check_nodes.emplace_back(GetRootHash());
+        } else {
+          check_nodes.emplace_back(GetBranchHash(index - 1));
+        }
+
+        std::string check_nodes_str;
+        for (const auto& node : check_nodes) {
+          auto hex = node.GetHex();
+          check_nodes_str += hex;
+        }
+
+        bool has_match = true;
+        for (size_t idx = 0; idx < check_nodes.size(); ++idx) {
+          if (!reverse_nodes[idx].Equals(check_nodes[idx])) {
+            has_match = false;
+            break;
+          }
+        }
+        if (has_match) {
+          target_branch_indexes.emplace_back(index);
+          checked_nodes_size_list.emplace_back(check_nodes.size());
+        }
+      }
+    }
+  }
+
+  for (size_t index = 0; index < target_branch_indexes.size(); ++index) {
+    const auto& target_index = target_branch_indexes[index];
+    const auto& checked_size = checked_nodes_size_list[index];
+    std::vector<ByteData256> check_nodes;
+    if (!target_nodes.empty()) {
+      size_t copy_len = target_nodes.size() - checked_size;
+      for (size_t idx = 0; idx < copy_len; ++idx) {
+        check_nodes.emplace_back(target_nodes[idx]);
+      }
+    }
+
+    try {
+      auto new_branch =
+          branch_list_[target_index].ChangeTapLeaf(tapscript, check_nodes);
+      // ignore invalid target.
+      if (new_branch.GetRootHash().IsEmpty()) continue;
+
+      auto based_branch = *this;
+      std::vector<TapBranch> copy_branches;
+      for (size_t idx = 0; idx < target_index; ++idx) {
+        copy_branches.emplace_back(branch_list_[idx]);
+      }
+      based_branch.branch_list_ = copy_branches;
+
+      new_branch.AddBranch(based_branch);
+      for (size_t idx = target_index + 1; idx < branch_list_.size(); ++idx) {
+        new_branch.AddBranch(branch_list_[idx]);
+      }
+      new_branches.emplace_back(new_branch);
+    } catch (const CfdException&) {
+      // target not found
+    }
+  }
+  if (new_branches.empty()) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "The specified tapscript does not exist under this branch.");
+  }
+  return new_branches[0];  // response is top data.
+}
+
 TapBranch TapBranch::FromString(const std::string& text) {
-  // tap_br(tap_br(A,B),tap_br(tap_br(C),tapleaf(192,1122330011221100)))
+  static auto analyze_func = [](const std::string& target) -> TapBranch {
+    TapBranch result;
+    if ((*target.begin() == '{') && (target.find(',') != std::string::npos)) {
+      result = TapBranch::FromString(target);
+    } else if ((*target.begin() == '{') && (*(target.end() - 1) == '}')) {
+      auto script_str = target.substr(1, target.length() - 2);
+      size_t leaf_ver_offset = script_str.find(':');
+      if (leaf_ver_offset == std::string::npos) {
+        result = TaprootScriptTree(Script(script_str));
+      } else {
+        auto leaf_ver_str = script_str.substr(0, leaf_ver_offset);
+        char* err = nullptr;
+        auto leaf_version = strtol(leaf_ver_str.c_str(), &err, 16);
+        if (((err != nullptr) && (*err != '\0')) || (leaf_version < 0) ||
+            (leaf_version > std::numeric_limits<uint8_t>::max())) {
+          throw CfdException(
+              CfdError::kCfdIllegalArgumentError, "Invalid leaf version.");
+        }
+        script_str = script_str.substr(leaf_ver_offset + 1);
+        result = TaprootScriptTree(
+            static_cast<uint8_t>(leaf_version), Script(script_str));
+      }
+    } else {
+      result = TapBranch(ByteData256(target));
+    }
+    return result;
+  };
+
+  if (text.find(' ') != std::string::npos) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Contains invalid charactor.");
+  }
+
+  TapBranch result;
+  uint8_t depth = 0;
+  std::string current_block;
+  size_t start_block_index = 0;
+  size_t end_block_index = 0;
   for (size_t idx = 0; idx < text.size(); ++idx) {
     const char& str = text[idx];
+    if (str == '{') {
+      if (depth == 0) start_block_index = idx + 1;
+      ++depth;
+      if (depth == std::numeric_limits<uint8_t>::max()) {
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError, "Invalid tree format.");
+      }
+    } else if (str == '}') {
+      if (depth == 0) {
+        throw CfdException(
+            CfdError::kCfdIllegalArgumentError, "Invalid tree format.");
+      }
+      --depth;
+      if (depth == 0) {
+        end_block_index = idx;
+        if (end_block_index <= start_block_index) {
+          throw CfdException(
+              CfdError::kCfdIllegalArgumentError, "Invalid tree item.");
+        }
+        size_t max = end_block_index - start_block_index;
+        current_block = text.substr(start_block_index, max);
+        if (current_block.find(',') == std::string::npos) {
+          result = analyze_func(current_block);
+        } else {
+          auto split_list = StringUtil::Split(current_block, ",");
+          auto check_str = split_list[0];
+          TapBranch branch1;
+          if ((*check_str.begin() == '{') && (*(check_str.end() - 1) == '}') &&
+              StringUtil::IsValidHexString(
+                  check_str.substr(1, check_str.size() - 2))) {
+            branch1 = analyze_func(check_str);  // tapscript
+          } else if (StringUtil::IsValidHexString(check_str)) {
+            branch1 = analyze_func(check_str);  // hash only
+          } else {
+            branch1 = analyze_func(current_block);
+          }
+          auto branch1_str = branch1.ToString();
+          size_t offset = branch1_str.length();
+          if (current_block.length() == offset) {
+            result = branch1;
+          } else if (current_block[offset] == ',') {
+            auto next_block = current_block.substr(branch1_str.length() + 1);
+            auto branch2 = analyze_func(next_block);
+            if ((!branch1.has_leaf_) && (branch2.has_leaf_)) {
+              branch2.AddBranch(branch1);
+              result = branch2;
+            } else {
+              branch1.AddBranch(branch2);
+              result = branch1;
+            }
+          } else {
+            // invalid format
+            throw CfdException(
+                CfdError::kCfdIllegalArgumentError,
+                "Invalid tree item:" + current_block);
+          }
+        }
+        break;
+      }
+    } else if (str == ',') {
+      if (depth == 0) {
+        end_block_index = idx;
+        break;
+      }
+    }
   }
-  return TapBranch();
+
+  if (current_block.empty()) {
+    if (end_block_index > start_block_index) {
+      size_t max = end_block_index - start_block_index;
+      current_block = text.substr(start_block_index, max);
+      result = TapBranch(ByteData256(current_block));
+    }
+  }
+  return result;
 }
-#endif
 
 // ----------------------------------------------------------------------------
 // TaprootScriptTree
@@ -280,6 +521,21 @@ Privkey TaprootScriptTree::GetTweakedPrivkey(
 
 std::vector<ByteData256> TaprootScriptTree::GetNodeList() const {
   return nodes_;
+}
+
+TaprootScriptTree TaprootScriptTree::FromString(
+    const std::string& text, const Script& tapscript,
+    const std::vector<ByteData256>& target_nodes) {
+  auto branch = TapBranch::FromString(text);
+  auto check_nodes = target_nodes;
+  if (!check_nodes.empty()) {
+    TaprootScriptTree target_leaf(tapscript);
+    if (check_nodes.back().Equals(target_leaf.GetTapLeafHash())) {
+      check_nodes.erase(check_nodes.end() - 1);
+    }
+  }
+  branch = branch.ChangeTapLeaf(tapscript, check_nodes);
+  return TaprootScriptTree(branch);
 }
 
 // ----------------------------------------------------------------------------

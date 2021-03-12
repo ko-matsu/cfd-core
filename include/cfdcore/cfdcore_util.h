@@ -719,6 +719,13 @@ class CFD_CORE_EXPORT RandomNumberUtil {
 class CFD_CORE_EXPORT StringUtil {
  public:
   /**
+   * @brief Check hex string.
+   * @param[in] hex_str HEX string
+   * @retval true       valid hex string.
+   * @retval false      invalid string.
+   */
+  static bool IsValidHexString(const std::string &hex_str);
+  /**
    * @brief Convert from hex character string to byte data array.
    * @param[in] hex_str HEX string
    * @return byte data array.
