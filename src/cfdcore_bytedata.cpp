@@ -26,7 +26,12 @@ ByteData::ByteData() : data_(0) {
   // do nothing
 }
 
-ByteData::ByteData(const std::vector<uint8_t>& vector) : data_(vector) {}
+ByteData::ByteData(const std::vector<uint8_t>& vector) : data_(vector) {
+  if (data_.size() > std::numeric_limits<uint32_t>::max()) {
+    warn(CFD_LOG_SOURCE, "It exceeds the handling size.");
+    throw CfdException(kCfdIllegalStateError, "It exceeds the handling size.");
+  }
+}
 
 ByteData::ByteData(const std::string& hex)
     : data_(StringUtil::StringToByte(hex)) {}
@@ -73,8 +78,8 @@ uint8_t ByteData::GetHeadData() const {
 }
 
 ByteData ByteData::Serialize() const {
-  Serializer obj(data_.size());
-  obj.AddVariableBuffer(data_.data(), data_.size());
+  Serializer obj(static_cast<uint32_t>(data_.size()));
+  obj.AddVariableBuffer(data_.data(), static_cast<uint32_t>(data_.size()));
   return obj.Output();
 }
 
@@ -112,6 +117,10 @@ void ByteData::Push(const ByteData256& back_insert_data) {
   data_.reserve(data_.size() + insert_bytes.size() + 8);
   std::copy(
       insert_bytes.begin(), insert_bytes.end(), std::back_inserter(data_));
+}
+
+bool ByteData::operator==(const ByteData& object) const {
+  return (data_ == object.data_);
 }
 
 //////////////////////////////////
@@ -171,9 +180,13 @@ ByteData ByteData160::GetData() const { return ByteData(data_); }
 uint8_t ByteData160::GetHeadData() const { return data_[0]; }
 
 ByteData ByteData160::Serialize() const {
-  Serializer obj(data_.size());
-  obj.AddVariableBuffer(data_.data(), data_.size());
+  Serializer obj(static_cast<uint32_t>(data_.size()));
+  obj.AddVariableBuffer(data_.data(), static_cast<uint32_t>(data_.size()));
   return obj.Output();
+}
+
+bool ByteData160::operator==(const ByteData160& object) const {
+  return (data_ == object.data_);
 }
 
 //////////////////////////////////
@@ -233,9 +246,13 @@ ByteData ByteData256::GetData() const { return ByteData(data_); }
 uint8_t ByteData256::GetHeadData() const { return data_[0]; }
 
 ByteData ByteData256::Serialize() const {
-  Serializer obj(data_.size());
-  obj.AddVariableBuffer(data_.data(), data_.size());
+  Serializer obj(static_cast<uint32_t>(data_.size()));
+  obj.AddVariableBuffer(data_.data(), static_cast<uint32_t>(data_.size()));
   return obj.Output();
+}
+
+bool ByteData256::operator==(const ByteData256& object) const {
+  return (data_ == object.data_);
 }
 
 //////////////////////////////////
@@ -315,22 +332,34 @@ void Serializer::AddVariableInt(uint64_t value) {
 
 void Serializer::AddVariableBuffer(const ByteData& buffer) {
   auto buf = buffer.GetBytes();
-  AddVariableBuffer(buf.data(), buf.size());
+  if (buf.size() > std::numeric_limits<uint32_t>::max()) {
+    warn(CFD_LOG_SOURCE, "It exceeds the handling size.");
+    throw CfdException(kCfdIllegalStateError, "It exceeds the handling size.");
+  }
+  AddVariableBuffer(buf.data(), static_cast<uint32_t>(buf.size()));
 }
 
 void Serializer::AddPrefixBuffer(uint64_t prefix, const ByteData& buffer) {
   auto buf = buffer.GetBytes();
-  AddPrefixBuffer(prefix, buf.data(), buf.size());
+  if (buf.size() > std::numeric_limits<uint32_t>::max()) {
+    warn(CFD_LOG_SOURCE, "It exceeds the handling size.");
+    throw CfdException(kCfdIllegalStateError, "It exceeds the handling size.");
+  }
+  AddPrefixBuffer(prefix, buf.data(), static_cast<uint32_t>(buf.size()));
 }
 
 void Serializer::AddDirectBytes(const ByteData& buffer) {
   auto buf = buffer.GetBytes();
-  AddDirectBytes(buf.data(), buf.size());
+  if (buf.size() > std::numeric_limits<uint32_t>::max()) {
+    warn(CFD_LOG_SOURCE, "It exceeds the handling size.");
+    throw CfdException(kCfdIllegalStateError, "It exceeds the handling size.");
+  }
+  AddDirectBytes(buf.data(), static_cast<uint32_t>(buf.size()));
 }
 
 void Serializer::AddDirectBytes(const ByteData256& buffer) {
   auto buf = buffer.GetBytes();
-  AddDirectBytes(buf.data(), buf.size());
+  AddDirectBytes(buf.data(), static_cast<uint32_t>(buf.size()));
 }
 
 void Serializer::AddVariableBuffer(
@@ -510,7 +539,7 @@ void Deserializer::ReadArray(uint8_t* output, size_t size) {
   if (output != nullptr) {
     CheckReadSize(size);
     memcpy(output, &buffer_.data()[offset_], size);
-    offset_ += size;
+    offset_ += static_cast<uint32_t>(size);
   }
 }
 
@@ -525,7 +554,7 @@ std::vector<uint8_t> Deserializer::ReadVariableBuffer() {
   uint8_t* buf = buffer_.data() + offset_;
   std::vector<uint8_t> result(data_size);
   memcpy(result.data(), buf, data_size);
-  offset_ += data_size;
+  offset_ += static_cast<uint32_t>(data_size);
   return result;
 }
 
@@ -535,7 +564,11 @@ ByteData Deserializer::ReadVariableData() {
 
 uint32_t Deserializer::GetReadSize() { return offset_; }
 
-void Deserializer::CheckReadSize(uint32_t size) {
+void Deserializer::CheckReadSize(uint64_t size) {
+  if (size > std::numeric_limits<uint32_t>::max()) {
+    warn(CFD_LOG_SOURCE, "It exceeds the handling size.");
+    throw CfdException(kCfdIllegalStateError, "It exceeds the handling size.");
+  }
   if (buffer_.size() < (offset_ + size)) {
     warn(CFD_LOG_SOURCE, "deserialize buffer EOF.");
     throw CfdException(kCfdIllegalStateError, "deserialize buffer EOF.");
