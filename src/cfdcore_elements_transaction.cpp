@@ -1171,7 +1171,7 @@ uint32_t ConfidentialTxOutReference::GetSerializeSize(
     if ((rangeproof_size != nullptr) && (*rangeproof_size != 0)) {
       work_proof_size = *rangeproof_size;
     } else if (confidential_value_.HasBlinding()) {
-      work_proof_size = 4 + range_proof_.GetDataSize();
+      work_proof_size = 4 + static_cast<uint32_t>(range_proof_.GetDataSize());
     } else {
       int64_t amount = confidential_value_.GetAmount().GetSatoshiValue();
       if (amount == 0) amount = kMaxAmount;

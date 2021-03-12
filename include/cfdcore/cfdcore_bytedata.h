@@ -198,6 +198,14 @@ class CFD_CORE_EXPORT ByteData {
   void Push(const ByteData256& back_insert_data);
 
   /**
+   * @brief Equals operator.
+   * @param[in] object  target object.
+   * @retval true   equals
+   * @retval false  not equals
+   */
+  bool operator==(const ByteData& object) const;
+
+  /**
    * @brief Get the variable integer buffer.
    * @param[in] value    size value
    * @return variable size buffer
@@ -368,6 +376,14 @@ class CFD_CORE_EXPORT ByteData160 {
    */
   ByteData Serialize() const;
 
+  /**
+   * @brief Equals operator.
+   * @param[in] object  target object.
+   * @retval true   equals
+   * @retval false  not equals
+   */
+  bool operator==(const ByteData160& object) const;
+
  private:
   /**
    * @brief 20byte fixed data.
@@ -522,6 +538,14 @@ class CFD_CORE_EXPORT ByteData256 {
    * @return serialize data
    */
   ByteData Serialize() const;
+
+  /**
+   * @brief Equals operator.
+   * @param[in] object  target object.
+   * @retval true   equals
+   * @retval false  not equals
+   */
+  bool operator==(const ByteData256& object) const;
 
  private:
   /**
@@ -792,7 +816,7 @@ class CFD_CORE_EXPORT Deserializer {
    * @brief check read offset size.
    * @param[in] size  need size
    */
-  void CheckReadSize(uint32_t size);
+  void CheckReadSize(uint64_t size);
 };
 
 }  // namespace core

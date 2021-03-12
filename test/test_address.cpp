@@ -229,7 +229,7 @@ TEST(Address, TaprootScriptAddressTest) {
     EXPECT_EQ(WitnessVersion::kVersion1, address.GetWitnessVersion());
     EXPECT_STREQ("88de1a59b38939f58fb4f8c5ffc3d56390d43e9e91c7b1d67f91e070f3108799",
                 address.GetHash().GetHex().c_str());
-    EXPECT_EQ("{192:51}",
+    EXPECT_EQ("{51}",
               address.GetScriptTree().ToString());
     EXPECT_STREQ("", address.GetScript().GetHex().c_str());
     EXPECT_STREQ("512088de1a59b38939f58fb4f8c5ffc3d56390d43e9e91c7b1d67f91e070f3108799",

@@ -441,8 +441,9 @@ HashUtil &HashUtil::operator=(const HashUtil &object) {
 }
 
 HashUtil &HashUtil::operator<<(const std::string &str) {
-  buffer_.Push(
-      ByteData(reinterpret_cast<const uint8_t *>(str.data()), str.size()));
+  buffer_.Push(ByteData(
+      reinterpret_cast<const uint8_t *>(str.data()),
+      static_cast<uint32_t>(str.size())));
   return *this;
 }
 
@@ -1204,6 +1205,16 @@ bool RandomNumberUtil::GetRandomBool(std::vector<bool> *random_cache) {
 //////////////////////////////////
 /// StringUtil
 //////////////////////////////////
+bool StringUtil::IsValidHexString(const std::string &hex_str) {
+  if (hex_str.empty()) return true;
+
+  std::vector<uint8_t> buffer(hex_str.size() + 1);
+  size_t buf_size = 0;
+  int ret = wally_hex_to_bytes(
+      hex_str.data(), buffer.data(), buffer.size(), &buf_size);
+  return (ret == WALLY_OK);
+}
+
 std::vector<uint8_t> StringUtil::StringToByte(const std::string &hex_str) {
   if (hex_str.empty()) {
     info(CFD_LOG_SOURCE, "hex_str empty. return empty buffer.");
