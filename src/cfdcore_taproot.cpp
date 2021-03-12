@@ -214,7 +214,8 @@ TapBranch TapBranch::ChangeTapLeaf(
         if (index == 0) {
           check_nodes.emplace_back(GetRootHash());
         } else {
-          check_nodes.emplace_back(GetBranchHash(index - 1));
+          check_nodes.emplace_back(
+              GetBranchHash(static_cast<uint8_t>(index - 1)));
         }
 
         std::string check_nodes_str;

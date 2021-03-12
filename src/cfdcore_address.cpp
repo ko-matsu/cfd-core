@@ -1066,7 +1066,7 @@ void Address::DecodeAddress(
     }
 
     data_part.resize(written);
-    Script script(ByteData(data_part.data(), written));
+    Script script(ByteData(data_part.data(), static_cast<uint32_t>(written)));
     if (!script.IsWitnessProgram()) {
       throw CfdException(kCfdInternalError, "address decode check error.");
     }

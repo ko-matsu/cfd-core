@@ -356,7 +356,7 @@ void MergeWallyMap(
       if ((src_item->key_len == dst_item->key_len) &&
           (memcmp(src_item->key, dst_item->key, src_item->key_len) == 0)) {
         is_find = true;
-        ByteData key(src_item->key, src_item->key_len);
+        ByteData key(src_item->key, static_cast<uint32_t>(src_item->key_len));
         ComparePsbtData(
             src_item->value, src_item->value_len, dst_item->value,
             dst_item->value_len, item_name, key.GetHex(),
@@ -630,7 +630,7 @@ void MergePsbtInputs(
 
   uint32_t index;
   for (auto dst_idx : append_indexes) {
-    index = psbt->num_inputs;
+    index = static_cast<uint32_t>(psbt->num_inputs);
     ret = wally_psbt_add_input_at(
         psbt, index, WALLY_PSBT_FLAG_NON_FINAL,
         &psbt_dest->tx->inputs[dst_idx]);
@@ -686,7 +686,7 @@ void MergePsbtOutputs(
 
   uint32_t index;
   for (auto dst_idx : append_indexes) {
-    index = psbt->num_outputs;
+    index = static_cast<uint32_t>(psbt->num_outputs);
     ret = wally_psbt_add_output_at(
         psbt, index, 0, &psbt_dest->tx->outputs[dst_idx]);
     if (ret != WALLY_OK) {
@@ -771,24 +771,30 @@ static void WritePsbtOutput(
     builder->AddDirectByte(1);
     builder->AddVariableInt(Psbt::kPsbtOutputRedeemScript);
     builder->AddVariableBuffer(
-        output->redeem_script, output->redeem_script_len);
+        output->redeem_script,
+        static_cast<uint32_t>(output->redeem_script_len));
   }
   if (output->witness_script_len != 0) {
     builder->AddDirectByte(1);
     builder->AddVariableInt(Psbt::kPsbtOutputWitnessScript);
     builder->AddVariableBuffer(
-        output->witness_script, output->witness_script_len);
+        output->witness_script,
+        static_cast<uint32_t>(output->witness_script_len));
   }
   for (size_t i = 0; i < output->keypaths.num_items; ++i) {
     auto *item = &output->keypaths.items[i];
     builder->AddPrefixBuffer(
-        Psbt::kPsbtOutputBip32Derivation, item->key, item->key_len);
-    builder->AddVariableBuffer(item->value, item->value_len);
+        Psbt::kPsbtOutputBip32Derivation, item->key,
+        static_cast<uint32_t>(item->key_len));
+    builder->AddVariableBuffer(
+        item->value, static_cast<uint32_t>(item->value_len));
   }
   for (size_t i = 0; i < output->unknowns.num_items; ++i) {
     auto *item = &output->unknowns.items[i];
-    builder->AddVariableBuffer(item->key, item->key_len);
-    builder->AddVariableBuffer(item->value, item->value_len);
+    builder->AddVariableBuffer(
+        item->key, static_cast<uint32_t>(item->key_len));
+    builder->AddVariableBuffer(
+        item->value, static_cast<uint32_t>(item->value_len));
   }
   builder->AddDirectByte(kPsbtSeparator);
 }
@@ -805,7 +811,7 @@ ByteData CreatePsbtOutputOnlyData(const struct wally_psbt *psbt) {
   builder.AddDirectByte(1);
   builder.AddVariableInt(Psbt::kPsbtGlobalUnsignedTx);
   auto tx = ConvertBitcoinTxFromWally(psbt->tx, false).GetBytes();
-  builder.AddVariableBuffer(tx.data(), tx.size());
+  builder.AddVariableBuffer(tx.data(), static_cast<uint32_t>(tx.size()));
 
   if (psbt->version > 0) {
     builder.AddDirectByte(1);
@@ -818,8 +824,9 @@ ByteData CreatePsbtOutputOnlyData(const struct wally_psbt *psbt) {
 
   for (size_t i = 0; i < psbt->unknowns.num_items; ++i) {
     auto *item = &psbt->unknowns.items[i];
-    builder.AddVariableBuffer(item->key, item->key_len);
-    builder.AddVariableBuffer(item->value, item->value_len);
+    builder.AddVariableBuffer(item->key, static_cast<uint32_t>(item->key_len));
+    builder.AddVariableBuffer(
+        item->value, static_cast<uint32_t>(item->value_len));
   }
   builder.AddDirectByte(kPsbtSeparator);
 
@@ -955,7 +962,7 @@ static ByteData GetPsbtGlobal(
       if (is_find != nullptr) *is_find = true;
       return ByteData(
           psbt->unknowns.items[index].value,
-          psbt->unknowns.items[index].value_len);
+          static_cast<uint32_t>(psbt->unknowns.items[index].value_len));
     } catch (const CfdException &except) {
       if ((is_find == nullptr) ||
           (except.GetErrorCode() != kCfdIllegalArgumentError)) {
@@ -1221,7 +1228,8 @@ static ByteData GetPsbtInput(
       Serializer builder;
       builder.AddDirectNumber(input->witness_utxo->satoshi);
       builder.AddVariableBuffer(ByteData(
-          input->witness_utxo->script, input->witness_utxo->script_len));
+          input->witness_utxo->script,
+          static_cast<uint32_t>(input->witness_utxo->script_len)));
       return builder.Output();
     } else if (is_find == nullptr) {
       throw CfdException(
@@ -1241,7 +1249,7 @@ static ByteData GetPsbtInput(
       if (is_find != nullptr) *is_find = true;
       return ByteData(
           input->signatures.items[index].value,
-          input->signatures.items[index].value_len);
+          static_cast<uint32_t>(input->signatures.items[index].value_len));
     } catch (const CfdException &except) {
       if ((is_find == nullptr) ||
           (except.GetErrorCode() != kCfdIllegalArgumentError)) {
@@ -1273,7 +1281,9 @@ static ByteData GetPsbtInput(
     }
     if (input->redeem_script_len != 0) {
       if (is_find != nullptr) *is_find = true;
-      return ByteData(input->redeem_script, input->redeem_script_len);
+      return ByteData(
+          input->redeem_script,
+          static_cast<uint32_t>(input->redeem_script_len));
     } else if (is_find == nullptr) {
       throw CfdException(
           kCfdIllegalArgumentError,
@@ -1287,7 +1297,9 @@ static ByteData GetPsbtInput(
     }
     if (input->witness_script_len != 0) {
       if (is_find != nullptr) *is_find = true;
-      return ByteData(input->witness_script, input->witness_script_len);
+      return ByteData(
+          input->witness_script,
+          static_cast<uint32_t>(input->witness_script_len));
     } else if (is_find == nullptr) {
       throw CfdException(
           kCfdIllegalArgumentError,
@@ -1306,7 +1318,7 @@ static ByteData GetPsbtInput(
       if (is_find != nullptr) *is_find = true;
       return ByteData(
           input->keypaths.items[index].value,
-          input->keypaths.items[index].value_len);
+          static_cast<uint32_t>(input->keypaths.items[index].value_len));
     } catch (const CfdException &except) {
       if ((is_find == nullptr) ||
           (except.GetErrorCode() != kCfdIllegalArgumentError)) {
@@ -1321,7 +1333,9 @@ static ByteData GetPsbtInput(
     }
     if (input->final_scriptsig_len != 0) {
       if (is_find != nullptr) *is_find = true;
-      return ByteData(input->final_scriptsig, input->final_scriptsig_len);
+      return ByteData(
+          input->final_scriptsig,
+          static_cast<uint32_t>(input->final_scriptsig_len));
     } else if (is_find == nullptr) {
       throw CfdException(
           kCfdIllegalArgumentError,
@@ -1341,7 +1355,8 @@ static ByteData GetPsbtInput(
       for (uint64_t idx = 0; idx < num; ++idx) {
         builder.AddVariableBuffer(ByteData(
             input->final_witness->items[idx].witness,
-            input->final_witness->items[idx].witness_len));
+            static_cast<uint32_t>(
+                input->final_witness->items[idx].witness_len)));
       }
       return builder.Output();
     } else if (is_find == nullptr) {
@@ -1356,7 +1371,7 @@ static ByteData GetPsbtInput(
       if (is_find != nullptr) *is_find = true;
       return ByteData(
           input->unknowns.items[index].value,
-          input->unknowns.items[index].value_len);
+          static_cast<uint32_t>(input->unknowns.items[index].value_len));
     } catch (const CfdException &except) {
       if ((is_find == nullptr) ||
           (except.GetErrorCode() != kCfdIllegalArgumentError)) {
@@ -1479,7 +1494,9 @@ static ByteData GetPsbtOutput(
     }
     if (output->redeem_script_len != 0) {
       if (is_find != nullptr) *is_find = true;
-      return ByteData(output->redeem_script, output->redeem_script_len);
+      return ByteData(
+          output->redeem_script,
+          static_cast<uint32_t>(output->redeem_script_len));
     } else if (is_find == nullptr) {
       throw CfdException(
           kCfdIllegalArgumentError,
@@ -1493,7 +1510,9 @@ static ByteData GetPsbtOutput(
     }
     if (output->witness_script_len != 0) {
       if (is_find != nullptr) *is_find = true;
-      return ByteData(output->witness_script, output->witness_script_len);
+      return ByteData(
+          output->witness_script,
+          static_cast<uint32_t>(output->witness_script_len));
     } else if (is_find == nullptr) {
       throw CfdException(
           kCfdIllegalArgumentError,
@@ -1512,7 +1531,7 @@ static ByteData GetPsbtOutput(
       if (is_find != nullptr) *is_find = true;
       return ByteData(
           output->keypaths.items[index].value,
-          output->keypaths.items[index].value_len);
+          static_cast<uint32_t>(output->keypaths.items[index].value_len));
     } catch (const CfdException &except) {
       if ((is_find == nullptr) ||
           (except.GetErrorCode() != kCfdIllegalArgumentError)) {
@@ -1526,7 +1545,7 @@ static ByteData GetPsbtOutput(
       if (is_find != nullptr) *is_find = true;
       return ByteData(
           output->unknowns.items[index].value,
-          output->unknowns.items[index].value_len);
+          static_cast<uint32_t>(output->unknowns.items[index].value_len));
     } catch (const CfdException &except) {
       if ((is_find == nullptr) ||
           (except.GetErrorCode() != kCfdIllegalArgumentError)) {
@@ -2171,7 +2190,7 @@ uint32_t Psbt::AddTxIn(const TxInReference &txin) {
 uint32_t Psbt::AddTxIn(const Txid &txid, uint32_t vout, uint32_t sequence) {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  uint32_t index = psbt_pointer->num_inputs;
+  uint32_t index = static_cast<uint32_t>(psbt_pointer->num_inputs);
   struct wally_tx_input *input = nullptr;
   std::vector<uint8_t> txhash = txid.GetData().GetBytes();
 
@@ -2567,7 +2586,8 @@ TxOut Psbt::GetTxInUtxo(
             psbt_pointer->inputs[index].witness_utxo->satoshi)),
         Script(ByteData(
             psbt_pointer->inputs[index].witness_utxo->script,
-            psbt_pointer->inputs[index].witness_utxo->script_len)));
+            static_cast<uint32_t>(
+                psbt_pointer->inputs[index].witness_utxo->script_len))));
   } else if (psbt_pointer->inputs[index].utxo != nullptr) {
     if (is_witness != nullptr) {
       *is_witness = (psbt_pointer->inputs[index].witness_utxo != nullptr);
@@ -2578,7 +2598,8 @@ TxOut Psbt::GetTxInUtxo(
             psbt_pointer->inputs[index].utxo->outputs[vout].satoshi)),
         Script(ByteData(
             psbt_pointer->inputs[index].utxo->outputs[vout].script,
-            psbt_pointer->inputs[index].utxo->outputs[vout].script_len)));
+            static_cast<uint32_t>(
+                psbt_pointer->inputs[index].utxo->outputs[vout].script_len))));
   } else if (ignore_error) {
     return TxOut();
   } else {
@@ -2597,12 +2618,13 @@ Script Psbt::GetTxInRedeemScript(
     if (is_witness != nullptr) *is_witness = true;
     return Script(ByteData(
         psbt_pointer->inputs[index].witness_script,
-        psbt_pointer->inputs[index].witness_script_len));
+        static_cast<uint32_t>(
+            psbt_pointer->inputs[index].witness_script_len)));
   } else if (psbt_pointer->inputs[index].redeem_script != nullptr) {
     if (is_witness != nullptr) *is_witness = false;
     return Script(ByteData(
         psbt_pointer->inputs[index].redeem_script,
-        psbt_pointer->inputs[index].redeem_script_len));
+        static_cast<uint32_t>(psbt_pointer->inputs[index].redeem_script_len)));
   } else if (ignore_error) {
     return Script();
   } else {
@@ -2620,13 +2642,14 @@ Script Psbt::GetTxInRedeemScriptDirect(
   if (is_witness && (psbt_pointer->inputs[index].witness_script != nullptr)) {
     return Script(ByteData(
         psbt_pointer->inputs[index].witness_script,
-        psbt_pointer->inputs[index].witness_script_len));
+        static_cast<uint32_t>(
+            psbt_pointer->inputs[index].witness_script_len)));
   } else if (
       (!is_witness) &&
       (psbt_pointer->inputs[index].redeem_script != nullptr)) {
     return Script(ByteData(
         psbt_pointer->inputs[index].redeem_script,
-        psbt_pointer->inputs[index].redeem_script_len));
+        static_cast<uint32_t>(psbt_pointer->inputs[index].redeem_script_len)));
   } else if (ignore_error) {
     return Script();
   } else {
@@ -2646,7 +2669,7 @@ std::vector<KeyData> Psbt::GetTxInKeyDataList(uint32_t index) const {
   struct wally_map_item *item;
   for (size_t key_index = 0; key_index < key_max; ++key_index) {
     item = &psbt_pointer->inputs[index].keypaths.items[key_index];
-    ByteData key(item->key, item->key_len);
+    ByteData key(item->key, static_cast<uint32_t>(item->key_len));
     Pubkey pubkey(key);
     ByteData fingerprint;
     std::vector<uint32_t> path;
@@ -2688,7 +2711,7 @@ std::vector<Pubkey> Psbt::GetTxInSignaturePubkeyList(uint32_t index) const {
   struct wally_map_item *item;
   for (size_t key_index = 0; key_index < key_max; ++key_index) {
     item = &psbt_pointer->inputs[index].signatures.items[key_index];
-    ByteData key(item->key, item->key_len);
+    ByteData key(item->key, static_cast<uint32_t>(item->key_len));
     Pubkey pubkey(key);
     arr.emplace_back(pubkey);
   }
@@ -2715,7 +2738,8 @@ ByteData Psbt::GetTxInSignature(uint32_t index, const Pubkey &pubkey) const {
   uint32_t map_index = static_cast<uint32_t>(exist) - 1;
   return ByteData(
       psbt_pointer->inputs[index].signatures.items[map_index].value,
-      psbt_pointer->inputs[index].signatures.items[map_index].value_len);
+      static_cast<uint32_t>(
+          psbt_pointer->inputs[index].signatures.items[map_index].value_len));
 }
 
 bool Psbt::IsFindTxInSignature(uint32_t index, const Pubkey &pubkey) const {
@@ -2768,15 +2792,16 @@ std::vector<ByteData> Psbt::GetTxInFinalScript(
     auto stacks = psbt_pointer->inputs[index].final_witness;
     if (stacks != nullptr) {
       for (size_t stack_idx = 0; stack_idx < stacks->num_items; ++stack_idx) {
-        result.emplace_back(
+        result.emplace_back(ByteData(
             stacks->items[stack_idx].witness,
-            stacks->items[stack_idx].witness_len);
+            static_cast<uint32_t>(stacks->items[stack_idx].witness_len)));
       }
     }
   } else {
-    result.emplace_back(
+    result.emplace_back(ByteData(
         psbt_pointer->inputs[index].final_scriptsig,
-        psbt_pointer->inputs[index].final_scriptsig_len);
+        static_cast<uint32_t>(
+            psbt_pointer->inputs[index].final_scriptsig_len)));
   }
   return result;
 }
@@ -2805,7 +2830,8 @@ std::vector<ByteData> Psbt::GetTxInRecordKeyList(uint32_t index) const {
   auto input = &psbt_pointer->inputs[index];
   for (size_t idx = 0; idx < input->unknowns.num_items; ++idx) {
     auto item = &input->unknowns.items[idx];
-    result.emplace_back(item->key, item->key_len);
+    result.emplace_back(
+        ByteData(item->key, static_cast<uint32_t>(item->key_len)));
   }
   return result;
 }
@@ -2860,7 +2886,7 @@ uint32_t Psbt::AddTxOut(const TxOutReference &txout) {
 uint32_t Psbt::AddTxOut(const Script &locking_script, const Amount &amount) {
   struct wally_psbt *psbt_pointer;
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-  uint32_t index = psbt_pointer->num_outputs;
+  uint32_t index = static_cast<uint32_t>(psbt_pointer->num_outputs);
   auto script = locking_script.GetData().GetBytes();
   struct wally_tx_output *output = nullptr;
 
@@ -2894,7 +2920,8 @@ void Psbt::SetTxOutData(uint32_t index, const KeyData &key) {
   }
 
   struct wally_tx_output *txout = &psbt_pointer->tx->outputs[index];
-  Script locking_script(ByteData(txout->script, txout->script_len));
+  Script locking_script(
+      ByteData(txout->script, static_cast<uint32_t>(txout->script_len)));
   Script redeem_script;
   Script script;
 
@@ -2929,7 +2956,8 @@ void Psbt::SetTxOutData(
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
 
   struct wally_tx_output *txout = &psbt_pointer->tx->outputs[index];
-  Script script(ByteData(txout->script, txout->script_len));
+  Script script(
+      ByteData(txout->script, static_cast<uint32_t>(txout->script_len)));
   ByteData256 empty_bytes;
   Txid txid(empty_bytes);
   Script new_redeem_script = redeem_script;
@@ -3028,12 +3056,14 @@ Script Psbt::GetTxOutScript(
     if (is_witness != nullptr) *is_witness = true;
     return Script(ByteData(
         psbt_pointer->outputs[index].witness_script,
-        psbt_pointer->outputs[index].witness_script_len));
+        static_cast<uint32_t>(
+            psbt_pointer->outputs[index].witness_script_len)));
   } else if (psbt_pointer->outputs[index].redeem_script != nullptr) {
     if (is_witness != nullptr) *is_witness = false;
     return Script(ByteData(
         psbt_pointer->outputs[index].redeem_script,
-        psbt_pointer->outputs[index].redeem_script_len));
+        static_cast<uint32_t>(
+            psbt_pointer->outputs[index].redeem_script_len)));
   } else if (ignore_error) {
     return Script();
   } else {
@@ -3065,7 +3095,7 @@ std::vector<KeyData> Psbt::GetTxOutKeyDataList(uint32_t index) const {
   struct wally_map_item *item;
   for (size_t key_index = 0; key_index < key_max; ++key_index) {
     item = &psbt_pointer->outputs[index].keypaths.items[key_index];
-    ByteData key(item->key, item->key_len);
+    ByteData key(item->key, static_cast<uint32_t>(item->key_len));
     Pubkey pubkey(key);
     ByteData fingerprint;
     std::vector<uint32_t> path;
@@ -3108,7 +3138,8 @@ std::vector<ByteData> Psbt::GetTxOutRecordKeyList(uint32_t index) const {
   auto output = &psbt_pointer->outputs[index];
   for (size_t idx = 0; idx < output->unknowns.num_items; ++idx) {
     auto item = &output->unknowns.items[idx];
-    result.emplace_back(item->key, item->key_len);
+    result.emplace_back(
+        ByteData(item->key, static_cast<uint32_t>(item->key_len)));
   }
   return result;
 }
@@ -3151,7 +3182,7 @@ void Psbt::SetGlobalXpubkey(const KeyData &key) {
   //   warn(CFD_LOG_SOURCE, "psbt empty bip32 path.");
   //   throw CfdException(kCfdIllegalArgumentError, "psbt empty bip32 path.");
   // }
-  Serializer builder(4 + (num_list.size() * 4));
+  Serializer builder(4 + (static_cast<uint32_t>(num_list.size()) * 4));
   builder.AddDirectBytes(fingerprint.data(), 4);
   for (const auto child_num : num_list) {
     builder.AddDirectNumber(child_num);
@@ -3208,7 +3239,7 @@ std::vector<KeyData> Psbt::GetGlobalXpubkeyDataList() const {
     item = &psbt_pointer->unknowns.items[key_index];
     if (item->key_len != kPsbtGlobalXpubSize) continue;
     if (item->key[0] != Psbt::kPsbtGlobalXpub) continue;
-    ByteData key(&item->key[1], item->key_len - 1);
+    ByteData key(&item->key[1], static_cast<uint32_t>(item->key_len) - 1);
     ExtPubkey ext_pubkey(key);
 
     ByteData fingerprint;
@@ -3267,7 +3298,8 @@ std::vector<ByteData> Psbt::GetGlobalRecordKeyList() const {
   std::vector<ByteData> result;
   for (size_t idx = 0; idx < psbt_pointer->unknowns.num_items; ++idx) {
     auto item = &psbt_pointer->unknowns.items[idx];
-    result.emplace_back(item->key, item->key_len);
+    result.emplace_back(
+        ByteData(item->key, static_cast<uint32_t>(item->key_len)));
   }
   return result;
 }

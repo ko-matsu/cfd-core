@@ -68,7 +68,7 @@ ByteData SchnorrSignature::GetData(bool append_sighash_type) const {
     return data_;
   }
 
-  uint8_t sighash_type = sighash_type_.GetSigHashFlag();
+  uint8_t sighash_type = static_cast<uint8_t>(sighash_type_.GetSigHashFlag());
   return data_.Concat(ByteData(sighash_type));
 }
 
@@ -93,7 +93,8 @@ Privkey SchnorrSignature::GetPrivkey() const {
 }
 
 void SchnorrSignature::SetSigHashType(const SigHashType &sighash_type) {
-  if (!IsValidSigHashType(sighash_type.GetSigHashFlag())) {
+  if (!IsValidSigHashType(
+          static_cast<uint8_t>(sighash_type.GetSigHashFlag()))) {
     throw CfdException(
         CfdError::kCfdIllegalArgumentError,
         "Invalid sighash type for schnorr signature.");

@@ -823,7 +823,8 @@ ByteData256 Transaction::GetSchnorrSignatureHash(
         kCfdIllegalArgumentError, "target vin is not segwit v1.");
   }
 
-  uint8_t sighash_type_value = sighash_type.GetSigHashFlag();
+  uint8_t sighash_type_value =
+      static_cast<uint8_t>(sighash_type.GetSigHashFlag());
   bool is_anyone_can_pay = sighash_type.IsAnyoneCanPay();
   if (!SchnorrSignature::IsValidSigHashType(sighash_type_value)) {
     warn(CFD_LOG_SOURCE, "Invalid sighash type on segwit v1.");
@@ -847,7 +848,7 @@ ByteData256 Transaction::GetSchnorrSignatureHash(
   builder.AddDirectBytes(top);
   builder.AddDirectBytes(top);  // double data
   builder.AddDirectByte(0);     // EPOCH
-  builder.AddDirectByte(sighash_type.GetSigHashFlag());
+  builder.AddDirectByte(static_cast<uint8_t>(sighash_type.GetSigHashFlag()));
   builder.AddDirectNumber(static_cast<uint32_t>(GetVersion()));
   builder.AddDirectNumber(GetLockTime());
   if (!is_anyone_can_pay) {
@@ -1018,7 +1019,7 @@ ByteData ConvertBitcoinTxFromWally(
           }
         }
 
-        Serializer builder(need_size);
+        Serializer builder(static_cast<uint32_t>(need_size));
         builder.AddDirectNumber(tx->version);
         if ((flags != 0) && (tx->num_inputs != 0)) {  // witness
           builder.AddDirectByte(0);                   // marker is 0
@@ -1030,7 +1031,8 @@ ByteData ConvertBitcoinTxFromWally(
           const struct wally_tx_input *input = tx->inputs + i;
           builder.AddDirectBytes(input->txhash, sizeof(input->txhash));
           builder.AddDirectNumber(input->index);
-          builder.AddVariableBuffer(input->script, input->script_len);
+          builder.AddVariableBuffer(
+              input->script, static_cast<uint32_t>(input->script_len));
           builder.AddDirectNumber(input->sequence);
         }
 
@@ -1038,19 +1040,23 @@ ByteData ConvertBitcoinTxFromWally(
         for (uint32_t i = 0; i < tx->num_outputs; ++i) {
           const struct wally_tx_output *output = tx->outputs + i;
           builder.AddDirectNumber(output->satoshi);
-          builder.AddVariableBuffer(output->script, output->script_len);
+          builder.AddVariableBuffer(
+              output->script, static_cast<uint32_t>(output->script_len));
         }
 
         if (flags != 0) {  // witness
           for (uint32_t i = 0; i < tx->num_inputs; ++i) {
             const struct wally_tx_input *input = tx->inputs + i;
             uint32_t num_items =
-                input->witness ? input->witness->num_items : 0;
+                input->witness
+                    ? static_cast<uint32_t>(input->witness->num_items)
+                    : 0;
             builder.AddVariableInt(num_items);
             for (uint32_t j = 0; j < num_items; ++j) {
               const struct wally_tx_witness_item *stack;
               stack = input->witness->items + j;
-              builder.AddVariableBuffer(stack->witness, stack->witness_len);
+              builder.AddVariableBuffer(
+                  stack->witness, static_cast<uint32_t>(stack->witness_len));
             }
           }
         }
