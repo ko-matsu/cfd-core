@@ -25,6 +25,26 @@ using logger::info;
 using logger::warn;
 
 //////////////////////////////////
+/// Inner File Definition
+//////////////////////////////////
+/**
+ * @brief support hash format data.
+ */
+struct SupportHashFormat {
+  std::string name;  //!< hash name
+  uint8_t type;      //!< hash type
+};
+
+/**
+ * @brief support hash format list.
+ */
+static const SupportHashFormat kFormatList[] = {
+    {"ripemd160", HashUtil::kRipemd160}, {"hash160", HashUtil::kHash160},
+    {"sha256", HashUtil::kSha256},       {"sha256d", HashUtil::kSha256D},
+    {"sha512", HashUtil::kSha512},       {"", 0},
+};
+
+//////////////////////////////////
 /// SigHashType
 //////////////////////////////////
 SigHashType::SigHashType()
@@ -49,10 +69,21 @@ SigHashType::SigHashType(const SigHashType &sighash_type) {
 }
 
 SigHashType &SigHashType::operator=(const SigHashType &sighash_type) {
-  hash_algorithm_ = sighash_type.hash_algorithm_;
-  is_anyone_can_pay_ = sighash_type.is_anyone_can_pay_;
-  is_fork_id_ = sighash_type.is_fork_id_;
+  if (this != &sighash_type) {
+    hash_algorithm_ = sighash_type.hash_algorithm_;
+    is_anyone_can_pay_ = sighash_type.is_anyone_can_pay_;
+    is_fork_id_ = sighash_type.is_fork_id_;
+  }
   return *this;
+}
+
+SigHashType SigHashType::Create(
+    uint8_t flag, bool is_append_anyone_can_pay, bool is_append_fork_id) {
+  SigHashType obj;
+  obj.SetFromSigHashFlag(flag);
+  if (is_append_anyone_can_pay) obj.is_anyone_can_pay_ = true;
+  if (is_append_fork_id) obj.is_fork_id_ = true;
+  return obj;
 }
 
 uint32_t SigHashType::GetSigHashFlag() const {
@@ -91,6 +122,10 @@ void SigHashType::SetFromSigHashFlag(uint8_t flag) {
   is_fork_id_ = is_fork_id;
 }
 
+void SigHashType::SetAnyoneCanPay(bool is_anyone_can_pay) {
+  is_anyone_can_pay_ = is_anyone_can_pay;
+}
+
 std::string SigHashType::ToString() const {
   std::string result;
   if (hash_algorithm_ == kSigHashAll) {
@@ -104,6 +139,11 @@ std::string SigHashType::ToString() const {
   }
   if (is_anyone_can_pay_) result += "|ANYONECANPAY";
   return result;
+}
+
+bool SigHashType::IsValid() const {
+  if (hash_algorithm_ <= kSigHashSingle) return true;
+  return false;
 }
 
 //////////////////////////////////
@@ -357,6 +397,135 @@ ByteData HashUtil::Sha512(const Pubkey &pubkey) {
 
 ByteData HashUtil::Sha512(const Script &script) {
   return Sha512(script.GetData());
+}
+
+HashUtil::HashUtil(uint8_t hash_type) : hash_type_(hash_type) {
+  for (const auto &item : kFormatList) {
+    if (item.type == 0) break;
+    if (hash_type == item.type) return;
+  }
+  throw CfdException(kCfdInternalError, "unknown hash type.");
+}
+
+HashUtil::HashUtil(const std::string &hash_type) {
+  if (hash_type.length() > 20)
+    throw CfdException(kCfdIllegalArgumentError, "unsupported hash type.");
+
+  std::string name = hash_type;
+  for (size_t index = 0; index < name.length(); ++index) {
+    if ((name[index] >= 'A') && (name[index] <= 'Z')) {
+      name[index] += 'a' - 'A';
+    }
+  }
+  for (const auto &item : kFormatList) {
+    if (item.type == 0) break;
+    if (name == item.name) {
+      hash_type_ = item.type;
+      return;
+    }
+  }
+  throw CfdException(kCfdIllegalArgumentError, "unsupported hash type.");
+}
+
+HashUtil::HashUtil(const HashUtil &object) {
+  hash_type_ = object.hash_type_;
+  buffer_ = object.buffer_;
+}
+
+HashUtil &HashUtil::operator=(const HashUtil &object) {
+  if (this != &object) {
+    hash_type_ = object.hash_type_;
+    buffer_ = object.buffer_;
+  }
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const std::string &str) {
+  buffer_.Push(ByteData(
+      reinterpret_cast<const uint8_t *>(str.data()),
+      static_cast<uint32_t>(str.size())));
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const std::vector<uint8_t> &bytes) {
+  if (!bytes.empty()) buffer_.Push(ByteData(bytes));
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const ByteData &data) {
+  if (!data.IsEmpty()) buffer_.Push(data);
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const ByteData160 &data) {
+  buffer_.Push(data);
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const ByteData256 &data) {
+  buffer_.Push(data);
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const Pubkey &pubkey) {
+  buffer_.Push(pubkey.GetData());
+  return *this;
+}
+
+HashUtil &HashUtil::operator<<(const Script &script) {
+  buffer_.Push(script.GetData());
+  return *this;
+}
+
+ByteData HashUtil::Output() {
+  switch (hash_type_) {
+    case kRipemd160:
+      return Ripemd160(buffer_.GetBytes()).GetData();
+    case kHash160:
+      return Hash160(buffer_.GetBytes()).GetData();
+    case kSha256:
+      return Sha256(buffer_.GetBytes()).GetData();
+    case kSha256D:
+      return Sha256D(buffer_.GetBytes()).GetData();
+    case kSha512:
+      return Sha512(buffer_.GetBytes());
+    default:
+      throw CfdException(kCfdInternalError, "unknown hash type.");
+  }
+}
+
+ByteData160 HashUtil::Output160() {
+  switch (hash_type_) {
+    case kRipemd160:
+      return Ripemd160(buffer_.GetBytes());
+    case kHash160:
+      return Hash160(buffer_.GetBytes());
+    case kSha256:
+      // fall-through
+    case kSha256D:
+      // fall-through
+    case kSha512:
+      // fall-through
+    default:
+      throw CfdException(kCfdInternalError, "unknown hash type.");
+  }
+}
+
+ByteData256 HashUtil::Output256() {
+  switch (hash_type_) {
+    case kSha256:
+      return Sha256(buffer_);
+    case kSha256D:
+      return Sha256D(buffer_);
+    case kRipemd160:
+      // fall-through
+    case kHash160:
+      // fall-through
+    case kSha512:
+      // fall-through
+    default:
+      throw CfdException(kCfdInternalError, "unknown hash type.");
+  }
 }
 
 //////////////////////////////////
@@ -1036,6 +1205,16 @@ bool RandomNumberUtil::GetRandomBool(std::vector<bool> *random_cache) {
 //////////////////////////////////
 /// StringUtil
 //////////////////////////////////
+bool StringUtil::IsValidHexString(const std::string &hex_str) {
+  if (hex_str.empty()) return true;
+
+  std::vector<uint8_t> buffer(hex_str.size() + 1);
+  size_t buf_size = 0;
+  int ret = wally_hex_to_bytes(
+      hex_str.data(), buffer.data(), buffer.size(), &buf_size);
+  return (ret == WALLY_OK);
+}
+
 std::vector<uint8_t> StringUtil::StringToByte(const std::string &hex_str) {
   if (hex_str.empty()) {
     info(CFD_LOG_SOURCE, "hex_str empty. return empty buffer.");

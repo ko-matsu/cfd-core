@@ -237,14 +237,16 @@ DescriptorKeyInfo::DescriptorKeyInfo(const DescriptorKeyInfo& object) {
 
 DescriptorKeyInfo& DescriptorKeyInfo::operator=(
     const DescriptorKeyInfo& object) {
-  key_type_ = object.key_type_;
-  pubkey_ = object.pubkey_;
-  privkey_ = object.privkey_;
-  extprivkey_ = object.extprivkey_;
-  extpubkey_ = object.extpubkey_;
-  parent_info_ = object.parent_info_;
-  path_ = object.path_;
-  key_string_ = object.key_string_;
+  if (this != &object) {
+    key_type_ = object.key_type_;
+    pubkey_ = object.pubkey_;
+    privkey_ = object.privkey_;
+    extprivkey_ = object.extprivkey_;
+    extpubkey_ = object.extpubkey_;
+    parent_info_ = object.parent_info_;
+    path_ = object.path_;
+    key_string_ = object.key_string_;
+  }
   return *this;
 }
 
@@ -332,12 +334,14 @@ DescriptorKeyReference::DescriptorKeyReference(
 
 DescriptorKeyReference& DescriptorKeyReference::operator=(
     const DescriptorKeyReference& object) {
-  key_type_ = object.key_type_;
-  pubkey_ = object.pubkey_;
-  extprivkey_ = object.extprivkey_;
-  extpubkey_ = object.extpubkey_;
-  key_data_ = object.key_data_;
-  argument_ = object.argument_;
+  if (this != &object) {
+    key_type_ = object.key_type_;
+    pubkey_ = object.pubkey_;
+    extprivkey_ = object.extprivkey_;
+    extpubkey_ = object.extpubkey_;
+    key_data_ = object.key_data_;
+    argument_ = object.argument_;
+  }
   return *this;
 }
 
@@ -467,15 +471,17 @@ DescriptorScriptReference::DescriptorScriptReference(
 
 DescriptorScriptReference& DescriptorScriptReference::operator=(
     const DescriptorScriptReference& object) {
-  locking_script_ = object.locking_script_;
-  script_type_ = object.script_type_;
-  address_script_ = object.address_script_;
-  is_script_ = object.is_script_;
-  redeem_script_ = object.redeem_script_;
-  child_script_ = object.child_script_;
-  keys_ = object.keys_;
-  req_num_ = object.req_num_;
-  addr_prefixes_ = object.addr_prefixes_;
+  if (this != &object) {
+    locking_script_ = object.locking_script_;
+    script_type_ = object.script_type_;
+    address_script_ = object.address_script_;
+    is_script_ = object.is_script_;
+    redeem_script_ = object.redeem_script_;
+    child_script_ = object.child_script_;
+    keys_ = object.keys_;
+    req_num_ = object.req_num_;
+    addr_prefixes_ = object.addr_prefixes_;
+  }
   return *this;
 }
 
@@ -486,7 +492,8 @@ Script DescriptorScriptReference::GetLockingScript() const {
 bool DescriptorScriptReference::HasAddress() const {
   if (script_type_ == DescriptorScriptType::kDescriptorScriptRaw) {
     if (locking_script_.IsP2wpkhScript() || locking_script_.IsP2wshScript() ||
-        locking_script_.IsP2shScript() || locking_script_.IsP2pkhScript()) {
+        locking_script_.IsTaprootScript() || locking_script_.IsP2shScript() ||
+        locking_script_.IsP2pkhScript()) {
       return true;
     }
     return false;
@@ -500,9 +507,10 @@ Address DescriptorScriptReference::GenerateAddress(NetType net_type) const {
   switch (script_type_) {
     case DescriptorScriptType::kDescriptorScriptRaw:
       if (locking_script_.IsP2wpkhScript() ||
+          locking_script_.IsTaprootScript() ||
           locking_script_.IsP2wshScript()) {
         auto hash = locking_script_.GetElementList()[1].GetBinaryData();
-        return Address(net_type, WitnessVersion::kVersion0, hash);
+        return Address(net_type, locking_script_.GetWitnessVersion(), hash);
       } else if (locking_script_.IsP2shScript()) {
         auto hash = locking_script_.GetElementList()[1].GetBinaryData();
         return Address(net_type, AddressType::kP2shAddress, ByteData160(hash));
@@ -586,6 +594,8 @@ AddressType DescriptorScriptReference::GetAddressType() const {
         return AddressType::kP2wpkhAddress;
       } else if (locking_script_.IsP2wshScript()) {
         return AddressType::kP2wshAddress;
+      } else if (locking_script_.IsTaprootScript()) {
+        return AddressType::kTaprootAddress;
       } else if (locking_script_.IsP2shScript()) {
         return AddressType::kP2shAddress;
       } else if (locking_script_.IsP2pkhScript()) {
@@ -616,6 +626,9 @@ AddressType DescriptorScriptReference::GetAddressType() const {
   if (locking_script_.IsP2wshScript()) {
     return AddressType::kP2wshAddress;
   }
+  if (locking_script_.IsTaprootScript()) {
+    return AddressType::kTaprootAddress;
+  }
   if (locking_script_.IsP2pkhScript()) {
     return AddressType::kP2pkhAddress;
   }
@@ -636,6 +649,9 @@ HashType DescriptorScriptReference::GetHashType() const {
   }
   if (locking_script_.IsP2wshScript()) {
     return HashType::kP2wsh;
+  }
+  if (locking_script_.IsTaprootScript()) {
+    return HashType::kTaproot;
   }
   if (locking_script_.IsP2pkScript()) {
     return HashType::kP2pkh;
@@ -725,21 +741,23 @@ DescriptorNode::DescriptorNode(const DescriptorNode& object) {
 }
 
 DescriptorNode& DescriptorNode::operator=(const DescriptorNode& object) {
-  name_ = object.name_;
-  value_ = object.value_;
-  key_info_ = object.key_info_;
-  is_uncompressed_key_ = object.is_uncompressed_key_;
-  base_extkey_ = object.base_extkey_;
-  tweak_sum_ = object.tweak_sum_;
-  number_ = object.number_;
-  child_node_ = object.child_node_;
-  checksum_ = object.checksum_;
-  depth_ = object.depth_;
-  need_arg_num_ = object.need_arg_num_;
-  node_type_ = object.node_type_;
-  script_type_ = object.script_type_;
-  key_type_ = object.key_type_;
-  addr_prefixes_ = object.addr_prefixes_;
+  if (this != &object) {
+    name_ = object.name_;
+    value_ = object.value_;
+    key_info_ = object.key_info_;
+    is_uncompressed_key_ = object.is_uncompressed_key_;
+    base_extkey_ = object.base_extkey_;
+    tweak_sum_ = object.tweak_sum_;
+    number_ = object.number_;
+    child_node_ = object.child_node_;
+    checksum_ = object.checksum_;
+    depth_ = object.depth_;
+    need_arg_num_ = object.need_arg_num_;
+    node_type_ = object.node_type_;
+    script_type_ = object.script_type_;
+    key_type_ = object.key_type_;
+    addr_prefixes_ = object.addr_prefixes_;
+  }
   return *this;
 }
 
@@ -750,7 +768,7 @@ DescriptorNode DescriptorNode::Parse(
   node.node_type_ = DescriptorNodeType::kDescriptorTypeScript;
   node.AnalyzeChild(output_descriptor, 0);
   node.AnalyzeAll("");
-  // Script生成テスト
+  // Script generate test
   std::vector<std::string> list;
   for (uint32_t index = 0; index < node.GetNeedArgumentNum(); ++index) {
     list.push_back("0");
@@ -1114,8 +1132,8 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
   }
   if (p_data == nullptr) {
     if ((parent_name == "wsh") || (parent_name == "sh")) {
-      size_t max_size = 10000;
-      if (parent_name == "sh") max_size = 520;
+      size_t max_size = (parent_name == "sh") ? Script::kMaxRedeemScriptSize
+                                              : Script::kMaxScriptSize;
       std::string miniscript = name_ + "(" + value_ + ")";
       std::vector<unsigned char> script(max_size);
       size_t written = 0;
@@ -1170,9 +1188,9 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
       throw CfdException(
           CfdError::kCfdIllegalArgumentError, "Failed to multisig node low.");
     }
-    if ((child_node_[0].number_ == 0) || (child_node_[0].number_ > 16) ||
-        ((child_node_.size() - 1) <
-         static_cast<size_t>(child_node_[0].number_))) {
+    size_t pubkey_num = child_node_.size() - 1;
+    if ((child_node_[0].number_ == 0) ||
+        (pubkey_num < static_cast<size_t>(child_node_[0].number_))) {
       warn(
           CFD_LOG_SOURCE, "Failed to multisig require num. num={}",
           child_node_[0].number_);
@@ -1180,7 +1198,9 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
           CfdError::kCfdIllegalArgumentError,
           "Failed to multisig require num.");
     }
-    if ((child_node_.size() - 1) > 16) {
+    size_t max_pubkey_num =
+        (parent_name == "wsh") ? Script::kMaxMultisigPubkeyNum : 16;
+    if (pubkey_num > max_pubkey_num) {
       warn(
           CFD_LOG_SOURCE, "Failed to multisig pubkey num. num={}",
           child_node_.size() - 1);
@@ -1195,7 +1215,8 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
       script_type_ = p_data->type;
       DescriptorScriptReference ref = GetReference(nullptr);
       Script script = ref.GetLockingScript();
-      if ((script.GetData().GetDataSize() + 3) > 520) {
+      if ((script.GetData().GetDataSize() + 3) >
+          Script::kMaxRedeemScriptSize) {
         warn(
             CFD_LOG_SOURCE, "Failed to script size over. size={}",
             script.GetData().GetDataSize());
@@ -1286,14 +1307,16 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
 }
 
 DescriptorScriptReference DescriptorNode::GetReference(
-    std::vector<std::string>* array_argument) const {
+    std::vector<std::string>* array_argument,
+    const DescriptorNode* parent) const {
   std::vector<DescriptorScriptReference> list;
-  list = GetReferences(array_argument);
+  list = GetReferences(array_argument, parent);
   return list[0];
 }
 
 std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
-    std::vector<std::string>* array_argument) const {
+    std::vector<std::string>* array_argument,
+    const DescriptorNode* parent) const {
   if ((depth_ == 0) && (array_argument) && (array_argument->size() > 1)) {
     std::reverse(array_argument->begin(), array_argument->end());
   }
@@ -1378,14 +1401,21 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
         // https://github.com/bitcoin/bips/blob/master/bip-0067.mediawiki
         std::sort(pubkeys.begin(), pubkeys.end(), Pubkey::IsLarge);
       }
-      locking_script = ScriptUtil::CreateMultisigRedeemScript(reqnum, pubkeys);
+      bool has_witness = false;
+      if ((parent != nullptr) &&
+          (parent->GetScriptType() ==
+           DescriptorScriptType::kDescriptorScriptWsh)) {
+        has_witness = true;
+      }
+      locking_script =
+          ScriptUtil::CreateMultisigRedeemScript(reqnum, pubkeys, has_witness);
       result.emplace_back(
           locking_script, script_type_, keys, addr_prefixes_, reqnum);
     } else if (
         (script_type_ == DescriptorScriptType::kDescriptorScriptSh) ||
         (script_type_ == DescriptorScriptType::kDescriptorScriptWsh)) {
       DescriptorScriptReference ref =
-          child_node_[0].GetReference(array_argument);
+          child_node_[0].GetReference(array_argument, this);
       Script script = ref.GetLockingScript();
       if (script_type_ == DescriptorScriptType::kDescriptorScriptWsh) {
         locking_script = ScriptUtil::CreateP2wshLockingScript(script);
@@ -1421,8 +1451,7 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
             locking_script, script_type_, keys, addr_prefixes_);
 
         // p2pk
-        build.AppendData(pubkey);
-        build.AppendOperator(ScriptOperator::OP_CHECKSIG);
+        build << pubkey << ScriptOperator::OP_CHECKSIG;
         locking_script = build.Build();
         result.emplace_back(
             locking_script, script_type_, keys, addr_prefixes_);
@@ -1433,8 +1462,7 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
             script_type_ == DescriptorScriptType::kDescriptorScriptWpkh) {
           locking_script = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
         } else if (script_type_ == DescriptorScriptType::kDescriptorScriptPk) {
-          build.AppendData(pubkey);
-          build.AppendOperator(ScriptOperator::OP_CHECKSIG);
+          build << pubkey << ScriptOperator::OP_CHECKSIG;
           locking_script = build.Build();
         }
         result.emplace_back(
@@ -1597,7 +1625,9 @@ Descriptor::Descriptor(const Descriptor& object) {
 }
 
 Descriptor& Descriptor::operator=(const Descriptor& object) {
-  root_node_ = object.root_node_;
+  if (this != &object) {
+    root_node_ = object.root_node_;
+  }
   return *this;
 }
 
