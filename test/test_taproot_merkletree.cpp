@@ -96,7 +96,7 @@ TEST(TaprootScriptTree, Branch) {
   EXPECT_TRUE(pk.Verify(sig, msg));
 
   auto tree_str = tree.ToString();
-  std::string exp_tree_str = "{{4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d,{c4:51}},dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54}";
+  std::string exp_tree_str = "{{4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6d,tl(51,c4)},dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54}";
   EXPECT_EQ(exp_tree_str, tree_str);
 
   try {
@@ -187,7 +187,7 @@ TEST(TaprootScriptTree, TreeTest1) {
   TaprootScriptTree tree3(tree_2_of_2_sig);
 
   auto exp_hash = "a625d1251a1100263fa9a77b81e9e6f46c2eb8d44b9f27b629875cc102efb0ec";
-  auto exp_str = "{{{20ac52f50b28cdd4d3bcb7f0d5cb533f232e4c4ef12fbf3e718420b84d4e3c3440ac},{51}},{2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac}}";
+  auto exp_str = "{{tl(20ac52f50b28cdd4d3bcb7f0d5cb533f232e4c4ef12fbf3e718420b84d4e3c3440ac),tl(51)},tl(2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac)}";
   TaprootScriptTree root = tree1;
   root.AddBranch(tree2);
   root.AddBranch(tree3);
@@ -212,7 +212,7 @@ TEST(TaprootScriptTree, TreeTest1) {
   root.AddBranch(branch.GetCurrentBranchHash());
   EXPECT_EQ(exp_hash, root.GetCurrentBranchHash().GetHex());
   EXPECT_EQ(
-      "{af151388d3bfbebcdc87e4a0b4a97bbfa378f2e5a909eb38a6978cb2a71f39c4,{2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac}}",
+      "{af151388d3bfbebcdc87e4a0b4a97bbfa378f2e5a909eb38a6978cb2a71f39c4,tl(2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac)}",
       root.ToString());
 
   root = TaprootScriptTree::FromString(exp_str, script);
@@ -335,7 +335,7 @@ TEST(TaprootScriptTree, TreeTest2) {
   };
 
   auto exp_hash = "ca0e12942fdb00ad71e84e02c44c0b9136e60ff2c25bcb3cade4d7dc53d246df";
-  auto exp_str = "{{{{20a6573124a479ab188b063bc383aa599da8ccc3b8f90fc18d570a8b367276eaf5ac},{{204a7af8660f2b0bdb92d2ce8b88ab30feb916343228d2e7bd15da02e1f6a31d47ac},{2000d134c42fd51c90fa82c6cfdaabd895474d979118525362c0cd236c857e29d9ac}}},{{{20ac52f50b28cdd4d3bcb7f0d5cb533f232e4c4ef12fbf3e718420b84d4e3c3440ac},{{2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aac},{51}}},{2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac}}},{2008f8280d68e02e807ccffee141c4a6b7ac31d3c283ae0921892d95f691742c44ad20b0f8ce3e1df406514a773414b5d9e5779d8e68ce816e9db39b8e53255ac3b406ac}}";
+  auto exp_str = "{{{tl(20a6573124a479ab188b063bc383aa599da8ccc3b8f90fc18d570a8b367276eaf5ac),{tl(204a7af8660f2b0bdb92d2ce8b88ab30feb916343228d2e7bd15da02e1f6a31d47ac),tl(2000d134c42fd51c90fa82c6cfdaabd895474d979118525362c0cd236c857e29d9ac)}},{{tl(20ac52f50b28cdd4d3bcb7f0d5cb533f232e4c4ef12fbf3e718420b84d4e3c3440ac),{tl(2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aac),tl(51)}},tl(2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac)}},tl(2008f8280d68e02e807ccffee141c4a6b7ac31d3c283ae0921892d95f691742c44ad20b0f8ce3e1df406514a773414b5d9e5779d8e68ce816e9db39b8e53255ac3b406ac)}";
   TaprootScriptTree tree_efg(script_f);
   tree_efg.AddBranch(TaprootScriptTree(script_g));
   tree_efg.AddBranch(TaprootScriptTree(script_e));
@@ -469,7 +469,7 @@ TEST(TaprootScriptTree, TreeTest3) {
   };
 
   auto exp_hash = "0c1bebfc9a508bf4d5835d401d96d71b72f1873fd338aebfff06d7adbe0c0cc3";
-  auto exp_str = "{{{{51},{{204a7af8660f2b0bdb92d2ce8b88ab30feb916343228d2e7bd15da02e1f6a31d47ac},{2000d134c42fd51c90fa82c6cfdaabd895474d979118525362c0cd236c857e29d9ac}}},{{{20ac52f50b28cdd4d3bcb7f0d5cb533f232e4c4ef12fbf3e718420b84d4e3c3440ac},{{2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aac},{51}}},{2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac}}},{2008f8280d68e02e807ccffee141c4a6b7ac31d3c283ae0921892d95f691742c44ad20b0f8ce3e1df406514a773414b5d9e5779d8e68ce816e9db39b8e53255ac3b406ac}}";
+  auto exp_str = "{{{tl(51),{tl(204a7af8660f2b0bdb92d2ce8b88ab30feb916343228d2e7bd15da02e1f6a31d47ac),tl(2000d134c42fd51c90fa82c6cfdaabd895474d979118525362c0cd236c857e29d9ac)}},{{tl(20ac52f50b28cdd4d3bcb7f0d5cb533f232e4c4ef12fbf3e718420b84d4e3c3440ac),{tl(2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aac),tl(51)}},tl(2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac)}},tl(2008f8280d68e02e807ccffee141c4a6b7ac31d3c283ae0921892d95f691742c44ad20b0f8ce3e1df406514a773414b5d9e5779d8e68ce816e9db39b8e53255ac3b406ac)}";
 
   TaprootScriptTree tree_fg(script_f);
   tree_fg.AddBranch(TaprootScriptTree(script_g));
@@ -543,5 +543,17 @@ TEST(TaprootScriptTree, TreeTest3) {
     EXPECT_STREQ(
       "This tapscript not exist in this tree.",
       except.what());
+  }
+}
+
+TEST(TaprootScriptTree, TreeTestContainBranchHash) {
+  std::string tree_str = "{af151388d3bfbebcdc87e4a0b4a97bbfa378f2e5a909eb38a6978cb2a71f39c4,tl(2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac)}";
+  std::string tapscript = "2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac";
+
+  try {
+    auto tree = TaprootScriptTree::FromString(tree_str, Script(tapscript));
+    EXPECT_EQ(tree_str, tree.ToString());
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
   }
 }
