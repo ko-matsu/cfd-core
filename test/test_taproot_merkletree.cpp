@@ -545,3 +545,15 @@ TEST(TaprootScriptTree, TreeTest3) {
       except.what());
   }
 }
+
+TEST(TaprootScriptTree, TreeTestContainBranchHash) {
+  std::string tree_str = "{af151388d3bfbebcdc87e4a0b4a97bbfa378f2e5a909eb38a6978cb2a71f39c4,tl(2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac)}";
+  std::string tapscript = "2057bf643684f6c5c75e1cdf45990036502a0d897394013210858cdabcbb95a05aad205bec1a08fa3443176edd0a08e2a64642f45e57543b62bffe43ec350edc33dc22ac";
+
+  try {
+    auto tree = TaprootScriptTree::FromString(tree_str, Script(tapscript));
+    EXPECT_EQ(tree_str, tree.ToString());
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  }
+}
