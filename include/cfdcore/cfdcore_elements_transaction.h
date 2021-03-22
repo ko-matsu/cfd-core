@@ -1444,6 +1444,23 @@ class CFD_CORE_EXPORT ConfidentialTransaction : public AbstractTransaction {
    * @param[in] index     index
    */
   void RemoveTxOut(uint32_t index);
+
+  /**
+   * @brief Get the total byte size of Transaction.
+   * @return Total byte size
+   */
+  virtual uint32_t GetTotalSize() const;
+  /**
+   * @brief Get vsize information of Transaction.
+   * @return vsize
+   */
+  virtual uint32_t GetVsize() const;
+  /**
+   * @brief Get the Weight information of Transaction.
+   * @return weight
+   */
+  virtual uint32_t GetWeight() const;
+
   /**
    * @brief Blinding transaction.
    * @param[in] txin_info_list            txin blind info list.
