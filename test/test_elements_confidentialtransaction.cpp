@@ -218,6 +218,32 @@ TEST(ConfidentialTransaction, TxInTest) {
   EXPECT_EQ(tx.GetTxInCount(), 1);
 }
 
+TEST(ConfidentialTransaction, SizeTest) {
+  ConfidentialTransaction empty_tx(2, 0);
+  ConfidentialTransaction tx;
+  tx = empty_tx;
+  EXPECT_STREQ("0200000000000000000000", tx.GetHex().c_str());
+  EXPECT_EQ(11, tx.GetTotalSize());
+  EXPECT_EQ(11, tx.GetVsize());
+  EXPECT_EQ(44, tx.GetWeight());
+
+  tx.AddTxIn(exp_txid, exp_index, exp_sequence);
+  EXPECT_STREQ("020000000001319bff5f4311e6255ecf4dd472650a6ef85fde7d11cd10d3e6ba5974174aeb560200000000feffffff0000000000", tx.GetHex().c_str());
+  EXPECT_EQ(52, tx.GetTotalSize());
+  EXPECT_EQ(52, tx.GetVsize());
+  EXPECT_EQ(208, tx.GetWeight());
+
+  tx = empty_tx;
+  int64_t exp_satoshi = 12345678;
+  Amount amt = Amount::CreateBySatoshiAmount(exp_satoshi);
+  ConfidentialAssetId asset(exp_assetid);
+  tx.AddTxOut(amt, asset, exp_locking_script);
+  EXPECT_STREQ("0200000000000101f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f010000000000bc614e001976a9146a98a3f2935718df72518c00768ec67c589e0b2888ac00000000", tx.GetHex().c_str());
+  EXPECT_EQ(80, tx.GetTotalSize());
+  EXPECT_EQ(80, tx.GetVsize());
+  EXPECT_EQ(320, tx.GetWeight());
+}
+
 // coinbase tx
 
 TEST(ConfidentialTransaction, SetIssuance) {

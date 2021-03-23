@@ -1379,6 +1379,33 @@ ConfidentialTransaction &ConfidentialTransaction::operator=(
   return *this;
 }
 
+uint32_t ConfidentialTransaction::GetTotalSize() const {
+  static constexpr uint32_t kMinimumConfidentialTxSize = 11;
+  uint32_t length = AbstractTransaction::GetTotalSize();
+  if (length < kMinimumConfidentialTxSize) {
+    length = kMinimumConfidentialTxSize;
+  }
+  return length;
+}
+
+uint32_t ConfidentialTransaction::GetVsize() const {
+  static constexpr uint32_t kMinimumConfidentialTxSize = 11;
+  uint32_t length = AbstractTransaction::GetVsize();
+  if (length < kMinimumConfidentialTxSize) {
+    length = kMinimumConfidentialTxSize;
+  }
+  return length;
+}
+
+uint32_t ConfidentialTransaction::GetWeight() const {
+  static constexpr uint32_t kMinimumConfidentialTxWeight = 44;
+  uint32_t weight = AbstractTransaction::GetWeight();
+  if (weight < kMinimumConfidentialTxWeight) {
+    weight = kMinimumConfidentialTxWeight;
+  }
+  return weight;
+}
+
 const ConfidentialTxInReference ConfidentialTransaction::GetTxIn(
     uint32_t index) const {
   CheckTxInIndex(index, __LINE__, __FUNCTION__);
