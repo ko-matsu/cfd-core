@@ -65,10 +65,10 @@ class CFD_CORE_EXPORT TapBranch {
    */
   void AddBranch(const TapBranch& branch);
   /**
-   * @brief Get a root hash.
-   * @return root hash.
+   * @brief Get a base hash.
+   * @return base hash.
    */
-  ByteData256 GetRootHash() const;
+  ByteData256 GetBaseHash() const;
   /**
    * @brief Get a current branch hash.
    * @return branch hash.
