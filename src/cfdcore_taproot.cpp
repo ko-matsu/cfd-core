@@ -74,7 +74,7 @@ TapBranch& TapBranch::operator=(const TapBranch& object) {
   return *this;
 }
 
-ByteData256 TapBranch::GetRootHash() const {
+ByteData256 TapBranch::GetBaseHash() const {
   if (!has_leaf_) return root_commitment_;
 
   static auto kTaggedHash = HashUtil::Sha256("TapLeaf");
@@ -89,7 +89,7 @@ ByteData256 TapBranch::GetCurrentBranchHash() const {
 }
 
 ByteData256 TapBranch::GetBranchHash(uint8_t depth) const {
-  ByteData256 hash = GetRootHash();
+  ByteData256 hash = GetBaseHash();
   if (branch_list_.empty()) return hash;
 
   static auto kTaggedHash = HashUtil::Sha256("TapBranch");
@@ -153,7 +153,7 @@ std::string TapBranch::ToString() const {
   }
   if (branch_list_.empty()) return buf;
 
-  ByteData256 hash = GetRootHash();
+  ByteData256 hash = GetBaseHash();
   static auto kTaggedHash = HashUtil::Sha256("TapBranch");
   ByteData tapbranch_base = kTaggedHash.Concat(kTaggedHash);
   auto nodes = GetNodeList();
@@ -212,7 +212,7 @@ TapBranch TapBranch::ChangeTapLeaf(
           check_nodes.emplace_back(nodes[idx]);
         }
         if (index == 0) {
-          check_nodes.emplace_back(GetRootHash());
+          check_nodes.emplace_back(GetBaseHash());
         } else {
           check_nodes.emplace_back(
               GetBranchHash(static_cast<uint8_t>(index - 1)));
@@ -254,7 +254,7 @@ TapBranch TapBranch::ChangeTapLeaf(
       auto new_branch =
           branch_list_[target_index].ChangeTapLeaf(tapscript, check_nodes);
       // ignore invalid target.
-      if (new_branch.GetRootHash().IsEmpty()) continue;
+      if (new_branch.GetBaseHash().IsEmpty()) continue;
 
       auto based_branch = *this;
       std::vector<TapBranch> copy_branches;
@@ -498,7 +498,7 @@ void TaprootScriptTree::AddBranch(const TaprootScriptTree& tree) {
   nodes_.emplace_back(tree.GetCurrentBranchHash());
 }
 
-ByteData256 TaprootScriptTree::GetTapLeafHash() const { return GetRootHash(); }
+ByteData256 TaprootScriptTree::GetTapLeafHash() const { return GetBaseHash(); }
 
 ByteData256 TaprootScriptTree::GetTapTweak(
     const SchnorrPubkey& internal_pubkey) const {
