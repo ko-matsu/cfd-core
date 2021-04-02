@@ -105,6 +105,8 @@ bool SigHashType::IsAnyoneCanPay() const { return is_anyone_can_pay_; }
 
 bool SigHashType::IsForkId() const { return is_fork_id_; }
 
+bool SigHashType::IsRangeproof() const { return is_fork_id_; }
+
 void SigHashType::SetFromSigHashFlag(uint8_t flag) {
   uint32_t sighash_byte = flag;
   bool is_anyone_can_pay = false;
@@ -126,6 +128,10 @@ void SigHashType::SetAnyoneCanPay(bool is_anyone_can_pay) {
   is_anyone_can_pay_ = is_anyone_can_pay;
 }
 
+void SigHashType::SetRangeproof(bool is_rangeproof) {
+  is_fork_id_ = is_rangeproof;
+}
+
 std::string SigHashType::ToString() const {
   std::string result;
   if (hash_algorithm_ == kSigHashAll) {
@@ -138,6 +144,7 @@ std::string SigHashType::ToString() const {
     return "";
   }
   if (is_anyone_can_pay_) result += "|ANYONECANPAY";
+  else if (is_fork_id_) result += "|RANGEPROOF";
   return result;
 }
 
