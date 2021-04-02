@@ -7,6 +7,7 @@
 
 #include "cfdcore/cfdcore_util.h"
 
+#include <algorithm>
 #include <iterator>
 #include <random>
 #include <set>
@@ -143,8 +144,10 @@ std::string SigHashType::ToString() const {
   } else {
     return "";
   }
-  if (is_anyone_can_pay_) result += "|ANYONECANPAY";
-  else if (is_fork_id_) result += "|RANGEPROOF";
+  if (is_anyone_can_pay_)
+    result += "|ANYONECANPAY";
+  else if (is_fork_id_)
+    result += "|RANGEPROOF";
   return result;
 }
 
@@ -1257,6 +1260,16 @@ std::string StringUtil::ByteToString(const std::vector<uint8_t> &bytes) {
     }
   }
   return byte_str;
+}
+
+std::string StringUtil::ToLower(const std::string &str) {
+  static auto tolower_func = [](const char &c_value) -> char {
+    return static_cast<char>(std::tolower(static_cast<char>(c_value)));
+  };
+
+  std::string value = str;
+  std::transform(value.begin(), value.end(), value.begin(), tolower_func);
+  return value;
 }
 
 std::vector<std::string> StringUtil::Split(

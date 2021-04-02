@@ -749,6 +749,12 @@ class CFD_CORE_EXPORT StringUtil {
    */
   static std::string ByteToString(const std::vector<uint8_t> &bytes);
   /**
+   * @brief Convert to lower character.
+   * @param[in] str     Character string
+   * @return lower string.
+   */
+  static std::string ToLower(const std::string &str);
+  /**
    * @brief Divide the string by the delimiter.
    * @param[in] str     Character string to be divided
    * @param[in] delim   Delimiter string
