@@ -144,10 +144,8 @@ std::string SigHashType::ToString() const {
   } else {
     return "";
   }
-  if (is_anyone_can_pay_)
-    result += "|ANYONECANPAY";
-  if (is_fork_id_)
-    result += "|RANGEPROOF";
+  if (is_anyone_can_pay_) result += "|ANYONECANPAY";
+  if (is_fork_id_) result += "|RANGEPROOF";
   return result;
 }
 
