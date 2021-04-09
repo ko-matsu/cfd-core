@@ -1466,7 +1466,6 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
 void DescriptorNode::AnalyzeScriptTree() {
   auto desc = value_;
 
-  bool exist_child_node = false;
   uint32_t script_depth = 0;
   size_t offset = 0;
   std::string tapscript;
@@ -1480,8 +1479,6 @@ void DescriptorNode::AnalyzeScriptTree() {
       if (script_depth == 0) {
         temp_name = desc.substr(offset, idx - offset);
         // offset = idx + 1;
-      } else {
-        exist_child_node = true;
       }
       info(
           CFD_LOG_SOURCE, "Target`(` script_depth={}, name={}", script_depth,
