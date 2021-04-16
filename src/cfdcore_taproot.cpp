@@ -498,6 +498,8 @@ void TaprootScriptTree::AddBranch(const TaprootScriptTree& tree) {
   nodes_.emplace_back(tree.GetCurrentBranchHash());
 }
 
+bool TaprootScriptTree::IsValid() const { return !script_.IsEmpty(); }
+
 ByteData256 TaprootScriptTree::GetTapLeafHash() const { return GetBaseHash(); }
 
 ByteData256 TaprootScriptTree::GetTapTweak(
