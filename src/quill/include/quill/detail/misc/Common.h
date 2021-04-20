@@ -21,7 +21,7 @@
 #endif
 
 #if !defined(QUILL_QUEUE_CAPACITY)
-  #define QUILL_QUEUE_CAPACITY 131'072
+  #define QUILL_QUEUE_CAPACITY 131072
 #endif
 
 namespace quill

@@ -12,8 +12,8 @@ include(../cmake/ConvertSrclistFunction.cmake)
 include(../cmake/CfdCommonOption.cmake)
 include(../cmake/CfdCommonSetting.cmake)
 
-option(CFDCORE_SHARED "force shared build (ON or OFF. default:OFF)" OFF)
-option(CFDCORE_DEBUG "debug build (ON or OFF. default:OFF)" OFF)
+option(CFDCORE_SHARED "cfdcore force shared build (ON or OFF. default:OFF)" OFF)
+option(CFDCORE_DEBUG "cfd debug mode (ON or OFF. default:OFF)" OFF)
 option(CFDCORE_LOG_CONSOLE "output console log (ON or OFF. default:OFF)" OFF)
 option(CFDCORE_LOG_LEVEL "output log level (trace/debug/info/warn. default:info)" "info")
 
@@ -55,6 +55,12 @@ else()
 set(CFDCORE_LOG_CONSOLE_OPT  CFDCORE_LOG_CONSOLE)
 endif()
 
+if(NOT ENABLE_LOGGING)
+set(CFDCORE_LOGGING_OPT "")
+else()
+set(CFDCORE_LOGGING_OPT  CFDCORE_LOGGING)
+endif()
+
 if(NOT CFDCORE_LOG_LEVEL)
 set(CFDCORE_LOG_LEVEL_OPT "3")  # info
 else()
@@ -91,11 +97,23 @@ add_library(${PROJECT_NAME} SHARED)
 else()
 add_library(${PROJECT_NAME} STATIC)
 endif()
+
+
+if(NOT ENABLE_LOGGING)
 target_sources(${PROJECT_NAME}
   PRIVATE
     ${CFDCORE_SOURCES}
+    ${FMT_SOURCES}
+)
+else()
+target_sources(${PROJECT_NAME}
+  PRIVATE
+    ${CFDCORE_SOURCES}
+    ${FMT_SOURCES}
     ${QUILL_SOURCES}
 )
+endif()
+
 
 target_compile_options(${PROJECT_NAME}
   PRIVATE
@@ -117,6 +135,7 @@ target_compile_definitions(${PROJECT_NAME}
     ${ELEMENTS_COMP_OPT}
     ${CFDCORE_DEBUG_OPT}
     ${CFDCORE_LOG_CONSOLE_OPT}
+    ${CFDCORE_LOGGING_OPT}
     CFDCORE_LOG_LEVEL=${CFDCORE_LOG_LEVEL_OPT}
 )
 

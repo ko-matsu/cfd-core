@@ -34,13 +34,18 @@ typedef enum {
   kCfdLogLevelTrace      //!< Trace
 } CfdLogLevel;
 
-// Get the basename of __FILE__ (at compile time if possible)
+/**
+ * @brief Get the basename of __FILE__ (at compile time if possible)
+ */
 #if FMT_HAS_FEATURE(__builtin_strrchr)
 #define LOG_STRRCHR(str, sep) __builtin_strrchr(str, sep)
 #else
 #define LOG_STRRCHR(str, sep) strrchr(str, sep)
 #endif  // __builtin_strrchr
 
+/**
+ * @brief get basename macro.
+ */
 #ifdef _WIN32
 #define LOG_FILE_BASENAME(file) LOG_STRRCHR("\\" file, '\\') + 1
 #else
@@ -51,9 +56,9 @@ typedef enum {
  * @brief source location.
  */
 struct CfdSourceLocation {
-  const char *filename;
-  int line;
-  const char *funcname;
+  const char *filename;  //!< file name
+  int line;              //!< file line
+  const char *funcname;  //!< function name
 };
 
 /**

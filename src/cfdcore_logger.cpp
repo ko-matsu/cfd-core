@@ -10,13 +10,15 @@
 
 // clang-format off
 #include "quill/LogLevel.h"
+#ifdef CFDCORE_LOGGING
 #include "quill/Logger.h"
 #include "quill/Fmt.h"
 #include "quill/Quill.h"
 #include "quill/LogMacroMetadata.h"
 #ifdef CFDCORE_LOG_CONSOLE
 #include "quill/handlers/ConsoleHandler.h"
-#endif
+#endif  // CFDCORE_LOG_CONSOLE
+#endif  // CFDCORE_LOGGING
 // clang-format on
 
 #include "cfdcore/cfdcore_exception.h"
@@ -64,6 +66,7 @@ void WriteLog(
   logger_instance.WriteLog(location, level, log_message);
 }
 
+#if defined(CFDCORE_LOGGING) && (defined(DEBUG) || defined(CFDCORE_DEBUG))
 /**
  * @brief convert log level.
  * @param[in] log_level     cfd log level
@@ -88,6 +91,7 @@ static quill::LogLevel ConvertLogLevel(CfdLogLevel log_level) {
       return quill::LogLevel::Info;
   }
 }
+#endif  // CFDCORE_LOGGING
 
 // -----------------------------------------------------------------------------
 // CfdLogger
@@ -99,18 +103,19 @@ cfd::core::logger::CfdLogger::CfdLogger(void) {
 cfd::core::logger::CfdLogger::~CfdLogger(void) { Finalize(true); }
 
 cfd::core::CfdError cfd::core::logger::CfdLogger::Initialize(void) {
-#ifndef CFDCORE_LOG_CONSOLE
-  const size_t kRotateFileSize = 1024 * 1024 * 256;
-  std::string filepath = "cfd_debug.txt";
-#endif
-
   if (is_initialized_) {
     // do nothing
   } else {
-    is_alive_ = true;
     is_initialized_ = true;
+    is_alive_ = true;
 
     if ((!is_extend_log_) && cfdcore_logger_is_debug) {
+#if defined(CFDCORE_LOGGING) && (defined(DEBUG) || defined(CFDCORE_DEBUG))
+#ifndef CFDCORE_LOG_CONSOLE
+      const size_t kRotateFileSize = 1024 * 1024 * 256;
+      const std::string filepath = "cfd_debug.txt";
+#endif
+
       std::string kDefaultLogLevel = "info";
 #ifdef CFDCORE_LOG_LEVEL
       int level_val = CFDCORE_LOG_LEVEL;
@@ -163,6 +168,10 @@ cfd::core::CfdError cfd::core::logger::CfdLogger::Initialize(void) {
 #endif
       logger->set_log_level(ConvertLogLevel(log_level_));
       default_logger_ = logger;
+
+#else   // CFDCORE_LOGGING
+      std::cout << "default logger is not support on C++11." << std::endl;
+#endif  // CFDCORE_LOGGING
     }
   }
   return kCfdSuccess;
@@ -195,6 +204,7 @@ void cfd::core::logger::CfdLogger::WriteLog(
     if (function_address_ != nullptr) {
       // extend log
     } else if (default_logger_ != nullptr) {
+#if defined(CFDCORE_LOGGING) && (defined(DEBUG) || defined(CFDCORE_DEBUG))
       auto logger = static_cast<quill::Logger*>(default_logger_);
       if (level == CfdLogLevel::kCfdLogLevelCritical) {
         LOG_CRITICAL(
@@ -221,6 +231,11 @@ void cfd::core::logger::CfdLogger::WriteLog(
             logger, "[{}:{}] {}: {}", location.filename, location.line,
             location.funcname, log_message);
       }
+#else
+      printf(
+          "[%s:%d](%d) %s: %s", location.filename, location.line, level,
+          location.funcname, log_message.c_str());
+#endif  // CFDCORE_LOGGING
     }
   }
 }

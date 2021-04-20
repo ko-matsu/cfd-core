@@ -26,6 +26,10 @@ CFDCORE_SOURCES = \
   cfdcore_ecdsa_adaptor.cpp \
   ${CFDCORE_ELEMENTS_SOURCES}
 
+FMT_SOURCES = \
+  fmt/src/format.cc \
+  fmt/src/os.cc
+
 QUILL_SOURCES = \
   quill/src/detail/backend/BackendWorker.cpp \
   quill/src/detail/backend/BacktraceLogRecordStorage.cpp \
@@ -54,7 +58,5 @@ QUILL_SOURCES = \
   quill/src/LogLevel.cpp \
   quill/src/PatternFormatter.cpp \
   quill/src/Quill.cpp \
-  quill/src/Utility.cpp \
-  fmt/src/format.cc \
-  fmt/src/os.cc
+  quill/src/Utility.cpp
 

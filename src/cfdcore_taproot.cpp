@@ -7,12 +7,14 @@
 
 #include "cfdcore/cfdcore_taproot.h"
 
+#include <algorithm>
 #include <limits>
 #include <string>
 #include <vector>
 
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_exception.h"
+#include "cfdcore/cfdcore_iterator.h"
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_schnorrsig.h"

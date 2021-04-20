@@ -102,7 +102,7 @@ jobs:
 
   cmake-cpp-support-test:
     name: cmake build-ubuntu C++ support test
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         cppversion: [11, 14, 17, 20]
