@@ -39,7 +39,7 @@ typedef enum {
 #define LOG_STRRCHR(str, sep) __builtin_strrchr(str, sep)
 #else
 #define LOG_STRRCHR(str, sep) strrchr(str, sep)
-#endif  //__builtin_strrchr not defined
+#endif  // __builtin_strrchr
 
 #ifdef _WIN32
 #define LOG_FILE_BASENAME(file) LOG_STRRCHR("\\" file, '\\') + 1
