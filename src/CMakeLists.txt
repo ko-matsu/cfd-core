@@ -13,6 +13,9 @@ include(../cmake/CfdCommonOption.cmake)
 include(../cmake/CfdCommonSetting.cmake)
 
 option(CFDCORE_SHARED "force shared build (ON or OFF. default:OFF)" OFF)
+option(CFDCORE_DEBUG "debug build (ON or OFF. default:OFF)" OFF)
+option(CFDCORE_LOG_CONSOLE "output console log (ON or OFF. default:OFF)" OFF)
+option(CFDCORE_LOG_LEVEL "output log level (trace/debug/info/warn. default:info)" "info")
 
 if(CFDCORE_SHARED AND (WIN32 OR APPLE))
 set(USE_CFDCORE_SHARED  TRUE)
@@ -52,6 +55,24 @@ else()
 set(CFDCORE_LOG_CONSOLE_OPT  CFDCORE_LOG_CONSOLE)
 endif()
 
+if(NOT CFDCORE_LOG_LEVEL)
+set(CFDCORE_LOG_LEVEL_OPT "3")  # info
+else()
+if(CFDCORE_LOG_LEVEL STREQUAL "trace")
+set(CFDCORE_LOG_LEVEL_OPT "1")  # trace
+else()
+if(CFDCORE_LOG_LEVEL STREQUAL "debug")
+set(CFDCORE_LOG_LEVEL_OPT "2")  # debug
+else()
+if(CFDCORE_LOG_LEVEL STREQUAL "warn" or CFDCORE_LOG_LEVEL STREQUAL "warning")
+set(CFDCORE_LOG_LEVEL_OPT "4")  # warn
+else()
+set(CFDCORE_LOG_LEVEL_OPT "3")  # info
+endif()
+endif()
+endif()
+endif()
+
 find_package(wally  QUIET)
 if((NOT wally_FOUND) OR (NOT ${wally_FOUND}))
 set(LIBWALLY_LIBRARY wally)
@@ -73,6 +94,7 @@ endif()
 target_sources(${PROJECT_NAME}
   PRIVATE
     ${CFDCORE_SOURCES}
+    ${QUILL_SOURCES}
 )
 
 target_compile_options(${PROJECT_NAME}
@@ -88,12 +110,14 @@ target_compile_options(${PROJECT_NAME}
 )
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE
+    QUILL_FMT_EXTERNAL=1
     CFD_CORE_BUILD=1
     WALLY_DISABLE_OP_CODE=1
     ${CFD_ELEMENTS_USE}
     ${ELEMENTS_COMP_OPT}
     ${CFDCORE_DEBUG_OPT}
     ${CFDCORE_LOG_CONSOLE_OPT}
+    CFDCORE_LOG_LEVEL=${CFDCORE_LOG_LEVEL_OPT}
 )
 
 if((NOT wally_FOUND) OR (NOT ${wally_FOUND}))
@@ -105,6 +129,7 @@ target_include_directories(${PROJECT_NAME}
     .
     include
     univalue/include
+    quill/include
 )
 target_link_directories(${PROJECT_NAME}
   PRIVATE
@@ -120,6 +145,7 @@ target_include_directories(${PROJECT_NAME}
     .
     include
     univalue/include
+    quill/include
     ${wally_DIR}/../include
 )
 target_link_directories(${PROJECT_NAME}
