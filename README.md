@@ -209,6 +209,9 @@ npm run ctest
   - [secp256k1-zkp](https://github.com/cryptogarageinc/secp256k1-zkp/tree/cfd-develop) (forked from [ElementsProject/secp256k1-zkp](https://github.com/ElementsProject/secp256k1-zkp))
 - [univalue](https://github.com/jgarzik/univalue) (for JSON encoding and decoding)
 - [googletest](https://github.com/google/googletest) (for testing)
+- logger
+  - [fmtlib](https://github.com/fmtlib/fmt) (for logging format tool)
+  - [quill](https://github.com/odygrd/quill) (for logging)
 
 ### formatter
 

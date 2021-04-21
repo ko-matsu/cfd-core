@@ -8,6 +8,7 @@
 #include "cfdcore/cfdcore_util.h"
 
 #include <algorithm>
+#include <ctime>
 #include <iterator>
 #include <random>
 #include <set>
