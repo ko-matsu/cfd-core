@@ -129,6 +129,7 @@ target_compile_options(${PROJECT_NAME}
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE
     QUILL_FMT_EXTERNAL=1
+    FMT_EXPORT=1
     CFD_CORE_BUILD=1
     WALLY_DISABLE_OP_CODE=1
     ${CFD_ELEMENTS_USE}
