@@ -58,8 +58,8 @@ static const ByteData256 exp_blinding_nonce(
     "6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3");
 static const ByteData256 exp_asset_entropy(
     "6f2a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3");
-static const ConfidentialValue exp_issuance_amount("000000000000112233");
-static const ConfidentialValue exp_inflation_keys("000000000000112244");
+static const ConfidentialValue exp_issuance_amount("010000000000112233");
+static const ConfidentialValue exp_inflation_keys("010000000000112244");
 static const ByteData exp_issuance_amount_rangeproof("0011001100110011");
 static const ByteData exp_inflation_keys_rangeproof("0011001100110022");
 
@@ -389,6 +389,88 @@ TEST(ConfidentialTransaction, PeginWitnessTest) {
   EXPECT_THROW((tx.RemovePeginWitnessStackAll(index + 5)), CfdException);
   EXPECT_NO_THROW((tx.RemovePeginWitnessStackAll(index)));
   EXPECT_EQ(tx.GetPeginWitnessStackNum(index), 0);
+}
+
+TEST(ConfidentialTransaction, PeginTxTest) {
+  ScriptWitness exp_pegin_witness = GetExpectPeginWitnessStack();
+  const ByteData exp_data("1234567890");
+  const ByteData160 exp_data160("1234567890123456789012345678901234567890");
+  const ByteData256 exp_data256(
+      "1234567890123456789012345678901234567890123456789012345678901234");
+  const std::vector<ByteData>& exp_peg_vector = exp_pegin_witness.GetWitness();
+  ByteData256 witness_only_hash = ByteData256();
+
+  const std::string tx_hex =
+    "020000000001319bff5f4311e6255ecf4dd472650a6ef85fde7d11cd10d3e6ba5974174aeb560100000000ffffffff0000000000";
+
+  ConfidentialTransaction tx(tx_hex);
+  uint32_t index = 0;
+  // EXPECT_NO_THROW(
+  //     (index = tx.AddTxIn(exp_txid, exp_index, exp_sequence, exp_script)));
+  EXPECT_NO_THROW(
+      (tx.SetIssuance(index, exp_blinding_nonce, exp_asset_entropy,
+                      exp_issuance_amount, exp_inflation_keys,
+                      exp_issuance_amount_rangeproof,
+                      exp_inflation_keys_rangeproof)));
+  EXPECT_EQ(tx.GetPeginWitnessStackNum(index), 0);
+
+  EXPECT_NO_THROW(
+    (witness_only_hash = tx.GetWitnessOnlyHash()));
+  EXPECT_STREQ(
+    witness_only_hash.GetHex().c_str(),
+    "ec63ffcd5e6d747024cad5e58364a49082b33394da7f94810f6754f991913fc6");
+  EXPECT_EQ(
+    tx.GetHex(),
+    "020000000101319bff5f4311e6255ecf4dd472650a6ef85fde7d11cd10d3e6ba5974174aeb560100008000ffffffff6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f36f2a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f301000000000011223301000000000011224400000000000800110011001100110800110011001100220000");
+
+  // AddPeginWitness
+  ScriptWitness witness;
+  for (size_t idx = 0; idx < exp_peg_vector.size(); ++idx) {
+    EXPECT_NO_THROW(
+        (witness = tx.AddPeginWitnessStack(index, exp_peg_vector[idx])));
+  }
+  std::vector<ByteData> test_peg_vector = witness.GetWitness();
+  for (size_t idx = 0; idx < exp_peg_vector.size(); ++idx) {
+    EXPECT_STREQ(test_peg_vector[idx].GetHex().c_str(),
+                 exp_peg_vector[idx].GetHex().c_str());
+  }
+  std::vector<ByteData> tx_peg_vector = tx.GetTxIn(index).GetPeginWitness()
+      .GetWitness();
+  for (size_t idx = 0; idx < tx_peg_vector.size(); ++idx) {
+    EXPECT_STREQ(test_peg_vector[idx].GetHex().c_str(),
+                 tx_peg_vector[idx].GetHex().c_str());
+  }
+  EXPECT_EQ(tx.GetPeginWitnessStackNum(index), exp_peg_vector.size());
+
+  EXPECT_NO_THROW(
+    (witness_only_hash = tx.GetWitnessOnlyHash()));
+  EXPECT_STREQ(
+    witness_only_hash.GetHex().c_str(),
+    "5c64f9ea872e6828f60caf70f31573e018ba3242b885c7b4d85393820093ea5d");
+
+  // AddPeginWitness(160,256)
+  EXPECT_THROW((witness = tx.AddPeginWitnessStack(index + 5, exp_data160)),
+               CfdException);
+  EXPECT_NO_THROW((witness = tx.AddPeginWitnessStack(index, exp_data160)));
+  EXPECT_NO_THROW((witness = tx.AddPeginWitnessStack(index, exp_data256)));
+  test_peg_vector = witness.GetWitness();
+  EXPECT_STREQ(test_peg_vector[exp_peg_vector.size()].GetHex().c_str(),
+               exp_data160.GetHex().c_str());
+  EXPECT_STREQ(test_peg_vector[exp_peg_vector.size() + 1].GetHex().c_str(),
+               exp_data256.GetHex().c_str());
+  EXPECT_EQ(tx.GetPeginWitnessStackNum(index), exp_peg_vector.size() + 2);
+
+  EXPECT_NO_THROW(
+    (witness_only_hash = tx.GetWitnessOnlyHash()));
+  EXPECT_STREQ(
+    witness_only_hash.GetHex().c_str(),
+    "4bc66f7b46308d46b3a39ac040bf0b28a2725e24348e70b88001cc6a672a72f5");
+  EXPECT_EQ(
+    tx.GetHex(),
+    "020000000101319bff5f4311e6255ecf4dd472650a6ef85fde7d11cd10d3e6ba5974174aeb56010000c000ffffffff6f1a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f36f2a4b6bd5571b5f08ab79c314dc6483f9b952af2f5ef206cd6f8e68eb1186f3010000000000112233010000000000112244000000000008001100110011001108001100110011002200080800e1f5050000000020c23bd031406aa9f7ac994f7385cd8d2605adaadf5a473c82557b4586192681d32006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f160014e8d28b573816ddfcf98578d7b28543e273f5a72ae002000000014578ddc14da3e19445b6e7b4c61d4af711d29e2703161aa9c11e4e6b0ea08843010000006b483045022100eea27e89c3cf2867393263bece040f34c03e0cddfa93a1a18c0d2e4322a37df7022074273c0ab3836affba53737c83673ca6c0d69bffdf722b4accfd7c0a9b2ea4e60121020bfcdbda850cd250c3995dfdb426dc40a9c8a5b378be2bf39f6b0642a783daf2feffffff02281d2418010000001976a914b56872c7b363bfb3f5af84d071ff282cf2abfe3988ac00e1f5050000000017a9141d4796c6e855ae00acecb0c20f65dd8bbeffb1ec87d10000009703000030ffba1d575800bf37a1ee1962dee7e153c18bcfc93cd013e7c297d5363b36cc2d63d5c4a9fdc746b9d3f4f62995d611c34ee9740ff2b5193ce458fdac6d173800ec402e5affff7f200500000002000000027ce06590120cf8c2bef7726200f0fa655940cadcf62708d7dc9f8f2a417c890b81af4d4299758e7e7a0daa6e7e3d3ec37f97df4ef2392ae5e6d286fc5e7e01d90105141234567890123456789012345678901234567890201234567890123456789012345678901234567890123456789012345678901234");
+
+  ConfidentialTransaction tx2(tx.GetHex());
+  EXPECT_EQ(tx2.GetHex(), tx.GetHex());
 }
 
 TEST(ConfidentialTransaction, ScriptWitnessTest) {
