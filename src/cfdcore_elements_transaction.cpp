@@ -3537,13 +3537,20 @@ ByteData ConfidentialTransaction::GetByteData(bool has_witness) const {
       // txin
       address_pointer =
           CopyVariableInt(tx_pointer->num_inputs, address_pointer);
+      uint32_t temp_index;
       for (uint32_t i = 0; i < tx_pointer->num_inputs; ++i) {
         const struct wally_tx_input *input = tx_pointer->inputs + i;
+        temp_index = input->index;
+        if (input->pegin_witness && (input->pegin_witness->num_items > 0)) {
+          temp_index |= static_cast<uint32_t>(WALLY_TX_PEGIN_FLAG);
+        }
+        if (input->issuance_amount && (input->issuance_amount_len > 0)) {
+          temp_index |= static_cast<uint32_t>(WALLY_TX_ISSUANCE_FLAG);
+        }
         memcpy(address_pointer, input->txhash, sizeof(input->txhash));
         address_pointer += sizeof(input->txhash);
-        // Separate handling is required for pegin and issue
-        memcpy(address_pointer, &input->index, sizeof(input->index));
-        address_pointer += sizeof(input->index);
+        memcpy(address_pointer, &temp_index, sizeof(temp_index));
+        address_pointer += sizeof(temp_index);
         address_pointer = CopyVariableBuffer(
             input->script, input->script_len, address_pointer);
         memcpy(address_pointer, &input->sequence, sizeof(input->sequence));
