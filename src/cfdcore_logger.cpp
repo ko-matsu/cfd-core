@@ -139,7 +139,7 @@ cfd::core::CfdError cfd::core::logger::CfdLogger::Initialize(void) {
       } else {
         log_level_ = kCfdLogLevelInfo;
       }
-      is_async_ = true;
+      // is_async_ = true;
 
       is_use_default_logger_ = true;
       // spdlog::init_thread_pool(1024 * 128, 5);  // For Initalization

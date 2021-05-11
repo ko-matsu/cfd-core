@@ -446,8 +446,8 @@ class CfdLogger {
   /// 初期化済みかどうか
   bool is_initialized_ = false;
 
-  /// 同期フラグ
-  bool is_async_ = false;
+  // async flag
+  // bool is_async_ = false;
 
   /// 拡張ログフラグ
   bool is_extend_log_ = false;
