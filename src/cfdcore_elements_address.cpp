@@ -33,32 +33,23 @@ using logger::warn;
  * @brief Structure to define a list of key pairs for blind address.
  */
 struct ElementsBlindAddressFormat {
+  AddressType address_type;        //!< address type
   std::string prefix_key;          //!< prefix key
   std::string blinded_prefix_key;  //!< blinded prefix key
   bool is_segwit;                  //!< segwit有無
 };
 
 /**
- * \~english
  * @brief get Blind address key pair list.
  * @return Blind address key pair list.
- * \~japanese
- * @brief Blind addressのキーペア一覧を取得する.
- * @return Blind addressのキーペア一覧.
  */
 static std::vector<ElementsBlindAddressFormat> GetBlindKeyPair() {
   std::vector<ElementsBlindAddressFormat> result = {
-      {kPrefixP2pkh, kPrefixBlindP2pkh, false},
-      {kPrefixP2sh, kPrefixBlindP2sh, false},
-      {kPrefixBech32Hrp, kPrefixBlindBech32Hrp, true},
+      {AddressType::kP2pkhAddress, kPrefixP2pkh, kPrefixBlindP2pkh, false},
+      {AddressType::kP2shAddress, kPrefixP2sh, kPrefixBlindP2sh, false},
+      {AddressType::kWitnessUnknown, kPrefixBech32Hrp, kPrefixBlindBech32Hrp,
+       true},
   };
-  return result;
-}
-
-std::vector<AddressFormatData> GetElementsAddressFormatList() {
-  std::vector<AddressFormatData> result = {
-      AddressFormatData(kNettypeLiquidV1),
-      AddressFormatData(kNettypeElementsRegtest)};
   return result;
 }
 
@@ -159,6 +150,10 @@ void ElementsConfidentialAddress::DecodeAddress(
                 confidential_address);
           }
         } else {
+          if ((format.blinded_prefix_key == kPrefixBlindP2sh) &&
+              (!data.IsFind(format.blinded_prefix_key))) {
+            continue;
+          }
           prefix = data.GetValue(format.blinded_prefix_key);
           is_find_blinded_prefix = true;
           ret = wally_confidential_addr_to_ec_public_key(
@@ -266,6 +261,11 @@ void ElementsConfidentialAddress::CalculateAddress(
   std::string hrp;
   AddressFormatData data = unblinded_address.GetAddressFormatData();
   std::string address = unblinded_address.GetAddress();
+  AddressType type = unblinded_address.GetAddressType();
+  if ((type == AddressType::kP2shP2wpkhAddress) ||
+      (type == AddressType::kP2shP2wshAddress)) {
+    type = AddressType::kP2shAddress;
+  }
   for (const auto& format : GetBlindKeyPair()) {
     try {
       output = nullptr;
@@ -279,8 +279,15 @@ void ElementsConfidentialAddress::CalculateAddress(
         if (ret != WALLY_OK) {
           trace(CFD_LOG_SOURCE, "fail libwally. ret={}", ret);
         }
+      } else if (format.address_type != type) {
+        continue;
       } else {
-        prefix = data.GetValue(format.blinded_prefix_key);
+        if ((format.address_type == AddressType::kP2shAddress) &&
+            (!data.IsFind(format.blinded_prefix_key))) {
+          prefix = data.GetValue(kPrefixBlindP2pkh);
+        } else {
+          prefix = data.GetValue(format.blinded_prefix_key);
+        }
         ret = wally_confidential_addr_from_addr(
             address.c_str(), prefix, pubkey_data.data(), pubkey_data.size(),
             &output);
