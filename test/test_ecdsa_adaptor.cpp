@@ -22,13 +22,20 @@ const Pubkey adaptor(
 const Privkey sk(
     "90ac0d5dc0a1a9ab352afb02005a5cc6c4df0da61d8149d729ff50db9b5a5215");
 const Pubkey pubkey = sk.GeneratePubkey();
+// const std::string adaptor_sig_str =
+//     "00cbe0859638c3600ea1872ed7a55b8182a251969f59d7d2da6bd4afedf25f5021a49956"
+//     "234cbbbbede8ca72e0113319c84921bf1224897a6abd89dc96b9c5b208";
 const std::string adaptor_sig_str =
-    "00cbe0859638c3600ea1872ed7a55b8182a251969f59d7d2da6bd4afedf25f5021a49956"
-    "234cbbbbede8ca72e0113319c84921bf1224897a6abd89dc96b9c5b208";
+    "02717ff3bb1c1ab09782f1f9ac0ea9f07006717efe0771d1ab7fc856bf6bb802c2"
+    "de184ef11c5a9d89a871422ae92f42b0ae09c975d34450cb0c77eeeaa6988115";
+// const std::string adaptor_proof_str =
+//     "00b02472be1ba09f5675488e841a10878b38c798ca63eff3650c8e311e3e2ebe2e3b6fee"
+//     "5654580a91cc5149a71bf25bcbeae63dea3ac5ad157a0ab7373c3011d0fc2592a07f719c"
+//     "5fc1323f935569ecd010db62f045e965cc1d564eb42cce8d6d";
 const std::string adaptor_proof_str =
-    "00b02472be1ba09f5675488e841a10878b38c798ca63eff3650c8e311e3e2ebe2e3b6fee"
-    "5654580a91cc5149a71bf25bcbeae63dea3ac5ad157a0ab7373c3011d0fc2592a07f719c"
-    "5fc1323f935569ecd010db62f045e965cc1d564eb42cce8d6d";
+    "03164e2639cff6ad8943244d4f31533b0f168f026242905c0a761681b2eaf7329b"
+    "2fb87fca8d09454743b5d77abb60aea5263e93eecfbf933a9efd6e48b5b7946f"
+    "d8021bf858141f1c3854d24778baf27e642d288e07851b3e83c33a64ab10ee85";
 
 const AdaptorSignature adaptor_sig2(
     "01099c91aa1fe7f25c41085c1d3c9e73fe04a9d24dac3f9c2172d6198628e57f47bb90e2a"
@@ -45,6 +52,8 @@ TEST(ECDSAAdaptor, Sign) {
 
   EXPECT_EQ(adaptor_sig_str, adaptor_pair.signature.GetData().GetHex());
   EXPECT_EQ(adaptor_proof_str, adaptor_pair.proof.GetData().GetHex());
+  EXPECT_TRUE(AdaptorUtil::Verify(
+      adaptor_pair.signature, adaptor_pair.proof, adaptor, msg, pubkey));
 }
 
 TEST(ECDSAAdaptor, Verify) {
