@@ -19,6 +19,7 @@ using cfd::core::Privkey;
 using cfd::core::ByteData160;
 using cfd::core::ByteData256;
 using cfd::core::ByteData;
+using cfd::core::NetType;
 using cfd::core::Script;
 using cfd::core::ScriptOperator;
 using cfd::core::ScriptBuilder;
@@ -557,6 +558,115 @@ TEST(ElementsConfidentialAddress, GetBlindingKey) {
   EXPECT_STREQ(
       "el1qqfelxwqgmc6z2enelyeyzr72yaepecajsuyreypadsgdl2akqqeku79lxla7wc3hgqnt9wyy7l4507npudpq6typz2y9he7wu",
       confidential_address.GetAddress().c_str());
+}
+
+TEST(ElementsConfidentialAddress, CustomElementsAddressFormatList) {
+  std::string custom_json = "[{"
+      "\"nettype\":\"elementsregtest\",\"p2pkh\":\"72\","
+      "\"p2sh\":\"84\",\"bech32\":\"elrg\","
+      "\"blinded\":\"18\",\"blech32\":\"lqrg\""
+    "},{"
+      "\"nettype\":\"custom\",\"p2pkh\":\"64\","
+      "\"p2sh\":\"22\",\"bech32\":\"cs\","
+      "\"blinded\":\"55\",\"blinded_p2sh\":\"35\",\"blech32\":\"blcs\""
+    "}]";
+  auto list = AddressFormatData::ConvertListFromJson(custom_json);
+  cfd::core::SetCustomAddressFormatList(list);
+  try {
+    auto elm_list = GetElementsAddressFormatList();
+    
+    // address check
+    Pubkey pk(
+      "02d21c625759280111907a06df050cccbc875b11a50bdafa71dae5d1e8695ba82e");
+    Pubkey confidential_key(
+      "03d21c625759280111907a06df050cccbc875b11a50bdafa71dae5d1e8695ba82e");
+
+    Address reg_p2pkh = Address(
+        "o7WPAG3N5XxhUR1b4uWJvVFigMiEVvS5uz", elm_list);
+    Address reg_p2wpkh = Address(
+        "elrg1qn98wsxje7xk68axrn979fuzqrd04880svgjkzc", elm_list);
+    ElementsConfidentialAddress ct_reg_p2pkh(reg_p2pkh, confidential_key);
+    ElementsConfidentialAddress ct_reg_p2wpkh(reg_p2wpkh, confidential_key);
+    EXPECT_EQ(
+        "yvejpE1pUrxs9FbhvRzuYC4XsL2JBtHM8mUZXe1ofNH3pbh1VmTmayr1V8XG4Vj7vupipRvRCZdmG56k",
+        ct_reg_p2pkh.GetAddress());
+    EXPECT_EQ(
+        "o7WPAG3N5XxhUR1b4uWJvVFigMiEVvS5uz",
+        ct_reg_p2pkh.GetUnblindedAddress().GetAddress());
+    EXPECT_EQ(
+        "lqrg1qq0fpccjhty5qzyvs0grd7pgvej7gwkc3559a47n3mtjar6rftw5zax2waqd9nudd506v8xtu2ncyqx6l2wwlqdda6rvqd2wt8",
+        ct_reg_p2wpkh.GetAddress());
+    EXPECT_EQ(
+        "elrg1qn98wsxje7xk68axrn979fuzqrd04880svgjkzc",
+        ct_reg_p2wpkh.GetUnblindedAddress().GetAddress());
+
+    Script p2pkh_locking_script = reg_p2pkh.GetLockingScript();
+
+    Address cs_p2pkh = Address(
+        "hUmwNjsL91US2M4Nj2qr8jShsJ72UUPcgp", elm_list);
+    Address cs_p2h = Address(
+        NetType::kCustomChain, p2pkh_locking_script, elm_list);
+    Address cs_p2wpkh = Address(
+        "cs1qn98wsxje7xk68axrn979fuzqrd04880ssz7cnm", elm_list);
+    EXPECT_EQ(
+        "En5Q3bQpAghSMAkzR2yNMemr9B5fD4c6Wi",
+        cs_p2h.GetAddress());
+    ElementsConfidentialAddress ct_cs_p2pkh(cs_p2pkh, confidential_key);
+    ElementsConfidentialAddress ct_cs_p2sh(cs_p2h, confidential_key);
+    ElementsConfidentialAddress ct_cs_p2wpkh(cs_p2wpkh, confidential_key);
+    EXPECT_EQ(
+        "4Rr5937W8FmdXMNW3WecjsAiEE7awFmtR81id32cHxjq6PvaVUmYTYdRuwAi1BJy4NH53xWrid24Cw6vf",
+        ct_cs_p2pkh.GetAddress());
+    EXPECT_EQ(
+        "hUmwNjsL91US2M4Nj2qr8jShsJ72UUPcgp",
+        ct_cs_p2pkh.GetUnblindedAddress().GetAddress());
+    EXPECT_EQ(
+        "38jFhnb7XGhYDQnYU8cVJE8N1Ux1Fz8CDgRjxF3NVXTNDqtfG7wdbXfzFTG3zVzvFu323Ybw2JzAq5tQ6",
+        ct_cs_p2sh.GetAddress());
+    EXPECT_EQ(
+        "En5Q3bQpAghSMAkzR2yNMemr9B5fD4c6Wi",
+        ct_cs_p2sh.GetUnblindedAddress().GetAddress());
+    EXPECT_EQ(
+        "blcs1qq0fpccjhty5qzyvs0grd7pgvej7gwkc3559a47n3mtjar6rftw5zax2waqd9nudd506v8xtu2ncyqx6l2wwlqhqh540j5eey3",
+        ct_cs_p2wpkh.GetAddress());
+    EXPECT_EQ(
+        "cs1qn98wsxje7xk68axrn979fuzqrd04880ssz7cnm",
+        ct_cs_p2wpkh.GetUnblindedAddress().GetAddress());
+
+    ct_cs_p2pkh = ElementsConfidentialAddress(
+        "4Rr5937W8FmdXMNW3WecjsAiEE7awFmtR81id32cHxjq6PvaVUmYTYdRuwAi1BJy4NH53xWrid24Cw6vf"
+    );
+    ct_cs_p2sh = ElementsConfidentialAddress(
+        "38jFhnb7XGhYDQnYU8cVJE8N1Ux1Fz8CDgRjxF3NVXTNDqtfG7wdbXfzFTG3zVzvFu323Ybw2JzAq5tQ6"
+    );
+    ct_cs_p2wpkh = ElementsConfidentialAddress(
+        "blcs1qq0fpccjhty5qzyvs0grd7pgvej7gwkc3559a47n3mtjar6rftw5zax2waqd9nudd506v8xtu2ncyqx6l2wwlqhqh540j5eey3"
+    );
+    EXPECT_EQ(
+        "4Rr5937W8FmdXMNW3WecjsAiEE7awFmtR81id32cHxjq6PvaVUmYTYdRuwAi1BJy4NH53xWrid24Cw6vf",
+        ct_cs_p2pkh.GetAddress());
+    EXPECT_EQ(
+        "hUmwNjsL91US2M4Nj2qr8jShsJ72UUPcgp",
+        ct_cs_p2pkh.GetUnblindedAddress().GetAddress());
+    EXPECT_EQ(
+        "38jFhnb7XGhYDQnYU8cVJE8N1Ux1Fz8CDgRjxF3NVXTNDqtfG7wdbXfzFTG3zVzvFu323Ybw2JzAq5tQ6",
+        ct_cs_p2sh.GetAddress());
+    EXPECT_EQ(
+        "En5Q3bQpAghSMAkzR2yNMemr9B5fD4c6Wi",
+        ct_cs_p2sh.GetUnblindedAddress().GetAddress());
+    EXPECT_EQ(
+        "blcs1qq0fpccjhty5qzyvs0grd7pgvej7gwkc3559a47n3mtjar6rftw5zax2waqd9nudd506v8xtu2ncyqx6l2wwlqhqh540j5eey3",
+        ct_cs_p2wpkh.GetAddress());
+    EXPECT_EQ(
+        "cs1qn98wsxje7xk68axrn979fuzqrd04880ssz7cnm",
+        ct_cs_p2wpkh.GetUnblindedAddress().GetAddress());
+
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  } catch (...) {
+    EXPECT_EQ("", "Throw exception.");
+  }
+  cfd::core::ClearCustomAddressFormatList();
 }
 
 #endif  // CFD_DISABLE_ELEMENTS
