@@ -276,10 +276,12 @@ void SetCustomAddressFormatList(const std::vector<AddressFormatData>& list) {
               AddressFormatData(s_network_type_names[index]));
         }
       } else {
+#ifndef CFD_DISABLE_ELEMENTS
         if (!g_custom_elm_addr_format_list.empty()) {
           g_custom_elm_addr_format_list.emplace_back(
               AddressFormatData(s_network_type_names[index]));
         }
+#endif  // CFD_DISABLE_ELEMENTS
       }
     }
   }
