@@ -28,12 +28,15 @@ using logger::warn;
 // -----------------------------------------------------------------------------
 // Internal constants
 // -----------------------------------------------------------------------------
+//! network type name list
 static const char* const s_network_type_names[] = {
     kNettypeMainnet,  kNettypeTestnet,         kNettypeRegtest,
 #ifndef CFD_DISABLE_ELEMENTS
     kNettypeLiquidV1, kNettypeElementsRegtest,
 #endif  // CFD_DISABLE_ELEMENTS
 };
+
+//! network type value list
 static const NetType s_network_type_values[] = {
     NetType::kMainnet,  NetType::kTestnet,         NetType::kRegtest,
 #ifndef CFD_DISABLE_ELEMENTS
@@ -235,10 +238,6 @@ const std::vector<AddressFormatData> kElementsAddressFormatList = {
 static std::vector<AddressFormatData> g_custom_elm_addr_format_list;
 #endif  // CFD_DISABLE_ELEMENTS
 
-/**
- * @brief set custom address format list.
- * @brief[in] list    custom address format list.
- */
 void SetCustomAddressFormatList(const std::vector<AddressFormatData>& list) {
   if ((!list.empty()) && g_custom_btc_addr_format_list.empty()) {
     std::vector<NetType> added_types;
@@ -286,9 +285,6 @@ void SetCustomAddressFormatList(const std::vector<AddressFormatData>& list) {
   }
 }
 
-/**
- * @brief clear custom address format list.
- */
 void ClearCustomAddressFormatList() {
   g_custom_btc_addr_format_list.clear();
 #ifndef CFD_DISABLE_ELEMENTS

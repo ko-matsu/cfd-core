@@ -150,7 +150,7 @@ CFD_CORE_API std::vector<AddressFormatData> GetBitcoinAddressFormatList();
 
 /**
  * @brief set custom address format list.
- * @brief[in] list    custom address format list.
+ * @param[in] list    custom address format list.
  */
 CFD_CORE_API void SetCustomAddressFormatList(
     const std::vector<AddressFormatData>& list);
