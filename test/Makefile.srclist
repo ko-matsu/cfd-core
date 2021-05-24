@@ -49,7 +49,6 @@ TEST_CFDCORE_SOURCES= \
     test_sighashtype.cpp \
     test_schnorrsig.cpp \
     test_ecdsa_adaptor.cpp \
-    test_ecdsa_adaptor_signature.cpp \
     test_taproot_merkletree.cpp \
     test_taproot_util.cpp \
     ${TEST_CFDCORE_ELEMENTS_SOURCES}
