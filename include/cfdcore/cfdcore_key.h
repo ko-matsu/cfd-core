@@ -7,6 +7,7 @@
 #ifndef CFD_CORE_INCLUDE_CFDCORE_CFDCORE_KEY_H_
 #define CFD_CORE_INCLUDE_CFDCORE_CFDCORE_KEY_H_
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -29,6 +30,161 @@ typedef enum {
   kCustomChain,               //!< Custom chain
   kNetTypeNum = kCustomChain  //!< NETTYPE_NUM
 } NetType;
+
+/**
+ * @brief Version pair struct.
+ */
+struct ExtkeyVersionPair {
+  uint32_t pubkey_version;   //!< pubkey version
+  uint32_t privkey_version;  //!< privkey version
+};
+
+/**
+ * @brief bip32 version format type.
+ */
+enum Bip32FormatType {
+  kNormal = 0,  //!< normal (bip32)
+  kBip49 = 1,   //!< BIP 0049 (P2SH-P2WPKH)
+  kBip84 = 2,   //!< BIP 0084 (P2WPKH)
+};
+
+//! key format key name: isMainnet
+constexpr const char *const kKeytypeIsMainnet = "IsMainnet";
+//! key format key name: WIF prefix
+constexpr const char *const kWifPrefix = "wif";
+//! key format key name: bip32 xpub version
+constexpr const char *const kBip32Xpub = "bip32xpub";
+//! key format key name: bip32 xprv version
+constexpr const char *const kBip32Xprv = "bip32xprv";
+//! key format key name: bip49 xpub version
+constexpr const char *const kBip49Xpub = "bip49xpub";
+//! key format key name: bip49 xprv version
+constexpr const char *const kBip49Xprv = "bip49xprv";
+//! key format key name: bip84 xpub version
+constexpr const char *const kBip84Xpub = "bip84xpub";
+//! key format key name: bip84 xprv version
+constexpr const char *const kBip84Xprv = "bip84xprv";
+
+/**
+ * @class KeyFormatData
+ * @brief class for showing format data of address
+ */
+class CFD_CORE_EXPORT KeyFormatData {
+ public:
+  /**
+   * @brief constructor.
+   */
+  KeyFormatData();
+  /**
+   * @brief constructor.
+   * @param[in] is_mainnet_on_default     default mainnet flag
+   */
+  explicit KeyFormatData(bool is_mainnet_on_default);
+  /**
+   * @brief constructor.
+   * @param[in] map_data     prefix setting map
+   */
+  explicit KeyFormatData(const std::map<std::string, std::string> &map_data);
+
+  /**
+   * @brief Check exist key.
+   * @param[in] key   mapping key
+   * @retval true   exist
+   * @retval false  not exist
+   */
+  bool IsFind(const std::string &key) const;
+  /**
+   * @brief Get string value.
+   * @param[in] key   mapping key
+   * @return value
+   */
+  std::string GetString(const std::string &key) const;
+  /**
+   * @brief Get numeric value from string.
+   * @param[in] key   mapping key
+   * @return uint32_t value
+   */
+  uint32_t GetValue(const std::string &key) const;
+
+  /**
+   * @brief Get WIF prefix.
+   * @return uint8_t value
+   */
+  uint32_t GetWifPrefix() const;
+  /**
+   * @brief Get Extkey version pair.
+   * @param[in] version   extkey version
+   * @return Version pair struct.
+   */
+  ExtkeyVersionPair GetVersionPair(uint32_t version) const;
+  /**
+   * @brief Get Extkey version format type.
+   * @param[in] version   extkey version
+   * @return format type.
+   */
+  Bip32FormatType GetVersionFormatType(uint32_t version) const;
+  /**
+   * @brief Find relational extkey version.
+   * @param[in] version   extkey version
+   * @retval true   find.
+   * @retval false  not found.
+   */
+  bool IsFindVersion(uint32_t version) const;
+
+  /**
+   * @brief Get network type.
+   * @return network type
+   */
+  NetType GetNetType() const;
+  /**
+   * @brief Check mainnet data.
+   * @retval true   mainnet
+   * @retval false  testnet
+   */
+  bool IsMainnet() const;
+
+  /**
+   * @brief Check format item.
+   * @retval true   valid
+   * @retval false  invalid
+   */
+  bool IsValid() const;
+
+  /**
+   * @brief Get Address format data from json string.
+   * @param[in] json_data       json string
+   * @return Address format data
+   */
+  static KeyFormatData ConvertFromJson(const std::string &json_data);
+  /**
+   * @brief Get Address format data list from json string.
+   * @param[in] json_data       json string
+   * @return Address format data list
+   */
+  static std::vector<KeyFormatData> ConvertListFromJson(
+      const std::string &json_data);
+
+ private:
+  std::map<std::string, std::string> map_;  //!< map
+};
+
+/**
+ * @brief Get key format list.
+ * @return key format list.
+ */
+CFD_CORE_API std::vector<KeyFormatData> GetKeyFormatList();
+
+/**
+ * @brief set custom key format list.
+ * @param[in] list    custom key format list.
+ */
+CFD_CORE_API void SetCustomKeyFormatList(
+    const std::vector<KeyFormatData> &list);
+
+/**
+ * @brief clear custom key format list.
+ */
+CFD_CORE_API void ClearCustomKeyFormatList();
 
 /**
  * @brief Data class representing PublicKey
