@@ -23,8 +23,7 @@ using cfd::core::CfdException;
 // ------------------------
 // AdaptorSignature
 // ------------------------
-AdaptorSignature::AdaptorSignature(const ByteData &data)
-    : data_(data) {
+AdaptorSignature::AdaptorSignature(const ByteData &data) : data_(data) {
   if (data_.GetDataSize() != AdaptorSignature::kAdaptorSignatureSize) {
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "Invalid adaptor signature data.");
