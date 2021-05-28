@@ -58,7 +58,7 @@ TEST(ExtPubkey, Base58ConstructorTest) {
   EXPECT_STREQ("043587cf02f4a831a200000000bdc76da475a6fbdc4f3758939ab2096d4ab53b7d66c0eed66fc0f4be242835fc030061b08c4c80dc04aaa0b44018d2c4bcdb0d9c0992fb4fddf9d2fb096a5164c0", extkey.GetData().GetHex().c_str());
   EXPECT_STREQ("043587cf", extkey.GetVersionData().GetHex().c_str());
   EXPECT_EQ(extpubkey_kVersionTestnetPubkey, extkey.GetVersion());
-  EXPECT_EQ(2721163508, extkey.GetFingerprint());
+  EXPECT_EQ(0xF4A831A2, extkey.GetFingerprint());
   EXPECT_TRUE(extkey.IsValid());
   EXPECT_STREQ(ext_base58.c_str(), extkey.ToString().c_str());
   EXPECT_EQ(2, extkey.GetDepth());
@@ -84,7 +84,7 @@ TEST(ExtPubkey, FromKeyDataTest) {
   EXPECT_STREQ("043587cf04a53a8ff30000002c839fb0d66f1887db167cdc530ab98e871d8b017ebcb198568874b6c98516364e03f1e767c0555ce0105b2a76d0f8b19b6d33a147f82f75a05c4c09580c39694fd3", extkey.GetData().GetHex().c_str());
   EXPECT_STREQ("043587cf", extkey.GetVersionData().GetHex().c_str());
   EXPECT_EQ(extpubkey_kVersionTestnetPubkey, extkey.GetVersion());
-  EXPECT_EQ(4086250149, extkey.GetFingerprint());
+  EXPECT_EQ(0xA53A8FF3, extkey.GetFingerprint());
   EXPECT_STREQ("a53a8ff3", extkey.GetFingerprintData().GetHex().c_str());
   EXPECT_TRUE(extkey.IsValid());
   EXPECT_STREQ(ext_base58.c_str(), extkey.ToString().c_str());
