@@ -288,23 +288,18 @@ ByteData HDWallet::ConvertMnemonicToSeed(
 static const ByteData kEmptyFingerprint = ByteData("00000000");
 
 /**
- * @brief check extkey version.
+ * @brief Get the key format data from extkey version.
  * @param[in] version   extkey version
- * @retval true   valid
- * @retval false  invalid
+ * @return key format data.
  */
-static bool IsValidExtkeyVersion(uint32_t version) {
-  static const uint32_t kVersions[] = {
-      ExtPrivkey::kVersionMainnetPrivkey,
-      ExtPubkey::kVersionMainnetPubkey,
-      ExtPrivkey::kVersionTestnetPrivkey,
-      ExtPubkey::kVersionTestnetPubkey,
-  };
-  uint32_t max = sizeof(kVersions) / sizeof(uint32_t);
-  for (uint32_t idx = 0; idx < max; ++idx) {
-    if (version == kVersions[idx]) return true;
+static KeyFormatData GetKeyFormatFromVersion(uint32_t version) {
+  for (const auto& format_data : GetKeyFormatList()) {
+    if (format_data.IsFindVersion(version)) {
+      return format_data;
+    }
   }
-  return false;
+  throw CfdException(
+      CfdError::kCfdIllegalArgumentError, "unsupported extkey version.");
 }
 
 /**
@@ -313,14 +308,7 @@ static bool IsValidExtkeyVersion(uint32_t version) {
  * @return extkey version pair data.
  */
 static ExtkeyVersionPair GetExtkeyVersionPair(uint32_t version) {
-  if ((version == ExtPrivkey::kVersionMainnetPrivkey) ||
-      (version == ExtPubkey::kVersionMainnetPubkey)) {
-    return ExtkeyVersionPair{
-        ExtPubkey::kVersionMainnetPubkey, ExtPrivkey::kVersionMainnetPrivkey};
-  } else {
-    return ExtkeyVersionPair{
-        ExtPubkey::kVersionTestnetPubkey, ExtPrivkey::kVersionTestnetPrivkey};
-  }
+  return GetKeyFormatFromVersion(version).GetVersionPair(version);
 }
 
 /**
@@ -329,23 +317,7 @@ static ExtkeyVersionPair GetExtkeyVersionPair(uint32_t version) {
  * @return network type.
  */
 static NetType GetNetworkTypeFromVersion(uint32_t version) {
-  if ((version == ExtPrivkey::kVersionMainnetPrivkey) ||
-      (version == ExtPubkey::kVersionMainnetPubkey)) {
-    return NetType::kMainnet;
-  } else {
-    return NetType::kTestnet;
-  }
-}
-
-/**
- * @brief check extprivkey from version.
- * @param[in] version   extkey version
- * @retval true   privkey
- * @retval false  pubkey or invalid version.
- */
-static bool HasPrivkeyFromVersion(uint32_t version) {
-  return (version == ExtPrivkey::kVersionMainnetPrivkey) ||
-         (version == ExtPrivkey::kVersionTestnetPrivkey);
+  return GetKeyFormatFromVersion(version).GetNetType();
 }
 
 /**
@@ -357,21 +329,9 @@ static bool HasPrivkeyFromVersion(uint32_t version) {
  */
 static uint32_t ConvertToExtkeyVersion(
     NetType network_type, Bip32FormatType format_type, bool is_privkey) {
-  uint32_t ret;
-  if (format_type != Bip32FormatType::kNormal) {
-    // do nothing
-    throw CfdException(
-        CfdError::kCfdIllegalArgumentError, "unknown extkey version.");
-  } else if (
-      (network_type == NetType::kMainnet) ||
-      (network_type == NetType::kLiquidV1)) {
-    ret = (is_privkey) ? ExtPrivkey::kVersionMainnetPrivkey
-                       : ExtPubkey::kVersionMainnetPubkey;
-  } else {
-    ret = (is_privkey) ? ExtPrivkey::kVersionTestnetPrivkey
-                       : ExtPubkey::kVersionTestnetPubkey;
-  }
-  return ret;
+  auto format_data = GetKeyFormatData(network_type);
+  auto versions = format_data.GetVersionPair(format_type);
+  return (is_privkey) ? versions.privkey_version : versions.pubkey_version;
 }
 
 Extkey::Extkey() {
@@ -386,8 +346,8 @@ Extkey::Extkey(
 
 Extkey::Extkey(const ByteData& seed, uint32_t version) {
   static const std::string kBip32Seed = "Bitcoin seed";
-
-  if ((!IsValidExtkeyVersion(version)) || (!HasPrivkeyFromVersion(version))) {
+  auto versions = GetExtkeyVersionPair(version);
+  if (versions.privkey_version != version) {
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "ExtPrivkey invalid version.");
   }
@@ -430,7 +390,8 @@ Extkey::Extkey(const ByteData& serialize_data, const ByteData256& tweak_sum)
 
   Deserializer dec(serialize_data);
   version_ = dec.ReadUint32FromBigEndian();
-  NetType nettype = GetNetworkTypeFromVersion(version_);
+  auto format_data = GetKeyFormatFromVersion(version_);
+  NetType nettype = format_data.GetNetType();
 
   depth_ = dec.ReadUint8();
   fingerprint_ = dec.ReadBuffer(4);
@@ -451,7 +412,9 @@ Extkey::Extkey(const ByteData& serialize_data, const ByteData256& tweak_sum)
         CfdError::kCfdIllegalArgumentError, "Invalid pubkey state.");
   }
 
-  if (HasPrivkeyFromVersion(version_) && (!privkey_.IsValid())) {
+  auto versions = format_data.GetVersionPair(version_);
+  if (((versions.privkey_version == version_) && (!privkey_.IsValid())) ||
+      ((versions.pubkey_version == version_) && privkey_.IsValid())) {
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "Invalid key state.");
   }
@@ -498,7 +461,8 @@ Extkey Extkey::FromPrivkey(
         CfdError::kCfdIllegalArgumentError,
         "Failed to privkey. ExtPrivkey invalid privkey.");
   }
-  if ((!IsValidExtkeyVersion(version)) || (!HasPrivkeyFromVersion(version))) {
+  auto versions = GetExtkeyVersionPair(version);
+  if (versions.privkey_version != version) {
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "ExtPrivkey invalid version.");
   }
@@ -539,7 +503,8 @@ Extkey Extkey::FromPubkey(
         CfdError::kCfdIllegalArgumentError,
         "Failed to pubkey. ExtPubkey invalid pubkey.");
   }
-  if ((!IsValidExtkeyVersion(version)) || HasPrivkeyFromVersion(version)) {
+  auto versions = GetExtkeyVersionPair(version);
+  if (versions.pubkey_version != version) {
     throw CfdException(
         CfdError::kCfdIllegalArgumentError, "ExtPubkey invalid version.");
   }

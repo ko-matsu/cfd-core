@@ -495,11 +495,11 @@ class CFD_CORE_EXPORT Extkey {
 class CFD_CORE_EXPORT ExtPrivkey : public Extkey {
  public:
   /**
-   * @brief mainnet privkey version (BIP32_VER_MAIN_PRIVATE)
+   * @brief mainnet privkey version
    */
   static constexpr uint32_t kVersionMainnetPrivkey = 0x0488ade4;
   /**
-   * @brief testnet privkey version (BIP32_VER_TEST_PRIVATE)
+   * @brief testnet privkey version
    */
   static constexpr uint32_t kVersionTestnetPrivkey = 0x04358394;
 
@@ -681,11 +681,11 @@ class CFD_CORE_EXPORT ExtPrivkey : public Extkey {
 class CFD_CORE_EXPORT ExtPubkey : public Extkey {
  public:
   /**
-   * @brief mainnet pubkey version (BIP32_VER_MAIN_PUBLIC)
+   * @brief mainnet pubkey version
    */
   static constexpr uint32_t kVersionMainnetPubkey = 0x0488b21e;
   /**
-   * @brief testnet pubkey version (BIP32_VER_TEST_PUBLIC)
+   * @brief testnet pubkey version
    */
   static constexpr uint32_t kVersionTestnetPubkey = 0x043587cf;
 

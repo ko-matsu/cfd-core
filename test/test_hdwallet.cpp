@@ -18,6 +18,7 @@ using cfd::core::ExtPubkey;
 using cfd::core::ExtPrivkey;
 using cfd::core::KeyData;
 using cfd::core::NetType;
+using cfd::core::KeyFormatData;
 
 TEST(HDWallet, GetMnemonicWordlistTest) {
   // ref: https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt
@@ -374,4 +375,72 @@ TEST(HDWallet, GeneratePubkeyTest) {
   KeyData keypath2;
   EXPECT_NO_THROW((keypath2 = wallet.GeneratePubkeyData(NetType::kMainnet, path2)));
   EXPECT_STREQ(keypath2.ToString(false).c_str(), "[b4e3f5ed/0'/44']xpub6Bc3MkV9ZCh8ipiRMK4pbhBs3JwuFcG4vp4CvJmVQKDVcpsQzizhL2DErc5DHMQuKwBxTg1jLP6PCqriLmLsJzjB2kD9TE9hvqxQ4yLKtcV");
+}
+
+TEST(HDWallet, CustomKeyFormatList) {
+  std::string custom_json = "[{"
+      "\"IsMainnet\":\"\",\"wif\":\"40\","
+      "\"bip32xpub\":\"0473e78d\",\"bip32xprv\":\"0473e354\""
+    "},{"
+      "\"wif\":\"60\","
+      "\"bip32xpub\":\"0420bd3a\",\"bip32xprv\":\"0420b900\""
+    "}]";
+  auto list = KeyFormatData::ConvertListFromJson(custom_json);
+  cfd::core::SetCustomKeyFormatList(list);
+  try {
+    auto fmt_list = cfd::core::GetKeyFormatList();
+    for (const auto& item : fmt_list) {
+      if (item.IsMainnet()) {
+        EXPECT_EQ("40", item.GetString(cfd::core::kWifPrefix));
+        EXPECT_EQ("0473e78d", item.GetString(cfd::core::kBip32Xpub));
+        EXPECT_EQ("0473e354", item.GetString(cfd::core::kBip32Xprv));
+      } else {
+        EXPECT_EQ("60", item.GetString(cfd::core::kWifPrefix));
+        EXPECT_EQ("0420bd3a", item.GetString(cfd::core::kBip32Xpub));
+        EXPECT_EQ("0420b900", item.GetString(cfd::core::kBip32Xprv));
+      }
+    }
+
+    ByteData seed(
+      "c55257c360c07c72029aebc1b53c05ed0362ada38ead3e3e9efa3708e53495531f09a6987599d18264c1e1c92f2cf141630c7a3c4ab7c81b2f001698e7463b04");
+    HDWallet wallet(seed);
+    auto extpriv0m = wallet.GeneratePrivkey(NetType::kMainnet);
+    auto extpriv0t = wallet.GeneratePrivkey(NetType::kTestnet);
+    auto extpub0m = extpriv0m.GetExtPubkey();
+    auto extpub0t = extpriv0t.GetExtPubkey();
+    EXPECT_EQ(
+      "wprvikzVDokm6P1KtKfqXgTJv8XpWZcukZYCFsmaRemcFvKZakza93Zwuo15JHekgFrn6ZZai45KS6AitFzNGo2sTf17aiPR86dWi9Tq82Qgo1r",
+      extpriv0m.ToString());
+    EXPECT_EQ(
+      "wpubWgH9tQnJckSFRpnyr5rjEzmB3bmxQ9nzR21zjuYXxKb8VsQ6bjNrpu2Aph61HVbgR9UFxZuRKe5FMHkZncoGNGUF1zjL8eyQSoacUbLMX4F",
+      extpub0m.ToString());
+    EXPECT_EQ(
+      "sprv8Erh3X3hFeKuoD653knTvhJHkiKLxbhym6yyMYfKJ9kPXc3AnztLtmAyv29tc6yQn95qGE6e6TmYRokeKRMdyBXuyXTihmcpwoqJJPtTyAy",
+      extpriv0t.ToString());
+    EXPECT_EQ(
+      "spub4Tr3T2ab61tD1hAY9nKUHqF2Jk9qN4Rq8Kua9w4vrVHNQQNKLYCbSZVTmHWGjUHEXBze8DprMkvK8ATi6tdKxBBjwmLdjVtuMKo4yLfkDWR",
+      extpub0t.ToString());
+
+    // parse extkey
+    ExtPrivkey parse_sk1m(
+      "wprvikzVDokm6P1KtKfqXgTJv8XpWZcukZYCFsmaRemcFvKZakza93Zwuo15JHekgFrn6ZZai45KS6AitFzNGo2sTf17aiPR86dWi9Tq82Qgo1r");
+    ExtPubkey parse_pk1t(
+      "spub4Tr3T2ab61tD1hAY9nKUHqF2Jk9qN4Rq8Kua9w4vrVHNQQNKLYCbSZVTmHWGjUHEXBze8DprMkvK8ATi6tdKxBBjwmLdjVtuMKo4yLfkDWR");
+    EXPECT_EQ(extpriv0m.ToString(), parse_sk1m.ToString());
+    EXPECT_EQ(extpub0t.ToString(), parse_pk1t.ToString());
+
+    try {
+      // unsupported prefix
+      ExtPubkey parse_xpub0t(
+        "tpubD6NzVbkrYhZ4XyJymmEgYC3uVhyj4YtPFX6yRTbW6RvfRC7Ag3sVhKSz7MNzFWW5MJ7aVBKXCAX7En296EYdpo43M4a4LaeaHuhhgHToSJF");
+    } catch (const CfdException& except1) {
+      EXPECT_STREQ("unsupported extkey version.", except1.what());
+    }
+
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  } catch (...) {
+    EXPECT_EQ("", "Throw exception.");
+  }
+  cfd::core::ClearCustomKeyFormatList();
 }
