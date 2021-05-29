@@ -19,6 +19,9 @@
 #include "cfdcore/cfdcore_schnorrsig.h"
 #include "cfdcore/cfdcore_util.h"
 #include "cfdcore_wally_util.h"  // NOLINT
+#ifndef CFD_DISABLE_ELEMENTS
+#include "cfdcore/cfdcore_elements_address.h"
+#endif  // CFD_DISABLE_ELEMENTS
 
 namespace cfd {
 namespace core {
@@ -139,78 +142,90 @@ HDWallet::HDWallet(
 
 ByteData HDWallet::GetSeed() const { return seed_; }
 
-ExtPrivkey HDWallet::GeneratePrivkey(NetType network_type) const {
-  return ExtPrivkey(seed_, network_type);
+ExtPrivkey HDWallet::GeneratePrivkey(
+    NetType network_type, Bip32FormatType format_type) const {
+  return ExtPrivkey(seed_, network_type, format_type);
 }
 
 ExtPrivkey HDWallet::GeneratePrivkey(
-    NetType network_type, uint32_t child_num) const {
+    NetType network_type, uint32_t child_num,
+    Bip32FormatType format_type) const {
   std::vector<uint32_t> path = {child_num};
-  return GeneratePrivkey(network_type, path);
+  return GeneratePrivkey(network_type, path, format_type);
 }
 
 ExtPrivkey HDWallet::GeneratePrivkey(
-    NetType network_type, const std::vector<uint32_t>& path) const {
-  ExtPrivkey privkey(seed_, network_type);
+    NetType network_type, const std::vector<uint32_t>& path,
+    Bip32FormatType format_type) const {
+  ExtPrivkey privkey(seed_, network_type, format_type);
   return privkey.DerivePrivkey(path);
 }
 
 ExtPrivkey HDWallet::GeneratePrivkey(
-    NetType network_type, const std::string& string_path) const {
-  ExtPrivkey privkey(seed_, network_type);
+    NetType network_type, const std::string& string_path,
+    Bip32FormatType format_type) const {
+  ExtPrivkey privkey(seed_, network_type, format_type);
   return privkey.DerivePrivkey(string_path);
 }
 
 KeyData HDWallet::GeneratePrivkeyData(
-    NetType network_type, const std::vector<uint32_t>& path) const {
-  ExtPrivkey privkey(seed_, network_type);
+    NetType network_type, const std::vector<uint32_t>& path,
+    Bip32FormatType format_type) const {
+  ExtPrivkey privkey(seed_, network_type, format_type);
   ExtPrivkey key = privkey.DerivePrivkey(path);
   auto fingerprint = privkey.GetPrivkey().GeneratePubkey().GetFingerprint();
   return KeyData(key, path, fingerprint);
 }
 
 KeyData HDWallet::GeneratePrivkeyData(
-    NetType network_type, const std::string& string_path) const {
-  ExtPrivkey privkey(seed_, network_type);
+    NetType network_type, const std::string& string_path,
+    Bip32FormatType format_type) const {
+  ExtPrivkey privkey(seed_, network_type, format_type);
   ExtPrivkey key = privkey.DerivePrivkey(string_path);
   auto fingerprint = privkey.GetPrivkey().GeneratePubkey().GetFingerprint();
   return KeyData(key, string_path, fingerprint);
 }
 
-ExtPubkey HDWallet::GeneratePubkey(NetType network_type) const {
-  ExtPrivkey privkey(seed_, network_type);
+ExtPubkey HDWallet::GeneratePubkey(
+    NetType network_type, Bip32FormatType format_type) const {
+  ExtPrivkey privkey(seed_, network_type, format_type);
   return privkey.GetExtPubkey();
 }
 
 ExtPubkey HDWallet::GeneratePubkey(
-    NetType network_type, uint32_t child_num) const {
+    NetType network_type, uint32_t child_num,
+    Bip32FormatType format_type) const {
   std::vector<uint32_t> path = {child_num};
-  return GeneratePubkey(network_type, path);
+  return GeneratePubkey(network_type, path, format_type);
 }
 
 ExtPubkey HDWallet::GeneratePubkey(
-    NetType network_type, const std::vector<uint32_t>& path) const {
-  ExtPrivkey privkey(seed_, network_type);
+    NetType network_type, const std::vector<uint32_t>& path,
+    Bip32FormatType format_type) const {
+  ExtPrivkey privkey(seed_, network_type, format_type);
   return privkey.DerivePubkey(path);
 }
 
 ExtPubkey HDWallet::GeneratePubkey(
-    NetType network_type, const std::string& string_path) const {
-  ExtPrivkey privkey(seed_, network_type);
+    NetType network_type, const std::string& string_path,
+    Bip32FormatType format_type) const {
+  ExtPrivkey privkey(seed_, network_type, format_type);
   return privkey.DerivePubkey(string_path);
 }
 
 KeyData HDWallet::GeneratePubkeyData(
-    NetType network_type, const std::vector<uint32_t>& path) const {
-  ExtPrivkey privkey(seed_, network_type);
+    NetType network_type, const std::vector<uint32_t>& path,
+    Bip32FormatType format_type) const {
+  ExtPrivkey privkey(seed_, network_type, format_type);
   ExtPrivkey key = privkey.DerivePrivkey(path);
   auto fingerprint = privkey.GetPrivkey().GeneratePubkey().GetFingerprint();
   return KeyData(key.GetExtPubkey(), path, fingerprint);
 }
 
 KeyData HDWallet::GeneratePubkeyData(
-    NetType network_type, const std::string& string_path) const {
-  ExtPrivkey privkey(seed_, network_type);
+    NetType network_type, const std::string& string_path,
+    Bip32FormatType format_type) const {
+  ExtPrivkey privkey(seed_, network_type, format_type);
   ExtPrivkey key = privkey.DerivePrivkey(string_path);
   auto fingerprint = privkey.GetPrivkey().GeneratePubkey().GetFingerprint();
   return KeyData(key.GetExtPubkey(), string_path, fingerprint);
@@ -332,6 +347,93 @@ static uint32_t ConvertToExtkeyVersion(
   auto format_data = GetKeyFormatData(network_type);
   auto versions = format_data.GetVersionPair(format_type);
   return (is_privkey) ? versions.privkey_version : versions.pubkey_version;
+}
+
+/**
+ * @brief Get related pubkey address list.
+ * @param[in] extkey              extended key
+ * @param[in] address_type        address type
+ * @param[in] network_parameters  network parameter. (nullptr is bitcoin)
+ * @param[in] net_type            network type (auto is kCustomChain)
+ * @return address list.
+ */
+static std::vector<Address> GetPubkeyAddressesInternal(
+    const Extkey& extkey, AddressType address_type,
+    const std::vector<AddressFormatData>* network_parameters,
+    NetType net_type) {
+  std::vector<Address> result;
+  auto base_nettype = extkey.GetNetworkType();
+  NetType network =
+      (net_type == NetType::kCustomChain) ? base_nettype : net_type;
+  std::vector<AddressFormatData> net_params;
+  if (network_parameters != nullptr) {
+    net_params = *network_parameters;
+  } else if (
+      (net_type == NetType::kCustomChain) || (net_type <= NetType::kRegtest)) {
+    net_params = GetBitcoinAddressFormatList();
+  } else {
+#ifndef CFD_DISABLE_ELEMENTS
+    net_params = GetElementsAddressFormatList();
+#else
+    net_params = GetBitcoinAddressFormatList();
+#endif  // CFD_DISABLE_ELEMENTS
+  }
+
+  bool is_mainnet_base = (base_nettype == NetType::kMainnet);
+  bool is_mainnet =
+      ((network == NetType::kMainnet) || (network == NetType::kLiquidV1));
+  if (is_mainnet != is_mainnet_base) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Unmatch network type. Please match extkey network type.");
+  }
+
+  Bip32FormatType type = extkey.GetFormatType();
+  std::vector<AddressType> targets;
+  if ((address_type == AddressType::kP2pkhAddress) ||
+      (address_type == AddressType::kP2shP2wpkhAddress) ||
+      (address_type == AddressType::kP2wpkhAddress) ||
+      (address_type == AddressType::kTaprootAddress)) {
+    if (((type == Bip32FormatType::kBip49) &&
+         (address_type != AddressType::kP2shP2wpkhAddress)) ||
+        ((type == Bip32FormatType::kBip84) &&
+         (address_type != AddressType::kP2wpkhAddress))) {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Invalid address type. target extkey is fixed address type.");
+    }
+    targets.push_back(address_type);
+  } else if (address_type != AddressType::kWitnessUnknown) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError, "Invalid address type.");
+  } else if (type == Bip32FormatType::kBip49) {  // auto type
+    targets.push_back(AddressType::kP2shP2wpkhAddress);
+  } else if (type == Bip32FormatType::kBip84) {  // auto type
+    targets.push_back(AddressType::kP2wpkhAddress);
+  } else {  // auto type
+    // TODO(k-matsuzawa): If bip32format is normal, set the beginning to p2wpkh
+    targets.push_back(AddressType::kP2wpkhAddress);
+    targets.push_back(AddressType::kTaprootAddress);
+    targets.push_back(AddressType::kP2shP2wpkhAddress);
+    targets.push_back(AddressType::kP2pkhAddress);
+  }
+
+  for (const auto& addr_type : targets) {
+    if (addr_type == AddressType::kP2shP2wpkhAddress) {
+      auto script = ScriptUtil::CreateP2wpkhLockingScript(extkey.GetPubkey());
+      result.emplace_back(Address(network, script, net_params));
+    } else if (addr_type == AddressType::kP2wpkhAddress) {
+      result.emplace_back(Address(
+          network, WitnessVersion::kVersion0, extkey.GetPubkey(), net_params));
+    } else if (addr_type == AddressType::kTaprootAddress) {
+      result.emplace_back(Address(
+          network, WitnessVersion::kVersion1,
+          SchnorrPubkey::FromPubkey(extkey.GetPubkey()), net_params));
+    } else {
+      result.emplace_back(Address(network, extkey.GetPubkey(), net_params));
+    }
+  }
+  return result;
 }
 
 Extkey::Extkey() {
@@ -621,6 +723,25 @@ Extkey Extkey::ToPubkey() const {
   return result;
 }
 
+Address Extkey::GetPubkeyAddress(
+    AddressType address_type,
+    const std::vector<AddressFormatData>* network_parameters,
+    NetType net_type) {
+  auto addresses = GetPubkeyAddressesInternal(
+      *this, address_type, network_parameters, net_type);
+  if (addresses.empty()) {
+    throw CfdException(CfdError::kCfdInternalError, "address list is empty.");
+  }
+  return addresses[0];
+}
+
+std::vector<Address> Extkey::GetPubkeyAddresses(
+    const std::vector<AddressFormatData>* network_parameters,
+    NetType net_type) {
+  return GetPubkeyAddressesInternal(
+      *this, AddressType::kWitnessUnknown, network_parameters, net_type);
+}
+
 bool Extkey::IsValid() const { return pubkey_.IsValid(); }
 
 bool Extkey::HasPrivkey() const { return privkey_.IsValid(); }
@@ -660,7 +781,7 @@ NetType Extkey::GetNetworkType() const {
 }
 
 Bip32FormatType Extkey::GetFormatType() const {
-  return Bip32FormatType::kNormal;
+  return GetKeyFormatFromVersion(version_).GetVersionFormatType(version_);
 }
 
 // ----------------------------------------------------------------------------
@@ -670,8 +791,9 @@ ExtPrivkey::ExtPrivkey() {
   // do nothing
 }
 
-ExtPrivkey::ExtPrivkey(const ByteData& seed, NetType network_type)
-    : Extkey(seed, network_type, Bip32FormatType::kNormal) {
+ExtPrivkey::ExtPrivkey(
+    const ByteData& seed, NetType network_type, Bip32FormatType format_type)
+    : Extkey(seed, network_type, format_type) {
   // do nothing
 }
 
@@ -708,10 +830,9 @@ ExtPrivkey::ExtPrivkey(
 ExtPrivkey::ExtPrivkey(
     NetType network_type, const Privkey& parent_key,
     const ByteData256& parent_chain_code, uint8_t parent_depth,
-    uint32_t child_num)
+    uint32_t child_num, Bip32FormatType format_type)
     : Extkey(Extkey::FromPrivkey(
-                 ConvertToExtkeyVersion(
-                     network_type, Bip32FormatType::kNormal, true),
+                 ConvertToExtkeyVersion(network_type, format_type, true),
                  kEmptyFingerprint, parent_key, parent_chain_code,
                  parent_depth, 0)
                  .Derive(child_num)) {
@@ -720,10 +841,11 @@ ExtPrivkey::ExtPrivkey(
 
 ExtPrivkey::ExtPrivkey(
     NetType network_type, const Privkey& parent_key, const Privkey& privkey,
-    const ByteData256& chain_code, uint8_t depth, uint32_t child_num)
+    const ByteData256& chain_code, uint8_t depth, uint32_t child_num,
+    Bip32FormatType format_type)
     : ExtPrivkey(
           network_type, parent_key.GeneratePubkey().GetFingerprint(), privkey,
-          chain_code, depth, child_num) {
+          chain_code, depth, child_num, format_type) {
   if (!parent_key.IsValid()) {
     warn(CFD_LOG_SOURCE, "invalid privkey.");
     throw CfdException(
@@ -735,9 +857,9 @@ ExtPrivkey::ExtPrivkey(
 ExtPrivkey::ExtPrivkey(
     NetType network_type, const ByteData& parent_fingerprint,
     const Privkey& privkey, const ByteData256& chain_code, uint8_t depth,
-    uint32_t child_num)
+    uint32_t child_num, Bip32FormatType format_type)
     : Extkey(Extkey::FromPrivkey(
-          ConvertToExtkeyVersion(network_type, Bip32FormatType::kNormal, true),
+          ConvertToExtkeyVersion(network_type, format_type, true),
           parent_fingerprint, privkey, chain_code, depth, child_num)) {
   if (!privkey.IsValid()) {
     warn(CFD_LOG_SOURCE, "invalid privkey.");
@@ -856,10 +978,9 @@ ExtPubkey::ExtPubkey(
 ExtPubkey::ExtPubkey(
     NetType network_type, const Pubkey& parent_key,
     const ByteData256& parent_chain_code, uint8_t parent_depth,
-    uint32_t child_num)
+    uint32_t child_num, Bip32FormatType format_type)
     : Extkey(Extkey::FromPubkey(
-                 ConvertToExtkeyVersion(
-                     network_type, Bip32FormatType::kNormal, false),
+                 ConvertToExtkeyVersion(network_type, format_type, false),
                  kEmptyFingerprint, parent_key, parent_chain_code,
                  parent_depth, 0)
                  .Derive(child_num)) {
@@ -868,10 +989,11 @@ ExtPubkey::ExtPubkey(
 
 ExtPubkey::ExtPubkey(
     NetType network_type, const Pubkey& parent_key, const Pubkey& pubkey,
-    const ByteData256& chain_code, uint8_t depth, uint32_t child_num)
+    const ByteData256& chain_code, uint8_t depth, uint32_t child_num,
+    Bip32FormatType format_type)
     : ExtPubkey(
           network_type, parent_key.GetFingerprint(), pubkey, chain_code, depth,
-          child_num) {
+          child_num, format_type) {
   if (!parent_key.IsValid()) {
     warn(CFD_LOG_SOURCE, "invalid pubkey.");
     throw CfdException(
@@ -883,10 +1005,9 @@ ExtPubkey::ExtPubkey(
 ExtPubkey::ExtPubkey(
     NetType network_type, const ByteData& parent_fingerprint,
     const Pubkey& pubkey, const ByteData256& chain_code, uint8_t depth,
-    uint32_t child_num)
+    uint32_t child_num, Bip32FormatType format_type)
     : Extkey(Extkey::FromPubkey(
-          ConvertToExtkeyVersion(
-              network_type, Bip32FormatType::kNormal, false),
+          ConvertToExtkeyVersion(network_type, format_type, false),
           parent_fingerprint, pubkey, chain_code, depth, child_num)) {}
 
 ExtPubkey::ExtPubkey(const Extkey& key_data) {

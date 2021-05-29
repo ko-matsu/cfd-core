@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_common.h"
 #include "cfdcore/cfdcore_key.h"
@@ -70,108 +71,136 @@ class CFD_CORE_EXPORT HDWallet {
   /**
    * @brief Generate an extended privkey.
    * @param[in] network_type      network type
+   * @param[in] format_type       format type
    * @return extended privkey
    * @throws CfdException If invalid seed.
    */
-  ExtPrivkey GeneratePrivkey(NetType network_type) const;
+  ExtPrivkey GeneratePrivkey(
+      NetType network_type,
+      Bip32FormatType format_type = Bip32FormatType::kNormal) const;
   /**
    * @brief Generate an extended privkey.
    * @param[in] network_type      network type
    * @param[in] child_num         child number
+   * @param[in] format_type       format type
    * @return extended privkey
    * @throws CfdException If invalid seed.
    */
-  ExtPrivkey GeneratePrivkey(NetType network_type, uint32_t child_num) const;
+  ExtPrivkey GeneratePrivkey(
+      NetType network_type, uint32_t child_num,
+      Bip32FormatType format_type = Bip32FormatType::kNormal) const;
   /**
    * @brief Generate an extended privkey.
    * @param[in] network_type      network type
    * @param[in] path              child number path
+   * @param[in] format_type       format type
    * @return extended privkey
    * @throws CfdException If invalid seed.
    */
   ExtPrivkey GeneratePrivkey(
-      NetType network_type, const std::vector<uint32_t>& path) const;
+      NetType network_type, const std::vector<uint32_t>& path,
+      Bip32FormatType format_type = Bip32FormatType::kNormal) const;
   /**
    * @brief Generate an extended privkey.
    * @param[in] network_type      network type
    * @param[in] string_path       child number string path
+   * @param[in] format_type       format type
    * @return extended privkey
    * @throws CfdException If invalid seed.
    */
   ExtPrivkey GeneratePrivkey(
-      NetType network_type, const std::string& string_path) const;
+      NetType network_type, const std::string& string_path,
+      Bip32FormatType format_type = Bip32FormatType::kNormal) const;
 
   /**
    * @brief Generate an extended privkey data.
    * @param[in] network_type      network type
    * @param[in] path              child number path
+   * @param[in] format_type       format type
    * @return extended privkey
    * @throws CfdException If invalid seed.
    */
   KeyData GeneratePrivkeyData(
-      NetType network_type, const std::vector<uint32_t>& path) const;
+      NetType network_type, const std::vector<uint32_t>& path,
+      Bip32FormatType format_type = Bip32FormatType::kNormal) const;
   /**
    * @brief Generate an extended privkey data.
    * @param[in] network_type      network type
    * @param[in] string_path       child number string path
+   * @param[in] format_type       format type
    * @return extended privkey
    * @throws CfdException If invalid seed.
    */
   KeyData GeneratePrivkeyData(
-      NetType network_type, const std::string& string_path) const;
+      NetType network_type, const std::string& string_path,
+      Bip32FormatType format_type = Bip32FormatType::kNormal) const;
 
   /**
    * @brief Generate an extended pubkey.
    * @param[in] network_type      network type
+   * @param[in] format_type       format type
    * @return extended pubkey
    * @throws CfdException If invalid seed.
    */
-  ExtPubkey GeneratePubkey(NetType network_type) const;
+  ExtPubkey GeneratePubkey(
+      NetType network_type,
+      Bip32FormatType format_type = Bip32FormatType::kNormal) const;
   /**
    * @brief Generate an extended pubkey.
    * @param[in] network_type      network type
    * @param[in] child_num         child number
+   * @param[in] format_type       format type
    * @return extended pubkey
    * @throws CfdException If invalid seed.
    */
-  ExtPubkey GeneratePubkey(NetType network_type, uint32_t child_num) const;
+  ExtPubkey GeneratePubkey(
+      NetType network_type, uint32_t child_num,
+      Bip32FormatType format_type = Bip32FormatType::kNormal) const;
   /**
    * @brief Generate an extended pubkey.
    * @param[in] network_type      network type
    * @param[in] path              child number path
+   * @param[in] format_type       format type
    * @return extended pubkey
    * @throws CfdException If invalid seed.
    */
   ExtPubkey GeneratePubkey(
-      NetType network_type, const std::vector<uint32_t>& path) const;
+      NetType network_type, const std::vector<uint32_t>& path,
+      Bip32FormatType format_type = Bip32FormatType::kNormal) const;
   /**
    * @brief Generate an extended pubkey.
    * @param[in] network_type      network type
    * @param[in] string_path       child number string path
+   * @param[in] format_type       format type
    * @return extended pubkey
    * @throws CfdException If invalid seed.
    */
   ExtPubkey GeneratePubkey(
-      NetType network_type, const std::string& string_path) const;
+      NetType network_type, const std::string& string_path,
+      Bip32FormatType format_type = Bip32FormatType::kNormal) const;
 
   /**
    * @brief Generate an extended pubkey data.
    * @param[in] network_type      network type
    * @param[in] path              child number path
+   * @param[in] format_type       format type
    * @return extended pubkey
    * @throws CfdException If invalid seed.
    */
   KeyData GeneratePubkeyData(
-      NetType network_type, const std::vector<uint32_t>& path) const;
+      NetType network_type, const std::vector<uint32_t>& path,
+      Bip32FormatType format_type = Bip32FormatType::kNormal) const;
   /**
    * @brief Generate an extended pubkey data.
    * @param[in] network_type      network type
    * @param[in] string_path       child number string path
+   * @param[in] format_type       format type
    * @return extended pubkey
    * @throws CfdException If invalid seed.
    */
   KeyData GeneratePubkeyData(
-      NetType network_type, const std::string& string_path) const;
+      NetType network_type, const std::string& string_path,
+      Bip32FormatType format_type = Bip32FormatType::kNormal) const;
 
   /**
    * @brief Get the Wordlist available in Mnemonic.
@@ -323,43 +352,6 @@ class CFD_CORE_EXPORT Extkey {
    */
   explicit Extkey(
       const std::string& base58_data, const ByteData256& tweak_sum);
-  /**
-   * @brief constructor. (with parent extkey)
-   * @param[in] network_type       network type
-   * @param[in] parent_key         parent privkey
-   * @param[in] parent_chain_code  parent chain code
-   * @param[in] parent_depth       parent depth
-   * @param[in] child_num          child num
-   */
-  explicit Extkey(
-      NetType network_type, const Privkey& parent_key,
-      const ByteData256& parent_chain_code, uint8_t parent_depth,
-      uint32_t child_num);
-  /**
-   * @brief constructor.
-   * @param[in] network_type  network type
-   * @param[in] parent_key    parent privkey
-   * @param[in] privkey       privkey
-   * @param[in] chain_code    chain code
-   * @param[in] depth         depth
-   * @param[in] child_num     child num
-   */
-  explicit Extkey(
-      NetType network_type, const Privkey& parent_key, const Privkey& privkey,
-      const ByteData256& chain_code, uint8_t depth, uint32_t child_num);
-  /**
-   * @brief constructor.
-   * @param[in] network_type        network type
-   * @param[in] parent_fingerprint  parent fingerprint(4byte)
-   * @param[in] privkey             privkey
-   * @param[in] chain_code          chain code
-   * @param[in] depth               depth
-   * @param[in] child_num           child num
-   */
-  explicit Extkey(
-      NetType network_type, const ByteData& parent_fingerprint,
-      const Privkey& privkey, const ByteData256& chain_code, uint8_t depth,
-      uint32_t child_num);
 
   /**
    * @brief Get Serialize information of extension key.
@@ -395,6 +387,29 @@ class CFD_CORE_EXPORT Extkey {
    * @return extended key.
    */
   Extkey ToPubkey() const;
+
+  /**
+   * @brief Get the related pubkey address.
+   * @details This function is returns the Bip32FormatType or P2WPKH address.
+   * @param[in] address_type        address type (auto is witnessUnknown)
+   * @param[in] network_parameters  network parameter. (nullptr is bitcoin)
+   * @param[in] net_type            network type (auto is kCustomChain)
+   * @return address.
+   */
+  Address GetPubkeyAddress(
+      AddressType address_type = AddressType::kWitnessUnknown,
+      const std::vector<AddressFormatData>* network_parameters = nullptr,
+      NetType net_type = NetType::kCustomChain);
+  /**
+   * @brief Get related pubkey address list.
+   * @details If the Bip32FormatType isn't Normal, return the target type only.
+   * @param[in] network_parameters  network parameter. (nullptr is bitcoin)
+   * @param[in] net_type            network type (auto is kCustomChain)
+   * @return address list.
+   */
+  std::vector<Address> GetPubkeyAddresses(
+      const std::vector<AddressFormatData>* network_parameters = nullptr,
+      NetType net_type = NetType::kCustomChain);
 
   /**
    * @brief Check if the data format is correct.
@@ -511,8 +526,11 @@ class CFD_CORE_EXPORT ExtPrivkey : public Extkey {
    * @brief constructor.
    * @param[in] seed          seed byte
    * @param[in] network_type  network type
+   * @param[in] format_type   format type
    */
-  explicit ExtPrivkey(const ByteData& seed, NetType network_type);
+  explicit ExtPrivkey(
+      const ByteData& seed, NetType network_type,
+      Bip32FormatType format_type = Bip32FormatType::kNormal);
   /**
    * @brief constructor.
    * @param[in] serialize_data  serialize data
@@ -544,11 +562,13 @@ class CFD_CORE_EXPORT ExtPrivkey : public Extkey {
    * @param[in] parent_chain_code  parent chain code
    * @param[in] parent_depth       parent depth
    * @param[in] child_num          child num
+   * @param[in] format_type        format type
    */
   explicit ExtPrivkey(
       NetType network_type, const Privkey& parent_key,
       const ByteData256& parent_chain_code, uint8_t parent_depth,
-      uint32_t child_num);
+      uint32_t child_num,
+      Bip32FormatType format_type = Bip32FormatType::kNormal);
   /**
    * @brief constructor.
    * @param[in] network_type  network type
@@ -557,10 +577,12 @@ class CFD_CORE_EXPORT ExtPrivkey : public Extkey {
    * @param[in] chain_code    chain code
    * @param[in] depth         depth
    * @param[in] child_num     child num
+   * @param[in] format_type   format type
    */
   explicit ExtPrivkey(
       NetType network_type, const Privkey& parent_key, const Privkey& privkey,
-      const ByteData256& chain_code, uint8_t depth, uint32_t child_num);
+      const ByteData256& chain_code, uint8_t depth, uint32_t child_num,
+      Bip32FormatType format_type = Bip32FormatType::kNormal);
   /**
    * @brief constructor.
    * @param[in] network_type        network type
@@ -569,11 +591,13 @@ class CFD_CORE_EXPORT ExtPrivkey : public Extkey {
    * @param[in] chain_code          chain code
    * @param[in] depth               depth
    * @param[in] child_num           child num
+   * @param[in] format_type         format type
    */
   explicit ExtPrivkey(
       NetType network_type, const ByteData& parent_fingerprint,
       const Privkey& privkey, const ByteData256& chain_code, uint8_t depth,
-      uint32_t child_num);
+      uint32_t child_num,
+      Bip32FormatType format_type = Bip32FormatType::kNormal);
 
   /**
    * @brief copy constructor.
@@ -724,11 +748,13 @@ class CFD_CORE_EXPORT ExtPubkey : public Extkey {
    * @param[in] parent_chain_code  parent chain code
    * @param[in] parent_depth       parent depth
    * @param[in] child_num          child num
+   * @param[in] format_type        format type
    */
   explicit ExtPubkey(
       NetType network_type, const Pubkey& parent_key,
       const ByteData256& parent_chain_code, uint8_t parent_depth,
-      uint32_t child_num);
+      uint32_t child_num,
+      Bip32FormatType format_type = Bip32FormatType::kNormal);
   /**
    * @brief constructor.
    * @param[in] network_type  network type
@@ -737,10 +763,12 @@ class CFD_CORE_EXPORT ExtPubkey : public Extkey {
    * @param[in] chain_code    chain code
    * @param[in] depth         depth
    * @param[in] child_num     child num
+   * @param[in] format_type   format type
    */
   explicit ExtPubkey(
       NetType network_type, const Pubkey& parent_key, const Pubkey& pubkey,
-      const ByteData256& chain_code, uint8_t depth, uint32_t child_num);
+      const ByteData256& chain_code, uint8_t depth, uint32_t child_num,
+      Bip32FormatType format_type = Bip32FormatType::kNormal);
   /**
    * @brief constructor.
    * @param[in] network_type        network type
@@ -749,11 +777,13 @@ class CFD_CORE_EXPORT ExtPubkey : public Extkey {
    * @param[in] chain_code          chain code
    * @param[in] depth               depth
    * @param[in] child_num           child num
+   * @param[in] format_type         format type
    */
   explicit ExtPubkey(
       NetType network_type, const ByteData& parent_fingerprint,
       const Pubkey& pubkey, const ByteData256& chain_code, uint8_t depth,
-      uint32_t child_num);
+      uint32_t child_num,
+      Bip32FormatType format_type = Bip32FormatType::kNormal);
 
   /**
    * @brief copy constructor.

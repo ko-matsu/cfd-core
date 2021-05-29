@@ -19,6 +19,7 @@ using cfd::core::ExtPrivkey;
 using cfd::core::KeyData;
 using cfd::core::NetType;
 using cfd::core::KeyFormatData;
+using cfd::core::Bip32FormatType;
 
 TEST(HDWallet, GetMnemonicWordlistTest) {
   // ref: https://github.com/bitcoin/bips/blob/master/bip-0039/english.txt
@@ -375,6 +376,148 @@ TEST(HDWallet, GeneratePubkeyTest) {
   KeyData keypath2;
   EXPECT_NO_THROW((keypath2 = wallet.GeneratePubkeyData(NetType::kMainnet, path2)));
   EXPECT_STREQ(keypath2.ToString(false).c_str(), "[b4e3f5ed/0'/44']xpub6Bc3MkV9ZCh8ipiRMK4pbhBs3JwuFcG4vp4CvJmVQKDVcpsQzizhL2DErc5DHMQuKwBxTg1jLP6PCqriLmLsJzjB2kD9TE9hvqxQ4yLKtcV");
+}
+
+TEST(HDWallet, GenerateBip49KeyTest) {
+  ByteData seed("c55257c360c07c72029aebc1b53c05ed0362ada38ead3e3e9efa3708e53495531f09a6987599d18264c1e1c92f2cf141630c7a3c4ab7c81b2f001698e7463b04");
+
+  HDWallet wallet;
+  EXPECT_NO_THROW((wallet = HDWallet(seed)));
+  auto format_type = Bip32FormatType::kBip49;
+
+  ExtPrivkey privkey;
+  EXPECT_NO_THROW((privkey = wallet.GeneratePrivkey(
+    NetType::kMainnet, format_type)));
+  EXPECT_STREQ(privkey.ToString().c_str(), "yprvABrGsX5C9jantzEn3uWDBDsJnXC2cKeyFn7J3v2daC1frCvYJwsid97p3FuQbYtwDynfm5fzrRtqjXS2dbqikbdXBZeGDEXkaADAduwsL4f");
+
+  EXPECT_NO_THROW((privkey = wallet.GeneratePrivkey(NetType::kTestnet, format_type)));
+  EXPECT_STREQ(privkey.ToString().c_str(), "uprv8tXDerPXZ1QsVoUJiUMiLsVJ6ecEqqgybL2QvLT64AW9dofdJKDU8tVFxS54bvHFbRKSmBHm1nUeCNymkpBfZeu7iCrZsbFoVFxb5YvYM1k");
+
+  std::vector<uint32_t> path = {0, 44};
+  ExtPrivkey privkey0;
+  EXPECT_NO_THROW((privkey0 = wallet.GeneratePrivkey(
+      NetType::kMainnet, path, format_type)));
+  EXPECT_STREQ(privkey0.ToString().c_str(), "yprvAGYohggCXeKsyZ9JZxLMX4B7vsP12p9knS9W2BZdodJxsfQkQucTXvThvtKp6UUQrYDZPL9VZjPAaXzjK5mYMKiAD1FMvG78G5ZBEVKrQkg");
+
+  KeyData keypath1;
+  EXPECT_NO_THROW((keypath1 = wallet.GeneratePrivkeyData(
+      NetType::kMainnet, "m/0h/44h", format_type)));
+  EXPECT_STREQ(keypath1.ToString().c_str(), "[b4e3f5ed/0'/44']035d3d3ee3ce7044686e0eb4697d92478658ac9f854c3c2bccd7a5a8aa74d3fc7a");
+  EXPECT_STREQ(keypath1.ToString(false).c_str(), "[b4e3f5ed/0'/44']yprvAHSxFudAsWgKMdq55eKSSeLdfFFrnmXiUhepuKFmDz4Po8MVhqr1QHYu2YC2sfK5iUPAGE74jF2v5jCrMC6AvTwZJwMazN8vUk3i6oF3mWq");
+
+  ExtPubkey pubkey;
+  EXPECT_NO_THROW((pubkey = wallet.GeneratePubkey(NetType::kMainnet, format_type)));
+  EXPECT_STREQ(pubkey.ToString().c_str(), "ypub6QqdH2c5z7967UKF9w3DYMp3LZ2X1nNpd12trJSF8XYej1FgrVByAwSHtXFnivCky2hUd5QD7j3cRt96R57QjbHM9oXBExopygAwJmSSGxE");
+
+  EXPECT_NO_THROW((pubkey = wallet.GeneratePubkey(NetType::kTestnet, format_type)));
+  EXPECT_STREQ(pubkey.ToString().c_str(), "upub57Wa4MvRPNyAiHYmpVtii1S2egSjFJQpxYx1iirhcW38WbzmqrXiggojohRSjHb5LUEFdB1yH5dQtjgqYHTMYeYwgSjUuKXstmvMkXnT6zh");
+
+  ExtPubkey pubkey0;
+  EXPECT_NO_THROW((pubkey0 = wallet.GeneratePubkey(NetType::kMainnet, path, format_type)));
+  EXPECT_STREQ(pubkey0.ToString().c_str(), "ypub6VYA7CD6N1tBC3DmfysMtC7rUuDVSGsc9f56pZyFMxqwkTjtxSvi5inBn9KbaPjeWKGgXMan5s2gXAgUQbgJX9rhwjcoYJa83NgSZWfp4ev");
+
+  ExtPubkey pubkeyh;
+  EXPECT_NO_THROW((pubkeyh = wallet.GeneratePubkey(NetType::kMainnet, "m/0H/44H", format_type)));
+  EXPECT_STREQ(pubkeyh.ToString().c_str(), "ypub6WSJfRA4htEca7uYBfrSonHNDH6MCEFZqvaRhhfNnKbNfvgeFPAFx5sNsp2oHG4pjaJmD9cHo3Sw68UH4Tkt7EQmu5ua38yCCa23TX34ahn");
+  
+  EXPECT_NO_THROW((keypath1 = wallet.GeneratePubkeyData(NetType::kMainnet, "m/0H/44H", format_type)));
+  EXPECT_STREQ(keypath1.ToString().c_str(), "[b4e3f5ed/0'/44']035d3d3ee3ce7044686e0eb4697d92478658ac9f854c3c2bccd7a5a8aa74d3fc7a");
+  EXPECT_STREQ(keypath1.ToString(false).c_str(), "[b4e3f5ed/0'/44']ypub6WSJfRA4htEca7uYBfrSonHNDH6MCEFZqvaRhhfNnKbNfvgeFPAFx5sNsp2oHG4pjaJmD9cHo3Sw68UH4Tkt7EQmu5ua38yCCa23TX34ahn");
+
+  std::vector<uint32_t> path2 = {0x80000000, 0x80000000 + 44};
+  KeyData keypath2;
+  EXPECT_NO_THROW((keypath2 = wallet.GeneratePubkeyData(NetType::kMainnet, path2, format_type)));
+  EXPECT_STREQ(keypath2.ToString(false).c_str(), "[b4e3f5ed/0'/44']ypub6WSJfRA4htEca7uYBfrSonHNDH6MCEFZqvaRhhfNnKbNfvgeFPAFx5sNsp2oHG4pjaJmD9cHo3Sw68UH4Tkt7EQmu5ua38yCCa23TX34ahn");
+
+  // parse key
+  ExtPrivkey upriv1(
+    "uprv8tXDerPXZ1QsVoUJiUMiLsVJ6ecEqqgybL2QvLT64AW9dofdJKDU8tVFxS54bvHFbRKSmBHm1nUeCNymkpBfZeu7iCrZsbFoVFxb5YvYM1k");
+  EXPECT_EQ(NetType::kTestnet, upriv1.GetNetworkType());
+  EXPECT_EQ(format_type, upriv1.GetFormatType());
+  ExtPubkey ypub1(
+    "ypub6WSJfRA4htEca7uYBfrSonHNDH6MCEFZqvaRhhfNnKbNfvgeFPAFx5sNsp2oHG4pjaJmD9cHo3Sw68UH4Tkt7EQmu5ua38yCCa23TX34ahn");
+  EXPECT_EQ(NetType::kMainnet, ypub1.GetNetworkType());
+  EXPECT_EQ(format_type, ypub1.GetFormatType());
+
+  // Get address list
+  auto addr = upriv1.GetPubkeyAddress();
+  EXPECT_EQ("2MwySuQb51NDxRPbAL7JWQ9L7qH6dnbV3Dz",
+    addr.GetAddress());
+  auto addrs = ypub1.GetPubkeyAddresses();
+  EXPECT_EQ(1, addrs.size());
+  EXPECT_EQ("3LwYVzuoSEk7SwPMCWgiJePs77ZtrTCdWf",
+    addrs[0].GetAddress());
+}
+
+TEST(HDWallet, GenerateBip84KeyTest) {
+  ByteData seed("c55257c360c07c72029aebc1b53c05ed0362ada38ead3e3e9efa3708e53495531f09a6987599d18264c1e1c92f2cf141630c7a3c4ab7c81b2f001698e7463b04");
+
+  HDWallet wallet;
+  EXPECT_NO_THROW((wallet = HDWallet(seed)));
+  auto format_type = Bip32FormatType::kBip84;
+
+  ExtPrivkey privkey;
+  EXPECT_NO_THROW((privkey = wallet.GeneratePrivkey(
+    NetType::kMainnet, format_type)));
+  EXPECT_STREQ(privkey.ToString().c_str(), "zprvAWgYBBk7JR8GkHRttGHqPJxoxVLUYweUAtdWqJvWxCPYuJjmZc3HFCmx4TrzbTYrdcuUWZGZK6FPcp3bMJFjYqK83uLgo9MEqtGp2Q3TeVC");
+
+  EXPECT_NO_THROW((privkey = wallet.GeneratePrivkey(NetType::kTestnet, format_type)));
+  EXPECT_STREQ(privkey.ToString().c_str(), "vprv9DMUxX4ShgxMM6fRYq9LYxaoGckgnTgUWSYdhjLySAt2guUrYyP2kx9Pye2ebpwB14SFWetKUSqC5fbLUWbgMtaiaYYzTW5Hkz2EU5XXu9M");
+
+  std::vector<uint32_t> path = {0, 44};
+  ExtPrivkey privkey0;
+  EXPECT_NO_THROW((privkey0 = wallet.GeneratePrivkey(
+      NetType::kMainnet, path, format_type)));
+  EXPECT_STREQ(privkey0.ToString().c_str(), "zprvAbP51MM7gKsMprLRQK7yj9Gd6qXSyS9FhYfioaTXBdgqvmDyfZn29z7qx6HQ6P8LGBLN8ok42PjiTpcJ2nBZ9ZPm5LwnWAvcXocpd6My3ED");
+
+  KeyData keypath1;
+  EXPECT_NO_THROW((keypath1 = wallet.GeneratePrivkeyData(
+      NetType::kMainnet, "m/0h/44h", format_type)));
+  EXPECT_STREQ(keypath1.ToString().c_str(), "[b4e3f5ed/0'/44']035d3d3ee3ce7044686e0eb4697d92478658ac9f854c3c2bccd7a5a8aa74d3fc7a");
+  EXPECT_STREQ(keypath1.ToString(false).c_str(), "[b4e3f5ed/0'/44']zprvAcHDZaJ62CDoCw2Bv174ejS8qDQJjPXDPpB3gi9ebzSGrEAixW1a2MD33k9csZy187Vy1hhdBuPTy1pR4tWBihdABH41aGxQkU7MVShYZ43");
+
+  ExtPubkey pubkey;
+  EXPECT_NO_THROW((pubkey = wallet.GeneratePubkey(NetType::kMainnet, format_type)));
+  EXPECT_STREQ(pubkey.ToString().c_str(), "zpub6jftahH18ngZxmWMzHpqkSuYWXAxxQNKY7Z7dhL8WXvXn74v79MXo16RujDNiprgNfpHNYzmaPQAKAkf8mXRXpxx29DbpsdKFQEahN6FZ3c");
+
+  EXPECT_NO_THROW((pubkey = wallet.GeneratePubkey(NetType::kTestnet, format_type)));
+  EXPECT_STREQ(pubkey.ToString().c_str(), "vpub5SLqN2bLY4WeZajtergLv6XXpebBBvQKsfUEW7kazWR1Zhp16WhHJkTspuP2jCEzk7M4NecXjjyxn2JQFysNLtEYYnRuVEMNAVz194Xi9T8");
+
+  ExtPubkey pubkey0;
+  EXPECT_NO_THROW((pubkey0 = wallet.GeneratePubkey(NetType::kMainnet, path, format_type)));
+  EXPECT_STREQ(pubkey0.ToString().c_str(), "zpub6pNRQrt1WhRf3LQtWLez6HDMesMwNts74mbKbxs8jyDpoZZ8D76GhnSKoMHBaJPZuxPVGqBLYXPEQTJ38J6KKPYJp5KE8DPcK6k5x6Gq8Vj");
+
+  ExtPubkey pubkeyh;
+  EXPECT_NO_THROW((pubkeyh = wallet.GeneratePubkey(NetType::kMainnet, "m/0H/44H", format_type)));
+  EXPECT_STREQ(pubkeyh.ToString().c_str(), "zpub6qGZy5pyrZn6RR6f22e51sNsPFEo8rF4m36eV6ZGAKyFj2VsW3Kpa9XWu1zPHAik9DRZxdCrFhoUyR5qnAAtuU6NmRbzd3ngUJ5gr3YCyeg");
+  
+  EXPECT_NO_THROW((keypath1 = wallet.GeneratePubkeyData(NetType::kMainnet, "m/0H/44H", format_type)));
+  EXPECT_STREQ(keypath1.ToString().c_str(), "[b4e3f5ed/0'/44']035d3d3ee3ce7044686e0eb4697d92478658ac9f854c3c2bccd7a5a8aa74d3fc7a");
+  EXPECT_STREQ(keypath1.ToString(false).c_str(), "[b4e3f5ed/0'/44']zpub6qGZy5pyrZn6RR6f22e51sNsPFEo8rF4m36eV6ZGAKyFj2VsW3Kpa9XWu1zPHAik9DRZxdCrFhoUyR5qnAAtuU6NmRbzd3ngUJ5gr3YCyeg");
+
+  std::vector<uint32_t> path2 = {0x80000000, 0x80000000 + 44};
+  KeyData keypath2;
+  EXPECT_NO_THROW((keypath2 = wallet.GeneratePubkeyData(NetType::kMainnet, path2, format_type)));
+  EXPECT_STREQ(keypath2.ToString(false).c_str(), "[b4e3f5ed/0'/44']zpub6qGZy5pyrZn6RR6f22e51sNsPFEo8rF4m36eV6ZGAKyFj2VsW3Kpa9XWu1zPHAik9DRZxdCrFhoUyR5qnAAtuU6NmRbzd3ngUJ5gr3YCyeg");
+
+  // parse key
+  ExtPrivkey vpriv1(
+    "vprv9DMUxX4ShgxMM6fRYq9LYxaoGckgnTgUWSYdhjLySAt2guUrYyP2kx9Pye2ebpwB14SFWetKUSqC5fbLUWbgMtaiaYYzTW5Hkz2EU5XXu9M");
+  EXPECT_EQ(NetType::kTestnet, vpriv1.GetNetworkType());
+  EXPECT_EQ(format_type, vpriv1.GetFormatType());
+  ExtPubkey zpub1(
+    "zpub6qGZy5pyrZn6RR6f22e51sNsPFEo8rF4m36eV6ZGAKyFj2VsW3Kpa9XWu1zPHAik9DRZxdCrFhoUyR5qnAAtuU6NmRbzd3ngUJ5gr3YCyeg");
+  EXPECT_EQ(NetType::kMainnet, zpub1.GetNetworkType());
+  EXPECT_EQ(format_type, zpub1.GetFormatType());
+
+  // Get address list
+  auto addr = vpriv1.GetPubkeyAddress();
+  EXPECT_EQ("tb1qkn3ltmgeg0cx9gk7kjlxs8qjnuhlkj87a0sz6l",
+    addr.GetAddress());
+  auto addrs = zpub1.GetPubkeyAddresses();
+  EXPECT_EQ(1, addrs.size());
+  EXPECT_EQ("bc1qcye3fkjzjwykw5qt3cp4swf0hlvr034j5z07g9",
+    addrs[0].GetAddress());
 }
 
 TEST(HDWallet, CustomKeyFormatList) {
