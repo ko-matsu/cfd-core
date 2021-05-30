@@ -48,7 +48,7 @@ enum Bip32FormatType {
   kBip84 = 2,   //!< BIP 0084 (P2WPKH)
 };
 
-//! key format key name: isMainnet
+//! key format key name: isMainnet (value is empty or "true")
 constexpr const char *const kKeytypeIsMainnet = "IsMainnet";
 //! key format key name: WIF prefix
 constexpr const char *const kWifPrefix = "wif";
@@ -56,14 +56,14 @@ constexpr const char *const kWifPrefix = "wif";
 constexpr const char *const kBip32Xpub = "bip32xpub";
 //! key format key name: bip32 xprv version
 constexpr const char *const kBip32Xprv = "bip32xprv";
-//! key format key name: bip49 xpub version
-constexpr const char *const kBip49Xpub = "bip49xpub";
-//! key format key name: bip49 xprv version
-constexpr const char *const kBip49Xprv = "bip49xprv";
-//! key format key name: bip84 xpub version
-constexpr const char *const kBip84Xpub = "bip84xpub";
-//! key format key name: bip84 xprv version
-constexpr const char *const kBip84Xprv = "bip84xprv";
+//! key format key name: bip49 ypub version
+constexpr const char *const kBip49Ypub = "bip49ypub";
+//! key format key name: bip49 yprv version
+constexpr const char *const kBip49Yprv = "bip49yprv";
+//! key format key name: bip84 zpub version
+constexpr const char *const kBip84Zpub = "bip84zpub";
+//! key format key name: bip84 zprv version
+constexpr const char *const kBip84Zprv = "bip84zprv";
 
 /**
  * @class KeyFormatData
@@ -85,6 +85,17 @@ class CFD_CORE_EXPORT KeyFormatData {
    * @param[in] map_data     prefix setting map
    */
   explicit KeyFormatData(const std::map<std::string, std::string> &map_data);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    KeyFormatData object
+   */
+  KeyFormatData(const KeyFormatData &object);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    KeyFormatData object
+   * @return KeyFormatData object
+   */
+  KeyFormatData &operator=(const KeyFormatData &object);
 
   /**
    * @brief Check exist key.
@@ -118,6 +129,12 @@ class CFD_CORE_EXPORT KeyFormatData {
    */
   ExtkeyVersionPair GetVersionPair(uint32_t version) const;
   /**
+   * @brief Get Extkey version pair.
+   * @param[in] format_type   format type.
+   * @return Version pair struct.
+   */
+  ExtkeyVersionPair GetVersionPair(Bip32FormatType format_type) const;
+  /**
    * @brief Get Extkey version format type.
    * @param[in] version   extkey version
    * @return format type.
@@ -130,6 +147,13 @@ class CFD_CORE_EXPORT KeyFormatData {
    * @retval false  not found.
    */
   bool IsFindVersion(uint32_t version) const;
+  /**
+   * @brief Find relational format type.
+   * @param[in] format_type   format type.
+   * @retval true   find.
+   * @retval false  not found.
+   */
+  bool IsFindFormatType(Bip32FormatType format_type) const;
 
   /**
    * @brief Get network type.
@@ -151,6 +175,13 @@ class CFD_CORE_EXPORT KeyFormatData {
   bool IsValid() const;
 
   /**
+   * @brief Load cache.
+   * @retval true   valid
+   * @retval false  invalid
+   */
+  bool LoadCache();
+
+  /**
    * @brief Get Address format data from json string.
    * @param[in] json_data       json string
    * @return Address format data
@@ -166,6 +197,13 @@ class CFD_CORE_EXPORT KeyFormatData {
 
  private:
   std::map<std::string, std::string> map_;  //!< map
+  // cache values
+  bool is_mainnet = false;            //!< mainnet flag cache
+  uint8_t wif_prefix_ = 0;            //!< wif prefix cache
+  std::vector<bool> has_format_;      //!< enable format list
+  ExtkeyVersionPair bip32_ = {0, 0};  //!< bip32 prefix cache
+  ExtkeyVersionPair bip49_ = {0, 0};  //!< bip32 prefix cache
+  ExtkeyVersionPair bip84_ = {0, 0};  //!< bip32 prefix cache
 };
 
 /**
@@ -173,6 +211,20 @@ class CFD_CORE_EXPORT KeyFormatData {
  * @return key format list.
  */
 CFD_CORE_API std::vector<KeyFormatData> GetKeyFormatList();
+
+/**
+ * @brief Get key format data.
+ * @param[in] net_type    network type
+ * @return key format data.
+ */
+CFD_CORE_API KeyFormatData GetKeyFormatData(NetType net_type);
+
+/**
+ * @brief Get key format data.
+ * @param[in] is_mainnet    mainnet flag
+ * @return key format data.
+ */
+CFD_CORE_API KeyFormatData GetKeyFormatData(bool is_mainnet);
 
 /**
  * @brief set custom key format list.

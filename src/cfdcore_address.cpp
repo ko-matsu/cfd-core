@@ -155,17 +155,44 @@ bool AddressFormatData::IsValid() const {
   for (const char* key : key_list) {
     if (map_.find(key) == map_.end()) return false;
   }
+  try {
+    if (map_.find(kNettype)->second.empty()) return false;
+
+    auto p2pkh = ByteData(map_.find(kPrefixP2pkh)->second);
+    if (p2pkh.GetDataSize() != 1) return false;
+    auto p2sh = ByteData(map_.find(kPrefixP2sh)->second);
+    if (p2sh.GetDataSize() != 1) return false;
+    auto bech32 = map_.find(kPrefixBech32Hrp)->second;
+    if (bech32.empty() || (bech32.size() > 84)) return false;
+  } catch (const CfdException&) {
+    return false;
+  }
   return true;
 }
 
 #ifndef CFD_DISABLE_ELEMENTS
 bool AddressFormatData::IsValidElements() const {
   static const std::vector<const char*> key_list = {
-      kNettype,         kPrefixP2pkh,      kPrefixP2sh,
-      kPrefixBech32Hrp, kPrefixBlindP2pkh, kPrefixBlindBech32Hrp,
+      kPrefixBlindP2pkh,
+      kPrefixBlindBech32Hrp,
   };
+
+  if (!IsValid()) return false;
+
   for (const char* key : key_list) {
     if (map_.find(key) == map_.end()) return false;
+  }
+  try {
+    auto blind_p2pkh = ByteData(map_.find(kPrefixBlindP2pkh)->second);
+    if (blind_p2pkh.GetDataSize() != 1) return false;
+    if (map_.find(kPrefixBlindP2sh) != map_.end()) {
+      auto blind_p2sh = ByteData(map_.find(kPrefixBlindP2sh)->second);
+      if (blind_p2sh.GetDataSize() != 1) return false;
+    }
+    auto lbech32 = map_.find(kPrefixBlindBech32Hrp)->second;
+    if (lbech32.empty() || (lbech32.size() > 995)) return false;
+  } catch (const CfdException&) {
+    return false;
   }
   return true;
 }
