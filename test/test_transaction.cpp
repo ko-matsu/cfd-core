@@ -571,3 +571,32 @@ TEST(Transaction, GetSchnorrSignatureHashNonce) {
 
   EXPECT_TRUE(schnorr_pubkey.Verify(schnorr_sig, sighash2));
 }
+
+TEST(Transaction, ParseCoinbaseTx) {
+  const std::string tx = "020000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff4803632b1e045352b260425443506f6f6cfabe6d6d4b081c2a3c7cb234c159b8e198294dfa79c04b54803e0e54c4a37d239445eb42020000007296cd100100000e8338000000000000ffffffff0245039b000000000017a9147bef0b4a4dafa77b2ec52b81659cbcf0d9a91487870000000000000000266a24aa21a9edba23c37a95438644cda3c06c06ef03047168f3201aade74f3518530a4ba9db710120000000000000000000000000000000000000000000000000000000000000000000000000";
+  Transaction tx_obj(tx);
+  EXPECT_EQ(1, tx_obj.GetTxInCount());
+  EXPECT_EQ(2, tx_obj.GetTxOutCount());
+  if (tx_obj.GetTxInCount() == 1) {
+    auto txin = tx_obj.GetTxIn(0);
+    EXPECT_EQ(
+        "03632b1e045352b260425443506f6f6cfabe6d6d4b081c2a3c7cb234c159b8e198294dfa79c04b54803e0e54c4a37d239445eb42020000007296cd100100000e8338000000000000",
+        txin.GetUnlockingScript().GetHex());
+    EXPECT_EQ(
+        "0000000000000000000000000000000000000000000000000000000000000000",
+        txin.GetTxid().GetHex());
+    EXPECT_EQ(0xffffffff, txin.GetVout());
+  }
+  if (tx_obj.GetTxOutCount() == 2) {
+    auto txout1 = tx_obj.GetTxOut(0);
+    auto txout2 = tx_obj.GetTxOut(1);
+    EXPECT_EQ(
+        "a9147bef0b4a4dafa77b2ec52b81659cbcf0d9a9148787",
+        txout1.GetLockingScript().GetHex());
+    EXPECT_EQ(10158917, txout1.GetValue().GetSatoshiValue());
+    EXPECT_EQ(
+        "6a24aa21a9edba23c37a95438644cda3c06c06ef03047168f3201aade74f3518530a4ba9db71",
+        txout2.GetLockingScript().GetHex());
+    EXPECT_EQ(0, txout2.GetValue().GetSatoshiValue());
+  }
+}
