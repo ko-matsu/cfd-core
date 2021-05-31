@@ -13,6 +13,7 @@
 #include "cfdcore/cfdcore_bytedata.h"
 #include "cfdcore/cfdcore_coin.h"
 #include "cfdcore/cfdcore_common.h"
+#include "cfdcore/cfdcore_transaction.h"
 
 namespace cfd {
 namespace core {
@@ -99,6 +100,19 @@ class CFD_CORE_EXPORT Block {
    * @return txid list.
    */
   std::vector<Txid> GetTxids() const;
+  /**
+   * @brief exist txid.
+   * @param[in] txid    txid
+   * @retval true   exist
+   * @retval false  not exist
+   */
+  bool ExistTxid(const Txid& txid) const;
+  /**
+   * @brief Get the transaction.
+   * @param[in] txid    txid
+   * @return transaction
+   */
+  Transaction GetTransaction(const Txid& txid) const;
   /**
    * @brief get block header.
    * @return block header.
