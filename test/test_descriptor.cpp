@@ -1108,16 +1108,16 @@ TEST(Descriptor, Parse_Taproot_tapleaf_pubkey) {
   EXPECT_EQ(AddressType::kTaprootAddress, script_ref.GetAddressType());
   EXPECT_EQ(HashType::kTaproot, script_ref.GetHashType());
   EXPECT_STREQ(script_ref.GenerateAddress(nettype).GetAddress().c_str(),
-      "bcrt1pnmjdd6u2wjpwv74pc6mclsf036pm56svzpzc7n2xswg4zq06canqc7uvq2");
+      "bcrt1p2druqmxfa49j9ph0ea8d9y4gzrhy2x7u2zj0p2622d9r7k28v02s6x9jx3");
   EXPECT_NO_THROW(pubkey = script_ref.GetKeyList()[0].GetSchnorrPubkey());
   EXPECT_STREQ(desc_str.c_str(), descriptor1.c_str());
   EXPECT_STREQ(locking_script.ToString().c_str(),
-      "1 9ee4d6eb8a7482e67aa1c6b78fc12f8e83ba6a0c10458f4d4683915101fac766");
+      "1 5347c06cc9ed4b2286efcf4ed292a810ee451bdc50a4f0ab4a534a3f594763d5");
   EXPECT_STREQ(pubkey.GetHex().c_str(), pubkey_hex.c_str());
   EXPECT_STREQ(tree.ToString().c_str(),
-      "tl(21028c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816ac)");
+      "tl(208c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816ac)");
   EXPECT_STREQ(tree.GetScript().GetHex().c_str(),
-      "21028c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816ac");
+      "208c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816ac");
 
   try {
     desc = Descriptor::Parse(descriptor2);
@@ -1172,6 +1172,47 @@ TEST(Descriptor, Parse_Taproot_tapbranch) {
       "{tl(208c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816ac),{tl(208c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816ac),tl(205cbdf0646e5db4eaa398f365f2ea7a0e3d419b7e0330e39ce92bddedcac4f9bcac7c82012088a820e38990d0c7fc009880a9c07c23842e886c6bbdc964ce6bdd5817ad357335ee6f87936b82012088a914dd69735817e0e3f6f826a9238dc2e291184f0131876c935287)}}");
   EXPECT_STREQ(tree.GetScript().GetHex().c_str(),
       "208c6f5956c3cc7251d483fc683fa06b22d4e2ddc7496a2590acee36c4a313f816ac");
+}
+
+TEST(Descriptor, Parse_Taproot_tapbranch_simple) {
+  std::string descriptor1 = "tr(c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5,{pk(fff97bd5755eeea420453a14355235d382f6472f8568a18b2f057a1460297556),pk(e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13)})";
+  Descriptor desc;
+  Script locking_script;
+  std::string desc_str = "";
+  DescriptorScriptReference script_ref;
+  TaprootScriptTree tree;
+  SchnorrPubkey pubkey;
+  NetType nettype = NetType::kRegtest;
+
+  try {
+    desc = Descriptor::Parse(descriptor1);
+  } catch (const CfdException& except) {
+    EXPECT_STREQ(except.what(), "");
+  }
+
+  EXPECT_NO_THROW(script_ref = desc.GetReference());
+  EXPECT_TRUE(script_ref.HasKey());
+  EXPECT_TRUE(script_ref.HasAddress());
+  EXPECT_EQ(1, script_ref.GetKeyNum());
+  EXPECT_FALSE(script_ref.HasChild());
+  EXPECT_FALSE(script_ref.HasReqNum());
+  EXPECT_FALSE(script_ref.HasRedeemScript());
+  EXPECT_TRUE(script_ref.HasScriptTree());
+  EXPECT_NO_THROW(locking_script = desc.GetLockingScript());
+  EXPECT_NO_THROW(desc_str = desc.ToString(false));
+  EXPECT_NO_THROW(tree = script_ref.GetScriptTree());
+  EXPECT_EQ(AddressType::kTaprootAddress, script_ref.GetAddressType());
+  EXPECT_EQ(HashType::kTaproot, script_ref.GetHashType());
+  EXPECT_STREQ(script_ref.GenerateAddress(nettype).GetAddress().c_str(),
+      "bcrt1p6r63tl53d930my75e76ncsgw05gyk838e08079kxuuguwxr0yyjssdax9t");
+  EXPECT_NO_THROW(pubkey = script_ref.GetKeyList()[0].GetSchnorrPubkey());
+  EXPECT_STREQ(desc_str.c_str(), descriptor1.c_str());
+  EXPECT_STREQ(locking_script.ToString().c_str(),
+      "1 d0f515fe916962fd93d4cfb53c410e7d104b1e27cbceff16c6e711c7186f2125");
+  EXPECT_STREQ(tree.ToString().c_str(),
+      "{tl(20e493dbf1c10d80f3581e4904930b1404cc6c13900ee0758474fa94abe8c4cd13ac),tl(20fff97bd5755eeea420453a14355235d382f6472f8568a18b2f057a1460297556ac)}");
+  EXPECT_STREQ(tree.GetScript().GetHex().c_str(),
+      "20fff97bd5755eeea420453a14355235d382f6472f8568a18b2f057a1460297556ac");
 }
 
 TEST(DescriptorKeyInfo, Constructor_Pubkey) {
