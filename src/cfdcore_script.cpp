@@ -470,15 +470,23 @@ ScriptOperator ScriptOperator::Get(const std::string& message) {
   return ite->second;
 }
 
-bool ScriptOperator::IsOpSuccess(ScriptType op_code) {
+bool ScriptOperator::IsOpSuccess(ScriptType op_code, bool is_elements) {
   if ((op_code == kOpSuccess80) || (op_code == kOpSuccess98) ||
       ((op_code >= kOpSuccess126) && (op_code <= kOpSuccess129)) ||
       ((op_code >= kOpSuccess131) && (op_code <= kOpSuccess134)) ||
       ((op_code >= kOpSuccess137) && (op_code <= kOpSuccess138)) ||
       ((op_code >= kOpSuccess141) && (op_code <= kOpSuccess142)) ||
       ((op_code >= kOpSuccess149) && (op_code <= kOpSuccess153)) ||
-      ((op_code >= kOpSuccess187) && (op_code <= kOpSuccess254))) {
+      ((op_code >= kOpSuccess187) && (op_code <= kOpSuccess191)) ||
+      ((op_code >= kOpSuccess195) && (op_code <= kOpSuccess249)) ||
+      (op_code == kOpSuccess252)) {
     return true;
+  } else if (!is_elements) {
+    if (((op_code >= kOpSuccess192) && (op_code <= kOpSuccess194)) ||
+        ((op_code >= kOpSuccess250) && (op_code <= kOpSuccess251)) ||
+        ((op_code >= kOpSuccess253) && (op_code <= kOpSuccess254))) {
+      return true;
+    }
   }
   return false;
 }

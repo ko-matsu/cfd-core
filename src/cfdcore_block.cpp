@@ -108,6 +108,23 @@ BlockHash Block::GetBlockHash() const {
 
 std::vector<Txid> Block::GetTxids() const { return txids_; }
 
+bool Block::ExistTxid(const Txid& txid) const {
+  for (const auto& temp_txid : txids_) {
+    if (txid.Equals(temp_txid)) return true;
+  }
+  return false;
+}
+
+Transaction Block::GetTransaction(const Txid& txid) const {
+  for (size_t index = 0; index < txids_.size(); ++index) {
+    if (txid.Equals(txids_[index])) {
+      return Transaction(txs_[index]);
+    }
+  }
+  throw CfdException(
+      CfdError::kCfdIllegalArgumentError, "target txid not found.");
+}
+
 BlockHeader Block::GetBlockHeader() const { return header_; }
 
 ByteData Block::SerializeBlockHeader() const {
