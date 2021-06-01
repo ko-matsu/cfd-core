@@ -1130,6 +1130,12 @@ class CFD_CORE_EXPORT ConfidentialTransaction : public AbstractTransaction {
    */
   void RemoveTxIn(uint32_t index);
   /**
+   * @brief Set the sequence number.
+   * @param[in] tx_in_index       TxIn index
+   * @param[in] sequence          sequence
+   */
+  void SetTxInSequence(uint32_t tx_in_index, uint32_t sequence);
+  /**
    * @brief Set unlocking script.
    * @param[in] tx_in_index       TxIn index
    * @param[in] unlocking_script  unlocking script (Push Op Only)
