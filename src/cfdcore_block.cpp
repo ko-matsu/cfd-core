@@ -3,6 +3,8 @@
  * @file cfdcore_block.cpp
  *
  * @brief Classes related to block.
+ *
+ * @see https://github.com/bitcoin/bitcoin/blob/master/src/merkleblock.cpp
  */
 #include "cfdcore/cfdcore_block.h"
 
