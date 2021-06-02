@@ -659,13 +659,6 @@ class CFD_CORE_EXPORT DescriptorNode {
    */
   Pubkey GetPubkey(std::vector<std::string>* array_argument) const;
   /**
-   * @brief get schnorr pubkey.
-   * @param[in] array_argument  argument array.
-   * @return schnorr pubkey
-   */
-  SchnorrPubkey GetSchnorrPubkey(
-      std::vector<std::string>* array_argument) const;
-  /**
    * @brief get script tree.
    * @param[in] array_argument  argument array.
    * @return TapBranch

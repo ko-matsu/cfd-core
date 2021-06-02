@@ -1722,12 +1722,6 @@ Pubkey DescriptorNode::GetPubkey(
   return ref.GetPubkey();
 }
 
-SchnorrPubkey DescriptorNode::GetSchnorrPubkey(
-    std::vector<std::string>* array_argument) const {
-  DescriptorKeyReference ref = GetKeyReferences(array_argument);
-  return ref.GetSchnorrPubkey();
-}
-
 TaprootScriptTree DescriptorNode::GetScriptTree(
     std::vector<std::string>* array_argument) const {
   static auto sort_func = [](const std::string& src, const std::string& dest) {

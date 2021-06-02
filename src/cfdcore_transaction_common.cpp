@@ -110,6 +110,10 @@ void AbstractTxIn::SetUnlockingScript(const Script &unlocking_script) {
 
 uint32_t AbstractTxIn::GetSequence() const { return sequence_; }
 
+void AbstractTxIn::SetSequence(uint32_t sequence) {
+  sequence_ = sequence;
+}
+
 ScriptWitness AbstractTxIn::GetScriptWitness() const {
   return script_witness_;
 }
@@ -365,6 +369,21 @@ void AbstractTransaction::RemoveTxIn(uint32_t index) {
     warn(CFD_LOG_SOURCE, "wally_tx_remove_input NG[{}].", ret);
     throw CfdException(kCfdIllegalStateError, "txin remove error.");
   }
+}
+
+void AbstractTransaction::SetTxInSequence(
+    uint32_t tx_in_index, uint32_t sequence) {
+  CheckTxInIndex(tx_in_index, __LINE__, __FUNCTION__);
+
+  struct wally_tx *tx_pointer =
+      static_cast<struct wally_tx *>(wally_tx_pointer_);
+  if ((tx_pointer == nullptr) ||
+      (static_cast<uint32_t>(tx_pointer->num_inputs) <= tx_in_index)) {
+    warn(CFD_LOG_SOURCE, "wally invalid state.");
+    throw CfdException(
+        kCfdIllegalStateError, "wally invalid state error.");
+  }
+  tx_pointer->inputs[tx_in_index].sequence = sequence;
 }
 
 void AbstractTransaction::SetUnlockingScript(
