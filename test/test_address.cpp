@@ -198,14 +198,15 @@ TEST(Address, TaprootAddressTest) {
     EXPECT_STREQ("51201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
         address.GetLockingScript().GetHex().c_str());
 
+    auto formats = cfd::core::GetBitcoinAddressFormatList();
     EXPECT_NO_THROW((address = Address(NetType::kTestnet,
-                    WitnessVersion::kVersion1, pubkey)));
+                    WitnessVersion::kVersion1, pubkey, formats[1])));
     EXPECT_STREQ("tb1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8naskf8ee6",
                 address.GetAddress().c_str());
     EXPECT_EQ(NetType::kTestnet, address.GetNetType());
 
     EXPECT_NO_THROW((address = Address(NetType::kRegtest,
-                    WitnessVersion::kVersion1, pubkey)));
+                    WitnessVersion::kVersion1, pubkey, formats)));
     EXPECT_STREQ("bcrt1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8nasmsdlvq",
                 address.GetAddress().c_str());
     EXPECT_EQ(NetType::kRegtest, address.GetNetType());
@@ -237,14 +238,15 @@ TEST(Address, TaprootScriptAddressTest) {
     EXPECT_STREQ("512088de1a59b38939f58fb4f8c5ffc3d56390d43e9e91c7b1d67f91e070f3108799",
         address.GetLockingScript().GetHex().c_str());
 
+    auto formats = cfd::core::GetBitcoinAddressFormatList();
     EXPECT_NO_THROW((address = Address(NetType::kTestnet,
-                    WitnessVersion::kVersion1, tree, pubkey)));
+                    WitnessVersion::kVersion1, tree, pubkey, formats[1])));
     EXPECT_STREQ("tb1p3r0p5kdn3yultra5lrzlls74vwgdg057j8rmr4nlj8s8pucss7vs7rjr8c",
                 address.GetAddress().c_str());
     EXPECT_EQ(NetType::kTestnet, address.GetNetType());
 
     EXPECT_NO_THROW((address = Address(NetType::kRegtest,
-                    WitnessVersion::kVersion1, tree, pubkey)));
+                    WitnessVersion::kVersion1, tree, pubkey, formats)));
     EXPECT_STREQ("bcrt1p3r0p5kdn3yultra5lrzlls74vwgdg057j8rmr4nlj8s8pucss7vsn6c9jz",
                 address.GetAddress().c_str());
     EXPECT_EQ(NetType::kRegtest, address.GetNetType());

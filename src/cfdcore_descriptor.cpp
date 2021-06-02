@@ -1451,6 +1451,7 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
           CfdError::kCfdIllegalArgumentError,
           "Failed to taproot. pkh is unsupported.");
     }
+    child_node_[0].parent_kind_ = parent_kind_;
     child_node_[0].AnalyzeAll(name_);
 
     if ((name_ == "wpkh") || (name_ == "wsh")) {
@@ -1701,7 +1702,12 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
             script_type_ == DescriptorScriptType::kDescriptorScriptWpkh) {
           locking_script = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
         } else if (script_type_ == DescriptorScriptType::kDescriptorScriptPk) {
-          build << pubkey << ScriptOperator::OP_CHECKSIG;
+          if (parent_kind_ == "tr") {
+            build << SchnorrPubkey::FromPubkey(pubkey).GetData()
+                  << ScriptOperator::OP_CHECKSIG;
+          } else {
+            build << pubkey << ScriptOperator::OP_CHECKSIG;
+          }
           locking_script = build.Build();
         }
         result.emplace_back(
@@ -1719,12 +1725,6 @@ Pubkey DescriptorNode::GetPubkey(
     std::vector<std::string>* array_argument) const {
   DescriptorKeyReference ref = GetKeyReferences(array_argument);
   return ref.GetPubkey();
-}
-
-SchnorrPubkey DescriptorNode::GetSchnorrPubkey(
-    std::vector<std::string>* array_argument) const {
-  DescriptorKeyReference ref = GetKeyReferences(array_argument);
-  return ref.GetSchnorrPubkey();
 }
 
 TaprootScriptTree DescriptorNode::GetScriptTree(
