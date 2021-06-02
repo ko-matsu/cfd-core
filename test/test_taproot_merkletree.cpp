@@ -67,7 +67,7 @@ TEST(TaprootScriptTree, Branch) {
     ByteData256("dc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54")
   };
   TaprootScriptTree tree(leaf_version, script);
-  tree.AddBranch(nodes[0]);
+  tree.AddBranch(TapBranch(nodes[0]));
   tree.AddBranch(SchnorrPubkey(nodes[1]));
 
   EXPECT_EQ(leaf_version, tree.GetLeafVersion());

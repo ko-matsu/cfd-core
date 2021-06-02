@@ -998,6 +998,7 @@ TEST(Descriptor, Parse_Taproot_pubkey) {
   DescriptorScriptReference script_ref;
   SchnorrPubkey pubkey;
   NetType nettype = NetType::kRegtest;
+  DescriptorNode node;
 
   try {
     desc = Descriptor::Parse(descriptor1);
@@ -1006,6 +1007,7 @@ TEST(Descriptor, Parse_Taproot_pubkey) {
   }
 
   EXPECT_NO_THROW(script_ref = desc.GetReference());
+  EXPECT_NO_THROW(node = desc.GetNode());
   EXPECT_TRUE(script_ref.HasKey());
   EXPECT_TRUE(script_ref.HasAddress());
   EXPECT_EQ(1, script_ref.GetKeyNum());
@@ -1384,4 +1386,26 @@ TEST(DescriptorKeyInfo, GetExtPubkeyInformation_root) {
 
   EXPECT_NO_THROW(key_str = DescriptorKeyInfo::GetExtPubkeyInformation(pubkey, path));
   EXPECT_STREQ(key_str.c_str(), ext_path_str.c_str());
+}
+
+TEST(DescriptorKeyInfo, Constructor_SchnorrPubkey) {
+  SchnorrPubkey pubkey("d3f817091de0bbe51e19b53303b12e463f664894d49cb5bf5bb19c88fbc54d8d");
+  std::string parent_info = "[ef57314e/0'/0'/4']";
+  DescriptorKeyInfo key_info;
+  std::string key_str;
+
+  EXPECT_NO_THROW(key_info = DescriptorKeyInfo(pubkey));
+  EXPECT_NO_THROW(key_str = key_info.ToString());
+  EXPECT_STREQ(key_str.c_str(), pubkey.GetHex().c_str());
+  EXPECT_EQ(key_info.GetKeyType(), DescriptorKeyType::kDescriptorKeySchnorr);
+
+  EXPECT_NO_THROW(key_info = DescriptorKeyInfo(pubkey, parent_info));
+  EXPECT_NO_THROW(key_str = key_info.ToString());
+  EXPECT_STREQ(key_str.c_str(), (parent_info + pubkey.GetHex()).c_str());
+  EXPECT_FALSE(key_info.HasPrivkey());
+  EXPECT_TRUE(key_info.HasSchnorrPubkey());
+  EXPECT_FALSE(key_info.HasExtPubkey());
+  EXPECT_FALSE(key_info.HasExtPrivkey());
+  EXPECT_EQ(key_info.GetSchnorrPubkey().GetHex(), pubkey.GetHex());
+  EXPECT_EQ(key_info.GetSchnorrPubkey().GetHex(), pubkey.GetHex());
 }
