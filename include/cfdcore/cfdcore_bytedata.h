@@ -841,6 +841,13 @@ class CFD_CORE_EXPORT Deserializer {
    */
   uint32_t GetReadSize();
 
+  /**
+   * @brief Check EOF.
+   * @retval true   already eof.
+   * @retval false  not eof.
+   */
+  bool HasEof();
+
  protected:
   std::vector<uint8_t> buffer_;  //!< buffer
   uint32_t offset_;              //!< offset

@@ -52,7 +52,7 @@ static ByteData BitsToBytes(const std::vector<bool>& bits) {
 // -----------------------------------------------------------------------------
 // Block
 // -----------------------------------------------------------------------------
-Block::Block() : Block(ByteData()) {
+Block::Block() : data_() {
   // do nothing
 }
 
@@ -141,7 +141,7 @@ ByteData Block::SerializeBlockHeader() const {
 }
 
 bool Block::IsValid() const {
-  return (data_.GetDataSize() == kByteData256Length);
+  return !data_.IsEmpty();
 }
 
 ByteData Block::GetTxOutProof(const std::vector<Txid>& txids) const {
