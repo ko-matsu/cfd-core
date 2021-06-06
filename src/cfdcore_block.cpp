@@ -108,6 +108,15 @@ BlockHash Block::GetBlockHash() const {
   return BlockHash(HashUtil::Sha256D(SerializeBlockHeader()));
 }
 
+Txid Block::GetTxid(uint32_t index) const {
+  if (static_cast<uint32_t>(txids_.size()) <= index) {
+    throw CfdException(
+        CfdError::kCfdOutOfRangeError,
+        "The index is outside the scope of the txid list.");
+  }
+  return txids_[index];
+}
+
 std::vector<Txid> Block::GetTxids() const { return txids_; }
 
 bool Block::ExistTxid(const Txid& txid) const {
@@ -127,6 +136,10 @@ Transaction Block::GetTransaction(const Txid& txid) const {
       CfdError::kCfdIllegalArgumentError, "target txid not found.");
 }
 
+uint32_t Block::GetTransactionCount() const {
+  return static_cast<uint32_t>(txids_.size());
+}
+
 BlockHeader Block::GetBlockHeader() const { return header_; }
 
 ByteData Block::SerializeBlockHeader() const {
@@ -140,8 +153,10 @@ ByteData Block::SerializeBlockHeader() const {
   return obj.Output();
 }
 
-bool Block::IsValid() const {
-  return !data_.IsEmpty();
+bool Block::IsValid() const { return !data_.IsEmpty(); }
+
+ByteData Block::GetTxOutProof(const Txid& txid) const {
+  return GetTxOutProof(std::vector<Txid>{txid});
 }
 
 ByteData Block::GetTxOutProof(const std::vector<Txid>& txids) const {

@@ -110,9 +110,7 @@ void AbstractTxIn::SetUnlockingScript(const Script &unlocking_script) {
 
 uint32_t AbstractTxIn::GetSequence() const { return sequence_; }
 
-void AbstractTxIn::SetSequence(uint32_t sequence) {
-  sequence_ = sequence;
-}
+void AbstractTxIn::SetSequence(uint32_t sequence) { sequence_ = sequence; }
 
 ScriptWitness AbstractTxIn::GetScriptWitness() const {
   return script_witness_;
@@ -380,8 +378,7 @@ void AbstractTransaction::SetTxInSequence(
   if ((tx_pointer == nullptr) ||
       (static_cast<uint32_t>(tx_pointer->num_inputs) <= tx_in_index)) {
     warn(CFD_LOG_SOURCE, "wally invalid state.");
-    throw CfdException(
-        kCfdIllegalStateError, "wally invalid state error.");
+    throw CfdException(kCfdIllegalStateError, "wally invalid state error.");
   }
   tx_pointer->inputs[tx_in_index].sequence = sequence;
 }

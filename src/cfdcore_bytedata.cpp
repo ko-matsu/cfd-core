@@ -650,9 +650,7 @@ ByteData Deserializer::ReadVariableData() {
 
 uint32_t Deserializer::GetReadSize() { return offset_; }
 
-bool Deserializer::HasEof() {
-  return (buffer_.size() <= offset_);
-}
+bool Deserializer::HasEof() { return (buffer_.size() <= offset_); }
 
 void Deserializer::CheckReadSize(uint64_t size) {
   if (size > std::numeric_limits<uint32_t>::max()) {
