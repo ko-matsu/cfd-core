@@ -109,7 +109,7 @@ TEST(Block, GetTxoutProof1) {
 
     Block block(test_data.block_hex);
     EXPECT_EQ(test_data.block_hash, block.GetBlockHash().GetHex());
-    auto proof = block.GetTxOutProof(std::vector<Txid>{Txid(test_data.txid)});
+    auto proof = block.GetTxOutProof(Txid(test_data.txid));
     EXPECT_EQ(test_data.exp_txoutproof, proof.GetHex());
   }
 }
@@ -125,6 +125,8 @@ TEST(Block, GetTransaction) {
     "020000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff0502d5000101ffffffff0200f9029500000000160014164e985d0fc92c927a66c0cbaf78e6ea389629d50000000000000000266a24aa21a9ede2f61c3f71d1defd3fa999dfa36953755c690689799962b48bebd836974e8cf90120000000000000000000000000000000000000000000000000000000000000000000000000",
     block.GetTransaction(txid).GetHex()
   );
+  EXPECT_EQ(1, block.GetTransactionCount());
+  EXPECT_EQ(txid.GetHex(), block.GetTxid(0).GetHex());
 
   Block block2;
   EXPECT_FALSE(block2.IsValid());

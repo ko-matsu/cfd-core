@@ -90,11 +90,23 @@ class CFD_CORE_EXPORT Block {
 
   /**
    * @brief get txoutproof.
+   * @param[in] txid      target txid
+   * @return txoutproof.
+   */
+  ByteData GetTxOutProof(const Txid& txid) const;
+  /**
+   * @brief get txoutproof.
    * @param[in] txids     target txid list
    * @return txoutproof.
    */
   ByteData GetTxOutProof(const std::vector<Txid>& txids) const;
 
+  /**
+   * @brief get txid.
+   * @param[in] index   tx index
+   * @return txid.
+   */
+  Txid GetTxid(uint32_t index) const;
   /**
    * @brief get txid list.
    * @return txid list.
@@ -113,6 +125,11 @@ class CFD_CORE_EXPORT Block {
    * @return transaction
    */
   Transaction GetTransaction(const Txid& txid) const;
+  /**
+   * @brief Get the transaction count.
+   * @return transaction count
+   */
+  uint32_t GetTransactionCount() const;
   /**
    * @brief get block header.
    * @return block header.
