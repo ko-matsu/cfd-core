@@ -620,11 +620,6 @@ Extkey Extkey::FromPubkey(
         CfdError::kCfdIllegalArgumentError,
         "Failed to parent_fingerprint. fingerprint must be at least 4 bytes.");
   }
-  if (child_num >= kHardenedKey) {
-    throw CfdException(
-        CfdError::kCfdIllegalArgumentError,
-        "Failed to child_num. hardened cannot be used with extpubkey.");
-  }
 
   Pubkey key = pubkey;
   if (!key.IsCompress()) key = key.Compress();
