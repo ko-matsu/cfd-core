@@ -41,7 +41,7 @@ constexpr const char* const kPrefixBech32Hrp = "bech32";
 //! key: blind p2pkh prefix
 constexpr const char* const kPrefixBlindP2pkh = "blinded";
 //! key: blind p2sh prefix
-constexpr const char* const kPrefixBlindP2sh = "blinded_p2sh";
+constexpr const char* const kPrefixBlindP2sh = "blindedP2sh";
 //! key: blind bech32 hrp (blech32)
 constexpr const char* const kPrefixBlindBech32Hrp = "blech32";
 

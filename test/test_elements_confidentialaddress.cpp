@@ -572,7 +572,7 @@ TEST(ElementsConfidentialAddress, CustomElementsAddressFormatList) {
     "},{"
       "\"nettype\":\"custom\",\"p2pkh\":\"64\","
       "\"p2sh\":\"22\",\"bech32\":\"cs\","
-      "\"blinded\":\"55\",\"blinded_p2sh\":\"35\",\"blech32\":\"blcs\""
+      "\"blinded\":\"55\",\"blindedP2sh\":\"35\",\"blech32\":\"blcs\""
     "}]";
   auto list = AddressFormatData::ConvertListFromJson(custom_json);
   cfd::core::SetCustomAddressFormatList(list);
