@@ -3198,6 +3198,19 @@ PegoutKeyData ConfidentialTransaction::GetPegoutPubkeyData(
   return result;
 }
 
+Address ConfidentialTransaction::GetPegoutAddressFromDescriptor(
+    const std::string &bitcoin_descriptor, uint32_t bip32_counter,
+    NetType net_type, NetType elements_net_type) {
+  auto prefix = (net_type == NetType::kMainnet) ? ByteData("0488b21e")
+                                                : ByteData("043587cf");
+  ExtPubkey base_ext_pubkey;
+  Address result;
+  GenerateExtPubkeyFromDescriptor(
+      bitcoin_descriptor, bip32_counter, prefix, net_type, elements_net_type,
+      &base_ext_pubkey, &result);
+  return result;
+}
+
 ExtPubkey ConfidentialTransaction::GenerateExtPubkeyFromDescriptor(
     const std::string &bitcoin_descriptor, uint32_t bip32_counter,
     const ByteData &prefix, NetType net_type, NetType elements_net_type,
