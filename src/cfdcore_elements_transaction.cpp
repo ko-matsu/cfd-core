@@ -3306,9 +3306,9 @@ ExtPubkey ConfidentialTransaction::GenerateExtPubkeyFromDescriptor(
   // If it is the same as base, add a default path.
   if (child_xpub.ToString() == base_ext_pubkey->ToString()) {
     std::string xpub_str = base_ext_pubkey->ToString() + "/0/*";
-    if (script_ref.GetAddressType() == AddressType::kP2shP2wpkhAddress) {
+    if (derive_script.GetAddressType() == AddressType::kP2shP2wpkhAddress) {
       xpub_str = "sh(wpkh(" + xpub_str + "))";
-    } else if (script_ref.GetAddressType() == AddressType::kP2wpkhAddress) {
+    } else if (derive_script.GetAddressType() == AddressType::kP2wpkhAddress) {
       xpub_str = "wpkh(" + xpub_str + ")";
     } else {
       xpub_str = "pkh(" + xpub_str + ")";
