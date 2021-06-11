@@ -3198,6 +3198,19 @@ PegoutKeyData ConfidentialTransaction::GetPegoutPubkeyData(
   return result;
 }
 
+Address ConfidentialTransaction::GetPegoutAddressFromDescriptor(
+    const std::string &bitcoin_descriptor, uint32_t bip32_counter,
+    NetType net_type, NetType elements_net_type) {
+  auto prefix = (net_type == NetType::kMainnet) ? ByteData("0488b21e")
+                                                : ByteData("043587cf");
+  ExtPubkey base_ext_pubkey;
+  Address result;
+  GenerateExtPubkeyFromDescriptor(
+      bitcoin_descriptor, bip32_counter, prefix, net_type, elements_net_type,
+      &base_ext_pubkey, &result);
+  return result;
+}
+
 ExtPubkey ConfidentialTransaction::GenerateExtPubkeyFromDescriptor(
     const std::string &bitcoin_descriptor, uint32_t bip32_counter,
     const ByteData &prefix, NetType net_type, NetType elements_net_type,
@@ -3293,9 +3306,9 @@ ExtPubkey ConfidentialTransaction::GenerateExtPubkeyFromDescriptor(
   // If it is the same as base, add a default path.
   if (child_xpub.ToString() == base_ext_pubkey->ToString()) {
     std::string xpub_str = base_ext_pubkey->ToString() + "/0/*";
-    if (script_ref.GetAddressType() == AddressType::kP2shP2wpkhAddress) {
+    if (derive_script.GetAddressType() == AddressType::kP2shP2wpkhAddress) {
       xpub_str = "sh(wpkh(" + xpub_str + "))";
-    } else if (script_ref.GetAddressType() == AddressType::kP2wpkhAddress) {
+    } else if (derive_script.GetAddressType() == AddressType::kP2wpkhAddress) {
       xpub_str = "wpkh(" + xpub_str + ")";
     } else {
       xpub_str = "pkh(" + xpub_str + ")";

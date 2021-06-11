@@ -1935,6 +1935,13 @@ TEST(ConfidentialTransaction, GetPegoutPubkeyDataTest) {
     EXPECT_STREQ(
         addr.GetAddress().c_str(),
         testdata.address.c_str());
+
+    auto pegout_addr = ConfidentialTransaction::GetPegoutAddressFromDescriptor(
+        bitcoin_descriptor, bip32_counter, net_type,
+        NetType::kElementsRegtest);
+    EXPECT_STREQ(
+        pegout_addr.GetAddress().c_str(),
+        testdata.address.c_str());
     ++bip32_counter;
   }
 }

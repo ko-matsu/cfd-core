@@ -1024,6 +1024,16 @@ TEST(Address, ElementsInvalidAddressTest) {
   EXPECT_THROW(Address(ElementsNetType::kNetTypeNum, ElementsAddressType::kP2pkhAddress, hash, GetElementsAddressFormatList()), CfdException)<< "net";
 }
 
+TEST(Address, PegoutAddressTest) {
+  Script pegout_script("6a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f17a914a722b257cabc3b8e7d46f8fb293f893f368219da872103700dcb030588ed828d85f645b48971de0d31e8c0244da46710d18681627f5a4a4101044e949dcf8ac2daac82a3e4999ee28e2711661793570c4daab34cd38d76a425d6bfe102f3fea8be12109925fad32c78b65afea4de1d17a826e7375d0e2d0066");
+  Address addr1 = Address::GetPegoutAddress(NetType::kRegtest, pegout_script);
+  EXPECT_EQ("2N8UxQ5u9YXYFn6Ukj5KGXCMDUZTixKTXHo", addr1.GetAddress());
+
+  Address addr2 = Address::GetPegoutAddress(NetType::kMainnet, pegout_script,
+      GetBitcoinAddressFormatList()[0]);
+  EXPECT_EQ("3GvkLLy7w52uaJrD3whPuFMxGDFZDDWg13", addr2.GetAddress());
+}
+
 #endif  // CFD_DISABLE_ELEMENTS
 
 TEST(AddressFormatData, CustomBitcoinAddressFormatList) {

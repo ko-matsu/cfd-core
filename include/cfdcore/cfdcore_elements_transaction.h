@@ -1645,6 +1645,18 @@ class CFD_CORE_EXPORT ConfidentialTransaction : public AbstractTransaction {
       NetType elements_net_type = NetType::kLiquidV1,
       Address* descriptor_derive_address = nullptr);
 
+  /**
+   * @brief Get pegout address from Descriptor information.
+   * @param[in] bitcoin_descriptor    descriptor
+   * @param[in] bip32_counter         bip32 counter
+   * @param[in] net_type              network type.
+   * @param[in] elements_net_type     elements network type.
+   * @return descriptor derive address
+   */
+  static Address GetPegoutAddressFromDescriptor(
+      const std::string& bitcoin_descriptor, uint32_t bip32_counter,
+      NetType net_type, NetType elements_net_type);
+
  protected:
   std::vector<ConfidentialTxIn> vin_;    ///< TxIn array
   std::vector<ConfidentialTxOut> vout_;  ///< TxOut array
