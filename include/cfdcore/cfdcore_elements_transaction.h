@@ -708,6 +708,16 @@ struct RangeProofInfo {
 };
 
 /**
+ * @brief Unblind output information structure
+ */
+struct UnblindParameter {
+  ConfidentialAssetId asset;  //!< confidential asset
+  BlindFactor abf;            //!< asset blind factor
+  BlindFactor vbf;            //!< value blind factor
+  ConfidentialValue value;    //!< unblinded value
+};
+
+/**
  * @brief Class that holds TxOut information of Confidential Transaction
  */
 class CFD_CORE_EXPORT ConfidentialTxOut : public AbstractTxOut {
@@ -849,6 +859,13 @@ class CFD_CORE_EXPORT ConfidentialTxOut : public AbstractTxOut {
   ByteData256 GetWitnessHash() const;
 
   /**
+   * @brief Get unblind data.
+   * @param[in] blinding_key    blinding key
+   * @return unblind parameter
+   */
+  UnblindParameter Unblind(const Privkey& blinding_key) const;
+
+  /**
    * @brief Create ConfidentialTxOut object for the destroy amount.
    * @param[in] asset               destroy asset.
    * @param[in] amount              destroy amount.
@@ -983,16 +1000,6 @@ struct IssuanceParameter {
   BlindFactor entropy;        //!< entropy
   ConfidentialAssetId asset;  //!< asset
   ConfidentialAssetId token;  //!< token asset
-};
-
-/**
- * @brief Unblind output information structure
- */
-struct UnblindParameter {
-  ConfidentialAssetId asset;  //!< confidential asset
-  BlindFactor abf;            //!< asset blind factor
-  BlindFactor vbf;            //!< value blind factor
-  ConfidentialValue value;    //!< unblinded value
 };
 
 /**
@@ -1657,6 +1664,21 @@ class CFD_CORE_EXPORT ConfidentialTransaction : public AbstractTransaction {
       const std::string& bitcoin_descriptor, uint32_t bip32_counter,
       NetType net_type, NetType elements_net_type);
 
+  /**
+   * @brief Unblind processing is applied to blinded data
+   * @param[in] nonce             nonce
+   * @param[in] blinding_key      blinding private key
+   * @param[in] rangeproof        asset amount rangeproof
+   * @param[in] value_commitment  blind value commitement
+   * @param[in] extra             unblind need data
+   * @param[in] asset             confidential asset id
+   * @return UnblindParameter structure output when unblinded
+   */
+  static UnblindParameter CalculateUnblindData(
+      const ConfidentialNonce& nonce, const Privkey& blinding_key,
+      const ByteData& rangeproof, const ConfidentialValue& value_commitment,
+      const Script& extra, const ConfidentialAssetId& asset);
+
  protected:
   std::vector<ConfidentialTxIn> vin_;    ///< TxIn array
   std::vector<ConfidentialTxOut> vout_;  ///< TxOut array
@@ -1748,21 +1770,6 @@ class CFD_CORE_EXPORT ConfidentialTransaction : public AbstractTransaction {
   static uint8_t* CopyConfidentialCommitment(
       const void* buffer, size_t buffer_size, size_t explicit_size,
       uint8_t* address);
-
-  /**
-   * @brief Unblind processing is applied to blinded data
-   * @param[in] nonce             nonce
-   * @param[in] blinding_key      blinding private key
-   * @param[in] rangeproof        asset amount rangeproof
-   * @param[in] value_commitment  blind value commitement
-   * @param[in] extra             unblind need data
-   * @param[in] asset             confidential asset id
-   * @return UnblindParameter structure output when unblinded
-   */
-  static UnblindParameter CalculateUnblindData(
-      const ConfidentialNonce& nonce, const Privkey& blinding_key,
-      const ByteData& rangeproof, const ConfidentialValue& value_commitment,
-      const Script& extra, const ConfidentialAssetId& asset);
 
   /**
    * @brief Unblind processing is applied to the blinded Issue data
