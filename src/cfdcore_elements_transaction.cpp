@@ -1117,6 +1117,17 @@ const RangeProofInfo ConfidentialTxOut::DecodeRangeProofInfo(
   return range_proof_info;
 }
 
+UnblindParameter ConfidentialTxOut::Unblind(
+    const Privkey &blinding_key) const {
+  if (!confidential_value_.HasBlinding()) {
+    throw CfdException(
+        CfdError::kCfdIllegalStateError, "This output is not blinded.");
+  }
+  return ConfidentialTransaction::CalculateUnblindData(
+      nonce_, blinding_key, range_proof_, confidential_value_, locking_script_,
+      asset_);
+}
+
 // -----------------------------------------------------------------------------
 // ConfidentialTxOutReference
 // -----------------------------------------------------------------------------

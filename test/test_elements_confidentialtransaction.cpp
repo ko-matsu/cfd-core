@@ -915,7 +915,8 @@ TEST(ConfidentialTransaction, BlindTxOutIgnorePegoutAndEnptyTest) {
   // blind txout[0]
   pubkeys[0] = pubkey1;
   EXPECT_NO_THROW((tx.BlindTxOut(blind_list, pubkeys)));
-  // 乱数が混ざるため、サイズだけチェック
+  // EXPECT_EQ(tx.GetHex(), "");
+  // Check is size only
   EXPECT_EQ(tx.GetHex().length(), 9348);
   std::string blind_tx = tx.GetHex();
 
