@@ -269,22 +269,36 @@ bool OutPoint::operator!=(const OutPoint &object) const {
   return !(*this == object);
 }
 
+int OutPoint::Compare(const OutPoint &object) const {
+  if (vout_ < object.vout_)
+    return 1;
+  else if (vout_ > object.vout_)
+    return -1;
+  return std::strncmp(
+      txid_.GetHex().c_str(), object.txid_.GetHex().c_str(),
+      kByteData256Length * 2);
+}
+
 bool operator<(const OutPoint &source, const OutPoint &dest) {
-  if (source.GetVout() < dest.GetVout()) {
+  int comp = source.Compare(dest);
+  if (comp == 0) {
+    return false;
+  } else if (comp > 0) {
     return true;
+  } else {
+    return false;
   }
-  if (source.GetTxid().GetData().GetBytes() <
-      dest.GetTxid().GetData().GetBytes()) {
-    return true;
-  }
-  return false;
 }
 
 bool operator<=(const OutPoint &source, const OutPoint &dest) {
-  if (source == dest) {
+  int comp = source.Compare(dest);
+  if (comp == 0) {
     return true;
+  } else if (comp > 0) {
+    return true;
+  } else {
+    return false;
   }
-  return (source < dest);
 }
 
 bool operator>=(const OutPoint &source, const OutPoint &dest) {
@@ -292,10 +306,7 @@ bool operator>=(const OutPoint &source, const OutPoint &dest) {
 }
 
 bool operator>(const OutPoint &source, const OutPoint &dest) {
-  if (source == dest) {
-    return false;
-  }
-  return !(source < dest);
+  return !(source <= dest);
 }
 
 // -----------------------------------------------------------------------------

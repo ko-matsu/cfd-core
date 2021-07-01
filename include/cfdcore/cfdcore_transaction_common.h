@@ -144,6 +144,12 @@ class CFD_CORE_EXPORT OutPoint {
    * @retval false  equals
    */
   bool operator!=(const OutPoint& object) const;
+  /**
+   * @brief Compare object.
+   * @param[in] object     compare target.
+   * @return compare value (0 is match)
+   */
+  int Compare(const OutPoint& object) const;
 
  private:
   Txid txid_;      //!< txid
