@@ -367,7 +367,7 @@ class CFD_CORE_EXPORT ConfidentialTxIn : public AbstractTxIn {
    * @param[in] addr_type           address type
    * @param[in] redeem_script       redeem script
    * @param[in] pegin_btc_tx_size   pegin bitcoin transaction size
-   * @param[in] fedpeg_script       fedpeg script
+   * @param[in] claim_script        claim script
    * @param[in] is_issuance         issuance transaction
    * @param[in] is_blind            blind transaction (for issuance/reissuance)
    * @param[out] witness_area_size     witness area size
@@ -380,24 +380,25 @@ class CFD_CORE_EXPORT ConfidentialTxIn : public AbstractTxIn {
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
    * @param[in,out] rangeproof_size       rangeproof size.
    *   0 is calclate from exponent and minimum bits. not 0 is using value.
+   * @param[in] pegin_txoutproof_size     pegin txoutproof size.
    * @return TxIn size.
    */
   static uint32_t EstimateTxInSize(
       AddressType addr_type, Script redeem_script = Script(),
-      uint32_t pegin_btc_tx_size = 0, Script fedpeg_script = Script(),
+      uint32_t pegin_btc_tx_size = 0, Script claim_script = Script(),
       bool is_issuance = false, bool is_blind = false,
       uint32_t* witness_area_size = nullptr,
       uint32_t* no_witness_area_size = nullptr, bool is_reissuance = false,
       const Script* scriptsig_template = nullptr, int exponent = 0,
       int minimum_bits = kDefaultBlindMinimumBits,
-      uint32_t* rangeproof_size = nullptr);
+      uint32_t* rangeproof_size = nullptr, uint32_t pegin_txoutproof_size = 0);
 
   /**
    * @brief estimate txin's virtual size direct.
    * @param[in] addr_type           address type
    * @param[in] redeem_script       redeem script
    * @param[in] pegin_btc_tx_size   pegin bitcoin transaction size
-   * @param[in] fedpeg_script       fedpeg script
+   * @param[in] claim_script        claim script
    * @param[in] is_issuance         issuance transaction
    * @param[in] is_blind            blind transaction (for issuance/reissuance)
    * @param[in] is_reissuance       reissuance transaction
@@ -408,15 +409,16 @@ class CFD_CORE_EXPORT ConfidentialTxIn : public AbstractTxIn {
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
    * @param[in,out] rangeproof_size       rangeproof size.
    *   0 is calclate from exponent and minimum bits. not 0 is using value.
+   * @param[in] pegin_txoutproof_size     pegin txoutproof size.
    * @return TxIn virtual size.
    */
   static uint32_t EstimateTxInVsize(
       AddressType addr_type, Script redeem_script = Script(),
-      uint32_t pegin_btc_tx_size = 0, Script fedpeg_script = Script(),
+      uint32_t pegin_btc_tx_size = 0, Script claim_script = Script(),
       bool is_issuance = false, bool is_blind = false,
       bool is_reissuance = false, const Script* scriptsig_template = nullptr,
       int exponent = 0, int minimum_bits = kDefaultBlindMinimumBits,
-      uint32_t* rangeproof_size = nullptr);
+      uint32_t* rangeproof_size = nullptr, uint32_t pegin_txoutproof_size = 0);
 
   /**
    * @brief constructor.
@@ -651,7 +653,7 @@ class CFD_CORE_EXPORT ConfidentialTxInReference
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits              rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
-   * @param[in] fedpeg_script       fedpeg script
+   * @param[in] claim_script        fedpeg script
    * @param[in] scriptsig_template     scriptsig template
    * @param[out] witness_area_size     witness area size
    * @param[out] no_witness_area_size  no witness area size
@@ -661,7 +663,7 @@ class CFD_CORE_EXPORT ConfidentialTxInReference
       AddressType addr_type, Script redeem_script = Script(),
       bool is_blind = false, int exponent = 0,
       int minimum_bits = kDefaultBlindMinimumBits,
-      Script fedpeg_script = Script(),
+      Script claim_script = Script(),
       const Script* scriptsig_template = nullptr,
       uint32_t* witness_area_size = nullptr,
       uint32_t* no_witness_area_size = nullptr) const;
@@ -675,7 +677,7 @@ class CFD_CORE_EXPORT ConfidentialTxInReference
    *   -1 to 18. -1 is public value. 0 is most private.
    * @param[in] minimum_bits              rangeproof blinding bits.
    *   0 to 64. Number of bits of the value to keep private. 0 is auto.
-   * @param[in] fedpeg_script       fedpeg script
+   * @param[in] claim_script        fedpeg script
    * @param[in] scriptsig_template  scriptsig template
    * @return TxIn virtual size.
    */
@@ -683,7 +685,7 @@ class CFD_CORE_EXPORT ConfidentialTxInReference
       AddressType addr_type, Script redeem_script = Script(),
       bool is_blind = false, int exponent = 0,
       int minimum_bits = kDefaultBlindMinimumBits,
-      Script fedpeg_script = Script(),
+      Script claim_script = Script(),
       const Script* scriptsig_template = nullptr) const;
 
  private:
