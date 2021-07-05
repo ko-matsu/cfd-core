@@ -570,14 +570,19 @@ Address DescriptorScriptReference::GenerateAddress(NetType net_type) const {
           locking_script_.IsTaprootScript() ||
           locking_script_.IsP2wshScript()) {
         auto hash = locking_script_.GetElementList()[1].GetBinaryData();
-        return Address(net_type, locking_script_.GetWitnessVersion(), hash);
+        return Address(
+            net_type, locking_script_.GetWitnessVersion(), hash,
+            addr_prefixes_);
       } else if (locking_script_.IsP2shScript()) {
         auto hash = locking_script_.GetElementList()[1].GetBinaryData();
-        return Address(net_type, AddressType::kP2shAddress, ByteData160(hash));
+        return Address(
+            net_type, AddressType::kP2shAddress, ByteData160(hash),
+            addr_prefixes_);
       } else if (locking_script_.IsP2pkhScript()) {
         auto hash = locking_script_.GetElementList()[2].GetBinaryData();
         return Address(
-            net_type, AddressType::kP2pkhAddress, ByteData160(hash));
+            net_type, AddressType::kP2pkhAddress, ByteData160(hash),
+            addr_prefixes_);
       }
       warn(CFD_LOG_SOURCE, "raw type descriptor is not support.");
       throw CfdException(
