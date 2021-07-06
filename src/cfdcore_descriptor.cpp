@@ -934,13 +934,15 @@ void DescriptorNode::AnalyzeChild(
         child_node_.push_back(node);
         offset = idx + 1;
       } else if (name_ == "tr") {
-        DescriptorNode node(addr_prefixes_);
-        node.value_ = descriptor.substr(offset, idx - offset);
-        node.node_type_ = DescriptorNodeType::kDescriptorTypeKey;
-        node.depth_ = depth + 1;
-        node.parent_kind_ = parent_kind_;
-        child_node_.push_back(node);
-        offset = idx + 1;
+        if (child_node_.empty()) {
+          DescriptorNode node(addr_prefixes_);
+          node.value_ = descriptor.substr(offset, idx - offset);
+          node.node_type_ = DescriptorNodeType::kDescriptorTypeKey;
+          node.depth_ = depth + 1;
+          node.parent_kind_ = parent_kind_;
+          child_node_.push_back(node);
+          offset = idx + 1;
+        }
       } else {
         // ignore for miniscript
         // warn(CFD_LOG_SOURCE, "Illegal command.");
@@ -1196,6 +1198,7 @@ void DescriptorNode::AnalyzeKey() {
               CfdError::kCfdIllegalArgumentError,
               "Failed to taproot key. taproot is xonly pubkey only.");
         }
+        key_info_ = pubkey.GetHex();
       } else if (
           (parent_kind_ == "tr") &&
           (bytes.GetDataSize() == SchnorrPubkey::kSchnorrPubkeySize)) {
@@ -1203,11 +1206,9 @@ void DescriptorNode::AnalyzeKey() {
         schnorr_pubkey = SchnorrPubkey(bytes);
         pubkey = schnorr_pubkey.CreatePubkey();
         key_type_ = DescriptorKeyType::kDescriptorKeySchnorr;
+        key_info_ = schnorr_pubkey.GetHex();
       } else {
         is_wif = true;
-      }
-      if (!is_wif) {
-        key_info_ = pubkey.GetHex();
       }
     } catch (const CfdException& except) {
       std::string errmsg(except.what());
@@ -1406,7 +1407,8 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
           CFD_LOG_SOURCE, "Failed to taproot node num. size={}",
           child_node_.size());
       throw CfdException(
-          CfdError::kCfdIllegalArgumentError, "Failed to taproot node num.");
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to taproot node num." + child_node_[0].value_);
     }
     child_node_[0].node_type_ = DescriptorNodeType::kDescriptorTypeKey;
     child_node_[0].parent_kind_ = "tr";
@@ -1509,7 +1511,7 @@ void DescriptorNode::AnalyzeScriptTree() {
       if (script_depth == 0) ++offset;
     } else if ((str == ',') || (str == '}')) {
       if (script_depth == 0) {
-        tapscript = desc.substr(offset, idx - offset + 1);
+        tapscript = desc.substr(offset, idx - offset);
         if (tapscript.length() >= (kByteData256Length * 2)) {
           offset = idx + 1;
           DescriptorNode node(addr_prefixes_);
@@ -1571,9 +1573,7 @@ void DescriptorNode::AnalyzeScriptTree() {
     }
   }
   if (tree_node_.empty()) {
-    if (value_.empty() || (value_ == "{}")) {
-      // do nothing
-    } else if (value_.length() >= (kByteData256Length * 2)) {
+    if (value_.length() >= (kByteData256Length * 2)) {
       tapscript = value_;
       DescriptorNode node(addr_prefixes_);
       node.name_ = temp_name;
@@ -1728,25 +1728,21 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
           child_node_[0].GetKeyReferences(array_argument);
       SchnorrPubkey pubkey = ref.GetSchnorrPubkey();
       keys.push_back(ref);
-      if (child_node_.size() < 2) {
-        locking_script =
-            ScriptUtil::CreateTaprootLockingScript(pubkey.GetByteData256());
+      TapBranch branch;
+      if (child_node_.size() >= 2) {
+        branch = child_node_[1].GetTapBranch(array_argument);
+      }
+      if (branch.HasTapLeaf()) {
+        TaprootScriptTree tree(branch);
+        TaprootUtil::CreateTapScriptControl(
+            pubkey, tree, nullptr, &locking_script);
         result.emplace_back(
-            locking_script, script_type_, keys, addr_prefixes_);
+            locking_script, script_type_, keys, tree, addr_prefixes_);
       } else {
-        auto branch = child_node_[1].GetTapBranch(array_argument);
-        if (branch.HasTapLeaf()) {
-          TaprootScriptTree tree(branch);
-          TaprootUtil::CreateTapScriptControl(
-              pubkey, tree, nullptr, &locking_script);
-          result.emplace_back(
-              locking_script, script_type_, keys, tree, addr_prefixes_);
-        } else {
-          TaprootUtil::CreateTapScriptControl(
-              pubkey, branch, nullptr, &locking_script);
-          result.emplace_back(
-              locking_script, script_type_, keys, branch, addr_prefixes_);
-        }
+        TaprootUtil::CreateTapScriptControl(
+            pubkey, branch, nullptr, &locking_script);
+        result.emplace_back(
+            locking_script, script_type_, keys, branch, addr_prefixes_);
       }
     } else {
       std::vector<DescriptorKeyReference> keys;
