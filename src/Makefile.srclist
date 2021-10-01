@@ -5,15 +5,19 @@ CFDCORE_ELEMENTS_SOURCES = \
 
 CFDCORE_SOURCES = \
   cfdcore_manager.cpp \
+  cfdcore_manager.h \
   cfdcore_logger.cpp \
   cfdcore_bytedata.cpp \
+  cfdcore_block_internal.h \
   cfdcore_util.cpp \
   cfdcore_wally_util.cpp \
+  cfdcore_wally_util.h \
   cfdcore_script.cpp \
   cfdcore_block.cpp \
   cfdcore_descriptor.cpp \
   cfdcore_transaction_common.cpp \
   cfdcore_transaction.cpp \
+  cfdcore_transaction_internal.h \
   cfdcore_hdwallet.cpp \
   cfdcore_key.cpp \
   cfdcore_amount.cpp \
@@ -21,10 +25,13 @@ CFDCORE_SOURCES = \
   cfdcore_address.cpp \
   cfdcore_psbt.cpp \
   cfdcore_secp256k1.cpp \
+  cfdcore_secp256k1.h \
   cfdcore_schnorrsig.cpp \
   cfdcore_taproot.cpp \
   secp256k1_util.cpp \
+  secp256k1_util.h \
   cfdcore_ecdsa_adaptor.cpp \
+  include/cfdcore/cfdcore_logger.h \
   ${CFDCORE_ELEMENTS_SOURCES}
 
 FMT_SOURCES = \
@@ -60,4 +67,33 @@ QUILL_SOURCES = \
   quill/src/PatternFormatter.cpp \
   quill/src/Quill.cpp \
   quill/src/Utility.cpp
+
+CFDCORE_ELEMENTS_PKGINCLUDE_FILES = \
+  ../include/cfdcore/cfdcore_elements_address.h \
+  ../include/cfdcore/cfdcore_elements_script.h \
+  ../include/cfdcore/cfdcore_elements_transaction.h
+
+CFDCORE_PKGINCLUDE_FILES = \
+  ../include/cfdcore/cfdcore_common.h \
+  ../include/cfdcore/cfdcore_hdwallet.h \
+  ../include/cfdcore/cfdcore_json_mapping_base.h \
+  ../include/cfdcore/cfdcore_json_writer.h \
+  ../include/cfdcore/cfdcore_bytedata.h \
+  ../include/cfdcore/cfdcore_transaction_common.h \
+  ../include/cfdcore/cfdcore_transaction.h \
+  ../include/cfdcore/cfdcore_util.h \
+  ../include/cfdcore/cfdcore_address.h \
+  ../include/cfdcore/cfdcore_coin.h \
+  ../include/cfdcore/cfdcore_amount.h \
+  ../include/cfdcore/cfdcore_key.h \
+  ../include/cfdcore/cfdcore_script.h \
+  ../include/cfdcore/cfdcore_descriptor.h \
+  ../include/cfdcore/cfdcore_psbt.h \
+  ../include/cfdcore/cfdcore_exception.h \
+  ../include/cfdcore/cfdcore_iterator.h \
+  ../include/cfdcore/cfdcore_logger_interface.h \
+  ../include/cfdcore/cfdcore_schnorrsig.h \
+  ../include/cfdcore/cfdcore_ecdsa_adaptor.h \
+  ../include/cfdcore/cfdcore_taproot.h \
+  $(CFDCORE_ELEMENTS_PKGINCLUDE_FILES)
 
