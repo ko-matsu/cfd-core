@@ -216,7 +216,7 @@ inline void ConvertFromUniValue(
   using cfd::core::logger::warn;
   UniValue json_value_copy = json_value;
   if (json_value_copy.isStr()) {
-    auto str = json_value.get_str();
+    const auto& str = json_value.get_str();
     if (str == "0n") {
       json_value_copy = UniValue(UniValue::VNUM, "0");
     } else {

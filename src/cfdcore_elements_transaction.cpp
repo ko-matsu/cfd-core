@@ -1137,6 +1137,7 @@ ConfidentialTxOut ConfidentialTxOut::CreateDestroyAmountTxOut(
 const RangeProofInfo ConfidentialTxOut::DecodeRangeProofInfo(
     const ByteData &range_proof) {
   RangeProofInfo range_proof_info;
+  memset(&range_proof_info, 0, sizeof(range_proof_info));
   WallyUtil::RangeProofInfo(
       range_proof, &range_proof_info.exponent, &range_proof_info.mantissa,
       &range_proof_info.min_value, &range_proof_info.max_value);
@@ -3238,8 +3239,8 @@ PegoutKeyData ConfidentialTransaction::GetPegoutPubkeyData(
 Address ConfidentialTransaction::GetPegoutAddressFromDescriptor(
     const std::string &bitcoin_descriptor, uint32_t bip32_counter,
     NetType net_type, NetType elements_net_type) {
-  auto prefix = (net_type == NetType::kMainnet) ? ByteData("0488b21e")
-                                                : ByteData("043587cf");
+  ByteData prefix = (net_type == NetType::kMainnet) ? ByteData("0488b21e")
+                                                    : ByteData("043587cf");
   ExtPubkey base_ext_pubkey;
   Address result;
   GenerateExtPubkeyFromDescriptor(
@@ -3415,19 +3416,16 @@ uint8_t *ConfidentialTransaction::CopyConfidentialCommitment(
     ++result;
   } else {
     size_t max_size = kConfidentialDataSize;
-    if (buffer_addr[0] == kConfidentialVersion_1) {
+    if ((buffer_addr[0] == kConfidentialVersion_1) &&
+        (max_size > explicit_size)) {
       max_size = explicit_size;
     }
-    size_t copy_size = max_size;
-    if (buffer_size <= copy_size) {
-      copy_size = buffer_size;
-    }
+    memset(address, 0, max_size);
+
+    size_t copy_size = (buffer_size < max_size) ? buffer_size : max_size;
     // explicit value
     // confidential value
-    uint8_t ct_buffer[kConfidentialDataSize];
-    memset(ct_buffer, 0, sizeof(ct_buffer));
-    memcpy(ct_buffer, buffer_addr, copy_size);
-    memcpy(address, ct_buffer, max_size);
+    memcpy(address, buffer_addr, copy_size);
     result += max_size;
   }
   return result;

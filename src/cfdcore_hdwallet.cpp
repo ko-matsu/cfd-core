@@ -483,6 +483,9 @@ Extkey::Extkey(const ByteData& seed, uint32_t version) {
   fingerprint_ = kEmptyFingerprint;
 }
 
+Extkey::Extkey(const ByteData& serialize_data)
+    : Extkey(serialize_data, ByteData256()) {}
+
 Extkey::Extkey(const ByteData& serialize_data, const ByteData256& tweak_sum)
     : tweak_sum_(tweak_sum) {
   if (serialize_data.GetDataSize() != Extkey::kSerializeSize) {
@@ -773,6 +776,10 @@ Privkey Extkey::GetPrivkey() const { return privkey_; }
 
 NetType Extkey::GetNetworkType() const {
   return GetNetworkTypeFromVersion(version_);
+}
+
+bool Extkey::HasMainnetKey() const {
+  return GetKeyFormatFromVersion(version_).IsMainnet();
 }
 
 Bip32FormatType Extkey::GetFormatType() const {
@@ -1131,7 +1138,7 @@ KeyData::KeyData(
 
 KeyData::KeyData(
     const std::string& path_info, int32_t child_num, bool has_schnorr_pubkey) {
-  auto key_info = path_info;
+  std::string key_info = path_info;
   if (path_info[0] == '[') {
     // key origin information check. cut to ']'
     auto pos = path_info.find("]");
@@ -1277,7 +1284,7 @@ KeyData KeyData::DerivePrivkey(
     auto fp = extprivkey_.GetPrivkey().GeneratePubkey().GetFingerprint();
     return KeyData(key, path, fp);
   } else {
-    auto join_path = path_;
+    std::vector<uint32_t> join_path = path_;
     join_path.reserve(join_path.size() + path.size());
     std::copy(path.begin(), path.end(), std::back_inserter(join_path));
     return KeyData(key, join_path, fingerprint_);
@@ -1297,7 +1304,7 @@ KeyData KeyData::DerivePubkey(
       auto fp = extprivkey_.GetPrivkey().GeneratePubkey().GetFingerprint();
       return KeyData(key, path, fp);
     } else {
-      auto join_path = path_;
+      std::vector<uint32_t> join_path = path_;
       join_path.reserve(join_path.size() + path.size());
       std::copy(path.begin(), path.end(), std::back_inserter(join_path));
       return KeyData(key, join_path, fingerprint_);
@@ -1308,7 +1315,7 @@ KeyData KeyData::DerivePubkey(
       auto fp = extpubkey_.GetPubkey().GetFingerprint();
       return KeyData(key, path, fp);
     } else {
-      auto join_path = path_;
+      std::vector<uint32_t> join_path = path_;
       join_path.reserve(join_path.size() + path.size());
       std::copy(path.begin(), path.end(), std::back_inserter(join_path));
       return KeyData(key, join_path, fingerprint_);
