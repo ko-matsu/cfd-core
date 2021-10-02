@@ -11,23 +11,35 @@ on:
     - stable_v*
 
 env:
-  CMAKE_VERSION: 3.17.2
+  CMAKE_VERSION: 3.21.2
 
 jobs:
   cmake-win-test:
     name: cmake build-win
-    runs-on: windows-2019
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        generator: ['Visual Studio 16 2019', 'MSYS Makefiles']
+        os: [windows-2019, windows-2022]
+        generator: ['MSYS Makefiles']
         shared: [on, off]
+        include:
+          - os: windows-2019
+            shared: [on, off]
+            generator: 'Visual Studio 16 2019'
+          - os: windows-2022
+            shared: [on, off]
+            generator: 'Visual Studio 17 2022'
 
     steps:
     - uses: actions/checkout@v2
     - name: cmake_version
       run: cmake --version
-    - name: cmake_generage
-      run: cmake -S . -B build -G "${{ matrix.generator }}" -DENABLE_SHARED=${{ matrix.shared }}
+    - name: cmake_generage msys
+      if: matrix.generator == 'MSYS Makefiles'
+      run: cmake -S . -B build -G "${{ matrix.generator }}" -DENABLE_SHARED=${{ matrix.shared }} -DENABLE_TESTS=on
+    - name: cmake_generage vs
+      if: matrix.generator != 'MSYS Makefiles'
+      run: cmake -S . -B build -G "${{ matrix.generator }}" -A x64 -DENABLE_SHARED=${{ matrix.shared }} -DENABLE_TESTS=on
     - name: cmake_build
       run: cmake --build build --config Release --parallel 4
     - name: ctest
@@ -53,6 +65,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Select Xcode version
+      run: sudo xcode-select -s '/Applications/Xcode_${{matrix.xcode_version}}.app/Contents/Developer'
+    - name: Show Xcode version
+      run: xcodebuild -version
     - name: cmake_version
       run: cmake --version
     - name: cmake_generage-macos
