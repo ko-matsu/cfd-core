@@ -241,6 +241,32 @@ npm run ctest
     - It is generated unnecessary constructors and destructors on MacOS. So it is not suitable for collecting function coverage.
     - It may be possible to run it on windows, but I have not tried it.
 
+### using IDE
+
+#### use Visual Studio
+
+cmake example:
+
+```bat
+cmake -S . -B build -G "Visual Studio 16 2019" -DENABLE_SHARED=on -DENABLE_TESTS=on -DENABLE_ELEMENTS=on -DCMAKE_BUILD_TYPE=Debug -DTARGET_RPATH=./build/Debug
+
+cmake --build build --config Debug --parallel 4
+
+(open build/cfdcore_project.sln)
+```
+
+#### use Xcode
+
+cmake example:
+
+```shell
+cmake -S . -B build -G "Xcode" -T buildsystem=1 -DENABLE_SHARED=off -DENABLE_TESTS=on -DENABLE_ELEMENTS=on -DCMAKE_BUILD_TYPE=Debug -DTARGET_RPATH=./build/Debug
+
+cmake --build build --config Debug --parallel 4
+
+(open build/cfdcore_project.xcodeproj)
+```
+
 ---
 
 ## Note
