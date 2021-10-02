@@ -9,7 +9,7 @@ on:
     - features/sprint*
 
 env:
-  CMAKE_VERSION: 3.15.5
+  CMAKE_VERSION: 3.21.2
 
 jobs:
   cmake-win:
@@ -38,11 +38,23 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-10.15]
-        # os: [macos-10.15, macos-11.0]
+        # os: [macos-10.15]
+        os: [macos-10.15, macos-11]
+        xcode_version: ['11.7']
+        include:
+          - os: macos-10.15
+            xcode_version: '12.4'
+          - os: macos-11
+            xcode_version: '12.5.1'
+          - os: macos-11
+            xcode_version: '13.0'
 
     steps:
     - uses: actions/checkout@v2
+    - name: Select Xcode version
+      run: sudo xcode-select -s '/Applications/Xcode_${{matrix.xcode_version}}.app/Contents/Developer'
+    - name: Show Xcode version
+      run: xcodebuild -version
     - name: cmake_version
       run: cmake --version
     - name: cmake_generage-macos

@@ -19,7 +19,7 @@ include(./cmake/CfdCommonSetting.cmake)
 ####################
 # test
 ####################
-project(cfdcore_all_test CXX)
+project(cfdcore_project CXX)
 if(ENABLE_TESTS)
 enable_testing()
 endif()		# ENABLE_TESTS

@@ -41,7 +41,7 @@ constexpr const char* const kPrefixBech32Hrp = "bech32";
 //! key: blind p2pkh prefix
 constexpr const char* const kPrefixBlindP2pkh = "blinded";
 //! key: blind p2sh prefix
-constexpr const char* const kPrefixBlindP2sh = "blinded";
+constexpr const char* const kPrefixBlindP2sh = "blindedP2sh";
 //! key: blind bech32 hrp (blech32)
 constexpr const char* const kPrefixBlindBech32Hrp = "blech32";
 
@@ -67,6 +67,13 @@ class CFD_CORE_EXPORT AddressFormatData {
   explicit AddressFormatData(
       const std::map<std::string, std::string>& map_data);
 
+  /**
+   * @brief Check exist key.
+   * @param[in] key   mapping key
+   * @retval true   exist
+   * @retval false  not exist
+   */
+  bool IsFind(const std::string& key) const;
   /**
    * @brief Get string value.
    * @param[in] key   mapping key
@@ -102,6 +109,22 @@ class CFD_CORE_EXPORT AddressFormatData {
   NetType GetNetType() const;
 
   /**
+   * @brief Check format item.
+   * @retval true   valid
+   * @retval false  invalid
+   */
+  bool IsValid() const;
+
+#ifndef CFD_DISABLE_ELEMENTS
+  /**
+   * @brief Check elements format item.
+   * @retval true   valid
+   * @retval false  invalid
+   */
+  bool IsValidElements() const;
+#endif  // CFD_DISABLE_ELEMENTS
+
+  /**
    * @brief Get Address format data from json string.
    * @param[in] json_data       json string
    * @return Address format data
@@ -124,6 +147,18 @@ class CFD_CORE_EXPORT AddressFormatData {
  * @return Address format list by Bitcoin default.
  */
 CFD_CORE_API std::vector<AddressFormatData> GetBitcoinAddressFormatList();
+
+/**
+ * @brief set custom address format list.
+ * @param[in] list    custom address format list.
+ */
+CFD_CORE_API void SetCustomAddressFormatList(
+    const std::vector<AddressFormatData>& list);
+
+/**
+ * @brief clear custom address format list.
+ */
+CFD_CORE_API void ClearCustomAddressFormatList();
 
 /**
  * @typedef AddressType
@@ -530,6 +565,34 @@ class CFD_CORE_EXPORT Address {
    * @return locking script
    */
   Script GetLockingScript() const;
+
+  /**
+   * @brief Get the pegout address.
+   * @param[in] type            network type
+   * @param[in] locking_script  pegout locking script
+   * @return address
+   */
+  static Address GetPegoutAddress(NetType type, const Script& locking_script);
+  /**
+   * @brief Get the pegout address.
+   * @param[in] type            network type
+   * @param[in] locking_script  pegout locking script
+   * @param[in] network_parameter   network prefix parameter
+   * @return address
+   */
+  static Address GetPegoutAddress(
+      NetType type, const Script& locking_script,
+      const AddressFormatData& network_parameter);
+  /**
+   * @brief Get the pegout address.
+   * @param[in] type            network type
+   * @param[in] locking_script  pegout locking script
+   * @param[in] network_parameters  network prefix list
+   * @return address
+   */
+  static Address GetPegoutAddress(
+      NetType type, const Script& locking_script,
+      const std::vector<AddressFormatData>& network_parameters);
 
  private:
   /**

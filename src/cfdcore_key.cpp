@@ -7,6 +7,7 @@
 
 #include "cfdcore/cfdcore_key.h"
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -16,11 +17,352 @@
 #include "cfdcore/cfdcore_transaction_common.h"
 #include "cfdcore/cfdcore_util.h"
 #include "cfdcore_wally_util.h"  // NOLINT
+#include "univalue.h"            // NOLINT
 
 namespace cfd {
 namespace core {
 
 using logger::warn;
+
+// ----------------------------------------------------------------------------
+// Global API
+// ----------------------------------------------------------------------------
+//! key format list
+const std::vector<KeyFormatData> kDefaultKeyFormatList = {
+    KeyFormatData(true), KeyFormatData(false)};
+//! custom bitcoin address format list
+static std::vector<KeyFormatData> g_custom_key_format_list;
+
+std::vector<KeyFormatData> GetKeyFormatList() {
+  if (!g_custom_key_format_list.empty()) {
+    return g_custom_key_format_list;
+  }
+  return kDefaultKeyFormatList;
+}
+
+KeyFormatData GetKeyFormatData(NetType net_type) {
+  bool is_mainnet =
+      ((net_type == NetType::kMainnet) || (net_type == NetType::kLiquidV1));
+  return GetKeyFormatData(is_mainnet);
+}
+
+KeyFormatData GetKeyFormatData(bool is_mainnet) {
+  const auto plist = (g_custom_key_format_list.empty())
+                         ? &kDefaultKeyFormatList
+                         : &g_custom_key_format_list;
+  for (const KeyFormatData &data : *plist) {
+    if (data.IsMainnet() == is_mainnet) return data;
+  }
+  throw CfdException(
+      CfdError::kCfdInternalError, "invalid key format management.");
+}
+
+void SetCustomKeyFormatList(const std::vector<KeyFormatData> &list) {
+  if ((!list.empty()) && g_custom_key_format_list.empty()) {
+    bool is_added_mainnet = false;
+    bool is_added_testnet = false;
+    for (auto item : list) {
+      if (!item.LoadCache()) {
+        // invalid data
+      } else if (item.IsMainnet()) {
+        if (!is_added_mainnet) {
+          g_custom_key_format_list.emplace_back(item);
+          is_added_mainnet = true;
+        }
+      } else if (!is_added_testnet) {
+        g_custom_key_format_list.emplace_back(item);
+        is_added_testnet = true;
+      }
+    }
+
+    if (!is_added_mainnet) {
+      g_custom_key_format_list.emplace_back(KeyFormatData(true));
+    }
+    if (!is_added_testnet) {
+      g_custom_key_format_list.emplace_back(KeyFormatData(false));
+    }
+  }
+}
+
+void ClearCustomKeyFormatList() { g_custom_key_format_list.clear(); }
+
+// ----------------------------------------------------------------------------
+// KeyFormatData
+// ----------------------------------------------------------------------------
+//! format list
+static const Bip32FormatType kFormatTypeList[] = {
+    // TODO(k-matsuzawa): The vector was not yet initialized when using
+    // this variable. Therefore, it is defined in an array.
+    Bip32FormatType::kNormal,
+    Bip32FormatType::kBip49,
+    Bip32FormatType::kBip84,
+};
+//! format list count.
+static const size_t kFormatTypeListNum =
+    sizeof(kFormatTypeList) / sizeof(Bip32FormatType);
+
+KeyFormatData::KeyFormatData() : map_(), has_format_(kFormatTypeListNum) {}
+
+KeyFormatData::KeyFormatData(bool is_mainnet_on_default)
+    : map_(), has_format_(kFormatTypeListNum) {
+  if (is_mainnet_on_default) {
+    map_.emplace(kKeytypeIsMainnet, "true");
+    map_.emplace(kWifPrefix, "80");
+    map_.emplace(kBip32Xpub, "0488b21e");
+    map_.emplace(kBip32Xprv, "0488ade4");
+    map_.emplace(kBip49Ypub, "049d7cb2");
+    map_.emplace(kBip49Yprv, "049d7878");
+    map_.emplace(kBip84Zpub, "04b24746");
+    map_.emplace(kBip84Zprv, "04b2430c");
+  } else {
+    map_.emplace(kKeytypeIsMainnet, "false");
+    map_.emplace(kWifPrefix, "ef");
+    map_.emplace(kBip32Xpub, "043587cf");
+    map_.emplace(kBip32Xprv, "04358394");
+    map_.emplace(kBip49Ypub, "044a5262");
+    map_.emplace(kBip49Yprv, "044a4e28");
+    map_.emplace(kBip84Zpub, "045f1cf6");
+    map_.emplace(kBip84Zprv, "045f18bc");
+  }
+  LoadCache();
+}
+
+KeyFormatData::KeyFormatData(
+    const std::map<std::string, std::string> &map_data)
+    : map_(map_data), has_format_(kFormatTypeListNum) {}
+
+KeyFormatData::KeyFormatData(const KeyFormatData &object) {
+  map_ = object.map_;
+  is_mainnet = object.is_mainnet;
+  wif_prefix_ = object.wif_prefix_;
+  has_format_ = object.has_format_;
+  bip32_ = object.bip32_;
+  bip49_ = object.bip49_;
+  bip84_ = object.bip84_;
+}
+
+KeyFormatData &KeyFormatData::operator=(const KeyFormatData &object) {
+  if (this != &object) {
+    map_ = object.map_;
+    is_mainnet = object.is_mainnet;
+    wif_prefix_ = object.wif_prefix_;
+    has_format_ = object.has_format_;
+    bip32_ = object.bip32_;
+    bip49_ = object.bip49_;
+    bip84_ = object.bip84_;
+  }
+  return *this;
+}
+
+bool KeyFormatData::IsFind(const std::string &key) const {
+  return map_.find(key) != map_.end();
+}
+
+std::string KeyFormatData::GetString(const std::string &key) const {
+  if (map_.find(key) == map_.end()) {
+    throw CfdException(
+        CfdError::kCfdOutOfRangeError, "unknown key. key=" + key);
+  }
+  return map_.at(key);
+}
+
+uint32_t KeyFormatData::GetValue(const std::string &key) const {
+  if (map_.find(key) == map_.end()) {
+    throw CfdException(
+        CfdError::kCfdOutOfRangeError, "unknown key. key=" + key);
+  }
+  return std::stoi(map_.at(key), nullptr, 16);
+}
+
+uint32_t KeyFormatData::GetWifPrefix() const { return wif_prefix_; }
+
+ExtkeyVersionPair KeyFormatData::GetVersionPair(uint32_t version) const {
+  return GetVersionPair(GetVersionFormatType(version));
+}
+
+ExtkeyVersionPair KeyFormatData::GetVersionPair(
+    Bip32FormatType format_type) const {
+  switch (format_type) {
+    case kNormal:
+      return bip32_;
+    case kBip49:
+      return bip49_;
+    case kBip84:
+      return bip84_;
+    default:
+      throw CfdException(
+          CfdError::kCfdOutOfRangeError, "unknown format type.");
+  }
+}
+
+Bip32FormatType KeyFormatData::GetVersionFormatType(uint32_t version) const {
+  std::vector<const ExtkeyVersionPair *> cache_list = {
+      &bip32_, &bip49_, &bip84_};
+  for (const auto &type : kFormatTypeList) {
+    if (has_format_[type]) {
+      if ((cache_list[type]->pubkey_version == version) ||
+          (cache_list[type]->privkey_version == version)) {
+        return type;
+      }
+    }
+  }
+  throw CfdException(CfdError::kCfdIllegalArgumentError, "unknown version.");
+}
+
+bool KeyFormatData::IsFindVersion(uint32_t version) const {
+  std::vector<const ExtkeyVersionPair *> cache_list = {
+      &bip32_, &bip49_, &bip84_};
+  for (const auto &type : kFormatTypeList) {
+    if (has_format_[type]) {
+      if ((cache_list[type]->pubkey_version == version) ||
+          (cache_list[type]->privkey_version == version)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool KeyFormatData::IsFindFormatType(Bip32FormatType format_type) const {
+  switch (format_type) {
+    case kNormal:
+    case kBip49:
+    case kBip84:
+      return (has_format_[format_type]);
+    default:
+      return false;
+  }
+}
+
+NetType KeyFormatData::GetNetType() const {
+  return (is_mainnet) ? NetType::kMainnet : NetType::kTestnet;
+}
+
+bool KeyFormatData::IsMainnet() const { return is_mainnet; }
+
+bool KeyFormatData::IsValid() const {
+  static const std::vector<const char *> key_list = {
+      kWifPrefix, kBip32Xpub, kBip32Xprv};
+  for (const char *key : key_list) {
+    if (map_.find(key) == map_.end()) return false;
+  }
+  try {
+    auto wif = ByteData(map_.find(kWifPrefix)->second);
+    if (wif.GetDataSize() != 1) return false;
+    auto xpub = ByteData(map_.find(kBip32Xpub)->second);
+    if (xpub.GetDataSize() != 4) return false;
+    auto xprv = ByteData(map_.find(kBip32Xprv)->second);
+    if (xprv.GetDataSize() != 4) return false;
+    if ((map_.find(kBip49Ypub) != map_.end()) &&
+        (map_.find(kBip49Yprv) != map_.end())) {
+      auto ypub = ByteData(map_.find(kBip49Ypub)->second);
+      if (ypub.GetDataSize() != 4) return false;
+      auto yprv = ByteData(map_.find(kBip49Yprv)->second);
+      if (yprv.GetDataSize() != 4) return false;
+    }
+    if ((map_.find(kBip84Zpub) != map_.end()) &&
+        (map_.find(kBip84Zprv) != map_.end())) {
+      auto zpub = ByteData(map_.find(kBip84Zpub)->second);
+      if (zpub.GetDataSize() != 4) return false;
+      auto zprv = ByteData(map_.find(kBip84Zprv)->second);
+      if (zprv.GetDataSize() != 4) return false;
+    }
+  } catch (const CfdException &) {
+    return false;
+  }
+  return true;
+}
+
+bool KeyFormatData::LoadCache() {
+  static const auto func = [](const std::string &buf) -> uint32_t {
+    if (buf.size() != 8) {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError, "Invalid extkey version.");
+    }
+    Deserializer dec = Deserializer(ByteData(buf));
+    return dec.ReadUint32FromBigEndian();
+  };
+
+  if (!IsValid()) return false;
+
+  // reset value
+  has_format_.clear();
+  has_format_.resize(kFormatTypeListNum);
+  is_mainnet = false;
+  wif_prefix_ = 0;
+
+  if (map_.find(kKeytypeIsMainnet) != map_.end()) {
+    auto flag_str = StringUtil::ToLower(map_.find(kKeytypeIsMainnet)->second);
+    is_mainnet = (flag_str.empty() || (flag_str == "true"));
+  }
+  wif_prefix_ = ByteData(map_.find(kWifPrefix)->second).GetHeadData();
+  bip32_.pubkey_version = func(map_.find(kBip32Xpub)->second);
+  bip32_.privkey_version = func(map_.find(kBip32Xprv)->second);
+  has_format_.at(Bip32FormatType::kNormal) = true;
+  if ((map_.find(kBip49Ypub) != map_.end()) &&
+      (map_.find(kBip49Yprv) != map_.end())) {
+    bip49_.pubkey_version = func(map_.find(kBip49Ypub)->second);
+    bip49_.privkey_version = func(map_.find(kBip49Yprv)->second);
+    has_format_.at(Bip32FormatType::kBip49) = true;
+  }
+  if ((map_.find(kBip84Zpub) != map_.end()) &&
+      (map_.find(kBip84Zprv) != map_.end())) {
+    bip84_.pubkey_version = func(map_.find(kBip84Zpub)->second);
+    bip84_.privkey_version = func(map_.find(kBip84Zprv)->second);
+    has_format_.at(Bip32FormatType::kBip84) = true;
+  }
+  return true;
+}
+
+KeyFormatData KeyFormatData::ConvertFromJson(const std::string &json_data) {
+  UniValue object;
+  object.read(json_data);
+  std::map<std::string, std::string> prefix_map;
+  if (object.isObject() && object.exists(kBip32Xpub)) {
+    std::map<std::string, UniValue> json_map;
+    object.getObjMap(json_map);
+    for (const auto &child : json_map) {
+      if (child.second.isStr()) {
+        prefix_map.emplace(child.first, child.second.getValStr());
+      }
+    }
+  }
+  if (prefix_map.empty() || (prefix_map.size() == 0)) {
+    throw CfdException(
+        kCfdIllegalArgumentError, "Invalid key prefix json data.");
+  }
+  KeyFormatData result(prefix_map);
+  return result;
+}
+
+std::vector<KeyFormatData> KeyFormatData::ConvertListFromJson(
+    const std::string &json_data) {
+  UniValue object;
+  object.read(json_data);
+  std::vector<KeyFormatData> result;
+  if (object.isArray()) {
+    for (const auto &element : object.getValues()) {
+      if (element.isObject() && element.exists(kBip32Xpub)) {
+        std::map<std::string, std::string> prefix_map;
+        std::map<std::string, UniValue> json_map;
+        element.getObjMap(json_map);
+        for (const auto &child : json_map) {
+          if (child.second.isStr()) {
+            prefix_map.emplace(child.first, child.second.getValStr());
+          }
+        }
+        if ((!prefix_map.empty()) && (prefix_map.size() != 0)) {
+          result.emplace_back(prefix_map);
+        }
+      }
+    }
+  }
+  if (result.empty()) {
+    throw CfdException(
+        kCfdIllegalArgumentError, "Invalid key prefix json data.");
+  }
+  return result;
+}
 
 // ----------------------------------------------------------------------------
 // Public Key
@@ -259,7 +601,8 @@ std::string Privkey::GetHex() const { return data_.GetHex(); }
 ByteData Privkey::GetData() const { return data_.GetBytes(); }
 
 std::string Privkey::ConvertWif(NetType net_type, bool is_compressed) const {
-  uint32_t prefix = (net_type == kMainnet ? kPrefixMainnet : kPrefixTestnet);
+  auto format_data = GetKeyFormatData(net_type);
+  uint32_t prefix = format_data.GetWifPrefix();
   uint32_t flags =
       (is_compressed ? WALLY_WIF_FLAG_COMPRESSED
                      : WALLY_WIF_FLAG_UNCOMPRESSED);
@@ -312,10 +655,24 @@ Privkey Privkey::FromWif(
 
     uint32_t prefix = buf[0];
     memcpy(privkey.data(), &buf[1], privkey.size());
-    temp_net_type = (prefix == kPrefixMainnet) ? kMainnet : kTestnet;
+
+    bool has_prefix = false;
+    for (const auto &format : GetKeyFormatList()) {
+      if (format.GetWifPrefix() == prefix) {
+        temp_net_type = format.GetNetType();
+        has_prefix = true;
+        break;
+      }
+    }
+    if (!has_prefix) {
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to parse WIF. unsupported WIF prefix.");
+    }
     is_temp_compressed = (uncompressed == 0) ? true : false;
   } else {
-    uint32_t prefix = (net_type == kMainnet ? kPrefixMainnet : kPrefixTestnet);
+    auto format_data = GetKeyFormatData(net_type);
+    uint32_t prefix = format_data.GetWifPrefix();
     uint32_t flags =
         (is_compressed ? WALLY_WIF_FLAG_COMPRESSED
                        : WALLY_WIF_FLAG_UNCOMPRESSED);
@@ -364,11 +721,15 @@ bool Privkey::HasWif(
     uint32_t prefix = key_data[0];
 
     if (net_type != nullptr) {
-      if (prefix == kPrefixMainnet) {
-        *net_type = NetType::kMainnet;
-      } else if (prefix == kPrefixTestnet) {
-        *net_type = NetType::kTestnet;
-      } else {
+      bool has_prefix = false;
+      for (const auto &format : GetKeyFormatList()) {
+        if (format.GetWifPrefix() == prefix) {
+          *net_type = format.GetNetType();
+          has_prefix = true;
+          break;
+        }
+      }
+      if (!has_prefix) {
         warn(CFD_LOG_SOURCE, "Invalid Privkey format. prefix={}", prefix);
         *net_type = NetType::kTestnet;
       }

@@ -74,7 +74,7 @@ TEST(ExtPrivkey, Base58ConstructorTest) {
   EXPECT_STREQ("0488ade4042da711a50000000028009126a24557d32ff2c5da21850dd06529f34faed53b4a3552b5ed4bda35d50073a2361673d25f998d1e9d94aabdeba8ac1ddd4628bc4f55341397d263bd560c", extkey.GetData().GetHex().c_str());
   EXPECT_STREQ(ext_base58.c_str(), extkey.ToString().c_str());
   EXPECT_TRUE(extkey.IsValid());
-  EXPECT_EQ(2769397549, extkey.GetFingerprint());
+  EXPECT_EQ(0x2DA711A5, extkey.GetFingerprint());
   EXPECT_STREQ("2da711a5", extkey.GetFingerprintData().GetHex().c_str());
   EXPECT_EQ(extprivkey_kVersionMainnetPrivkey, extkey.GetVersion());
   EXPECT_STREQ("0488ade4", extkey.GetVersionData().GetHex().c_str());
@@ -115,7 +115,7 @@ TEST(ExtPrivkey, FromParentKeyTest) {
   EXPECT_STREQ("0488ade405ae05dbb7000000088fa9c804362c158cb0a6a4e9573390b9fcb0c1625f1f33fae5fa3b949082293c0047131fdbfe2d1f53cd5c404199e243197cea058da8edcc47f0055b019afc102a", extkey.GetData().GetHex().c_str());
   EXPECT_STREQ(ext_base58.c_str(), extkey.ToString().c_str());
   EXPECT_TRUE(extkey.IsValid());
-  EXPECT_EQ(3084584366, extkey.GetFingerprint());
+  EXPECT_EQ(0xAE05DBB7, extkey.GetFingerprint());
   EXPECT_STREQ("ae05dbb7", extkey.GetFingerprintData().GetHex().c_str());
   EXPECT_EQ(extprivkey_kVersionMainnetPrivkey, extkey.GetVersion());
   EXPECT_STREQ("0488ade4", extkey.GetVersionData().GetHex().c_str());
@@ -139,7 +139,7 @@ TEST(ExtPrivkey, FromKeyDataTest) {
   EXPECT_STREQ("0488ade405ae05dbb7000000088fa9c804362c158cb0a6a4e9573390b9fcb0c1625f1f33fae5fa3b949082293c0047131fdbfe2d1f53cd5c404199e243197cea058da8edcc47f0055b019afc102a", extkey.GetData().GetHex().c_str());
   EXPECT_STREQ(ext_base58.c_str(), extkey.ToString().c_str());
   EXPECT_TRUE(extkey.IsValid());
-  EXPECT_EQ(3084584366, extkey.GetFingerprint());
+  EXPECT_EQ(0xAE05DBB7, extkey.GetFingerprint());
   EXPECT_STREQ("ae05dbb7", extkey.GetFingerprintData().GetHex().c_str());
   EXPECT_EQ(extprivkey_kVersionMainnetPrivkey, extkey.GetVersion());
   EXPECT_STREQ("0488ade4", extkey.GetVersionData().GetHex().c_str());

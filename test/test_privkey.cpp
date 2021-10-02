@@ -16,6 +16,7 @@ using cfd::core::Pubkey;
 using cfd::core::NetType;
 using cfd::core::HashUtil;
 using cfd::core::SignatureUtil;
+using cfd::core::KeyFormatData;
 
 TEST(Privkey, Privkey) {
   Privkey privkey;
@@ -347,4 +348,78 @@ TEST(Privkey, TweakTest) {
   EXPECT_EQ(exp_sk_c3, sk_c6.GetHex());
   EXPECT_EQ(exp_sk_m1, sk_m3.GetHex());
   EXPECT_EQ(exp_sk_m2, sk_m4.GetHex());
+}
+
+TEST(KeyFormatData, CustomKeyFormatList) {
+  std::string custom_json = "[{"
+      "\"IsMainnet\":\"\",\"wif\":\"40\","
+      "\"bip32xpub\":\"0888b21e\",\"bip32xprv\":\"0888ade4\""
+    "},{"
+      "\"wif\":\"60\","
+      "\"bip32xpub\":\"8088b21e\",\"bip32xprv\":\"8088ade4\""
+    "}]";
+  auto list = KeyFormatData::ConvertListFromJson(custom_json);
+  cfd::core::SetCustomKeyFormatList(list);
+  try {
+    auto fmt_list = cfd::core::GetKeyFormatList();
+    for (const auto& item : fmt_list) {
+      if (item.IsMainnet()) {
+        EXPECT_EQ("40", item.GetString(cfd::core::kWifPrefix));
+        EXPECT_EQ("0888b21e", item.GetString(cfd::core::kBip32Xpub));
+        EXPECT_EQ("0888ade4", item.GetString(cfd::core::kBip32Xprv));
+      } else {
+        EXPECT_EQ("60", item.GetString(cfd::core::kWifPrefix));
+        EXPECT_EQ("8088b21e", item.GetString(cfd::core::kBip32Xpub));
+        EXPECT_EQ("8088ade4", item.GetString(cfd::core::kBip32Xprv));
+      }
+    }
+
+    Privkey sk(
+      "d21c625759280111907a06df050cccbc875b11a50bdafa71dae5d1e8695ba82e");
+    EXPECT_EQ("Ab9nRQnDi6iACMeL1qffHY83npHTEGvmJgxBDDykXuzBfZpWFyBQ",
+      sk.ConvertWif(NetType::kMainnet));
+    EXPECT_EQ("FKhxiaK1K22ZNv4uiGJEm79dkiiKwfc2WptM7m4nFE6xgACzMbkJ",
+      sk.ConvertWif(NetType::kTestnet));
+
+    Privkey sk1 = Privkey::FromWif(
+      "Ab9nRQnDi6iACMeL1qffHY83npHTEGvmJgxBDDykXuzBfZpWFyBQ");
+    Privkey sk2 = Privkey::FromWif(
+      "FKhxiaK1K22ZNv4uiGJEm79dkiiKwfc2WptM7m4nFE6xgACzMbkJ");
+    EXPECT_TRUE(sk.Equals(sk1));
+    EXPECT_TRUE(sk.Equals(sk2));
+    Privkey sk3 = Privkey::FromWif(
+      "FKhxiaK1K22ZNv4uiGJEm79dkiiKwfc2WptM7m4nFE6xgACzMbkJ",
+      NetType::kTestnet);
+    EXPECT_TRUE(sk.Equals(sk3));
+
+    try {
+      // unmatch network type
+      Privkey::FromWif(
+        "FKhxiaK1K22ZNv4uiGJEm79dkiiKwfc2WptM7m4nFE6xgACzMbkJ",
+        NetType::kMainnet);
+    } catch (const CfdException& except1) {
+      EXPECT_STREQ("Error WIF to Private key.", except1.what());
+    }
+
+    try {
+      // unsupported prefix WIF
+      Privkey::FromWif(
+        "5JBb5A38fjjeBnngkvRmCsXN6EY4w8jWvckik3hDvYQMcddGY23");
+    } catch (const CfdException& except1) {
+      EXPECT_STREQ("Failed to parse WIF. unsupported WIF prefix.",
+          except1.what());
+    }
+
+    // other prefix wif (invalid prefix => nettype is testnet only)
+    NetType net_type = NetType::kMainnet;
+    EXPECT_TRUE(Privkey::HasWif(
+      "5JBb5A38fjjeBnngkvRmCsXN6EY4w8jWvckik3hDvYQMcddGY23", &net_type));
+    EXPECT_EQ(NetType::kTestnet, net_type);
+
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  } catch (...) {
+    EXPECT_EQ("", "Throw exception.");
+  }
+  cfd::core::ClearCustomKeyFormatList();
 }

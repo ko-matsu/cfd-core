@@ -7,6 +7,7 @@
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_schnorrsig.h"
+#include "cfdcore/cfdcore_script.h"
 #include "cfdcore/cfdcore_taproot.h"
 
 using cfd::core::Address;
@@ -21,6 +22,7 @@ using cfd::core::HashUtil;
 using cfd::core::Script;
 using cfd::core::ScriptBuilder;
 using cfd::core::ScriptOperator;
+using cfd::core::ScriptUtil;
 using cfd::core::SchnorrPubkey;
 using cfd::core::TaprootScriptTree;
 using cfd::core::CfdException;
@@ -196,14 +198,15 @@ TEST(Address, TaprootAddressTest) {
     EXPECT_STREQ("51201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
         address.GetLockingScript().GetHex().c_str());
 
+    auto formats = cfd::core::GetBitcoinAddressFormatList();
     EXPECT_NO_THROW((address = Address(NetType::kTestnet,
-                    WitnessVersion::kVersion1, pubkey)));
+                    WitnessVersion::kVersion1, pubkey, formats[1])));
     EXPECT_STREQ("tb1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8naskf8ee6",
                 address.GetAddress().c_str());
     EXPECT_EQ(NetType::kTestnet, address.GetNetType());
 
     EXPECT_NO_THROW((address = Address(NetType::kRegtest,
-                    WitnessVersion::kVersion1, pubkey)));
+                    WitnessVersion::kVersion1, pubkey, formats)));
     EXPECT_STREQ("bcrt1pzamhq9jglfxaj0r5ahvatr8uc77u973s5tm04yytdltsey5r8nasmsdlvq",
                 address.GetAddress().c_str());
     EXPECT_EQ(NetType::kRegtest, address.GetNetType());
@@ -235,14 +238,15 @@ TEST(Address, TaprootScriptAddressTest) {
     EXPECT_STREQ("512088de1a59b38939f58fb4f8c5ffc3d56390d43e9e91c7b1d67f91e070f3108799",
         address.GetLockingScript().GetHex().c_str());
 
+    auto formats = cfd::core::GetBitcoinAddressFormatList();
     EXPECT_NO_THROW((address = Address(NetType::kTestnet,
-                    WitnessVersion::kVersion1, tree, pubkey)));
+                    WitnessVersion::kVersion1, tree, pubkey, formats[1])));
     EXPECT_STREQ("tb1p3r0p5kdn3yultra5lrzlls74vwgdg057j8rmr4nlj8s8pucss7vs7rjr8c",
                 address.GetAddress().c_str());
     EXPECT_EQ(NetType::kTestnet, address.GetNetType());
 
     EXPECT_NO_THROW((address = Address(NetType::kRegtest,
-                    WitnessVersion::kVersion1, tree, pubkey)));
+                    WitnessVersion::kVersion1, tree, pubkey, formats)));
     EXPECT_STREQ("bcrt1p3r0p5kdn3yultra5lrzlls74vwgdg057j8rmr4nlj8s8pucss7vsn6c9jz",
                 address.GetAddress().c_str());
     EXPECT_EQ(NetType::kRegtest, address.GetNetType());
@@ -1018,6 +1022,190 @@ TEST(Address, ElementsInvalidAddressTest) {
               "02d21c625759280111907a06df050cccbc875b11a50bdafa71dae5d1e8695ba82e"));
   // invalid net type
   EXPECT_THROW(Address(ElementsNetType::kNetTypeNum, ElementsAddressType::kP2pkhAddress, hash, GetElementsAddressFormatList()), CfdException)<< "net";
+}
+
+TEST(Address, PegoutAddressTest) {
+  Script pegout_script("6a2006226e46111a0b59caaf126043eb5bbf28c34f3a5e332a1fc7b2b73cf188910f17a914a722b257cabc3b8e7d46f8fb293f893f368219da872103700dcb030588ed828d85f645b48971de0d31e8c0244da46710d18681627f5a4a4101044e949dcf8ac2daac82a3e4999ee28e2711661793570c4daab34cd38d76a425d6bfe102f3fea8be12109925fad32c78b65afea4de1d17a826e7375d0e2d0066");
+  Address addr1 = Address::GetPegoutAddress(NetType::kRegtest, pegout_script);
+  EXPECT_EQ("2N8UxQ5u9YXYFn6Ukj5KGXCMDUZTixKTXHo", addr1.GetAddress());
+
+  Address addr2 = Address::GetPegoutAddress(NetType::kMainnet, pegout_script,
+      GetBitcoinAddressFormatList()[0]);
+  EXPECT_EQ("3GvkLLy7w52uaJrD3whPuFMxGDFZDDWg13", addr2.GetAddress());
+}
+
+#endif  // CFD_DISABLE_ELEMENTS
+
+TEST(AddressFormatData, CustomBitcoinAddressFormatList) {
+  std::string custom_json = "[{"
+      "\"nettype\":\"testnet\",\"p2pkh\":\"71\","
+      "\"p2sh\":\"83\",\"bech32\":\"btn\""
+    "},{"
+      "\"nettype\":\"regtest\",\"p2pkh\":\"95\","
+      "\"p2sh\":\"a2\",\"bech32\":\"brt\""
+    "}]";
+  auto list = AddressFormatData::ConvertListFromJson(custom_json);
+  cfd::core::SetCustomAddressFormatList(list);
+  try {
+    auto btc_list = GetBitcoinAddressFormatList();
+    for (const auto& item : btc_list) {
+      NetType nettype = item.GetNetType();
+      if (nettype == NetType::kMainnet) {
+        EXPECT_EQ("00", item.GetString(cfd::core::kPrefixP2pkh));
+        EXPECT_EQ("05", item.GetString(cfd::core::kPrefixP2sh));
+        EXPECT_EQ("bc", item.GetString(cfd::core::kPrefixBech32Hrp));
+      } else if (nettype == NetType::kTestnet) {
+        EXPECT_EQ("71", item.GetString(cfd::core::kPrefixP2pkh));
+        EXPECT_EQ("83", item.GetString(cfd::core::kPrefixP2sh));
+        EXPECT_EQ("btn", item.GetString(cfd::core::kPrefixBech32Hrp));
+      } else if (nettype == NetType::kRegtest) {
+        EXPECT_EQ("95", item.GetString(cfd::core::kPrefixP2pkh));
+        EXPECT_EQ("a2", item.GetString(cfd::core::kPrefixP2sh));
+        EXPECT_EQ("brt", item.GetString(cfd::core::kPrefixBech32Hrp));
+      } else {
+        EXPECT_EQ("Invalid nettype.", item.GetString(cfd::core::kNettype));
+      }
+    }
+
+    // address check
+    Pubkey pk(
+      "02d21c625759280111907a06df050cccbc875b11a50bdafa71dae5d1e8695ba82e");
+    Script p2pkh_script = ScriptUtil::CreateP2pkhLockingScript(pk);
+    Address p2pkh = Address(NetType::kTestnet, pk, btc_list);
+    Address p2sh = Address(NetType::kTestnet, p2pkh_script, btc_list);
+    Address p2wpkh = Address(
+      NetType::kTestnet, WitnessVersion::kVersion0, pk, btc_list);
+    EXPECT_EQ("niAnB9k5NMVpeysW3VAzSMyw3rTHkWbrhs",
+      p2pkh.GetAddress());
+    EXPECT_EQ("uoruZ8Km3BeRgDHPnjHHPpBAC75ADUhQzt",
+      p2sh.GetAddress());
+    EXPECT_EQ("btn1qn98wsxje7xk68axrn979fuzqrd04880s8dr45z",
+      p2wpkh.GetAddress());
+
+    p2pkh = Address(NetType::kRegtest, pk, btc_list);
+    p2sh = Address(NetType::kRegtest, p2pkh_script, btc_list);
+    p2wpkh = Address(
+      NetType::kRegtest, WitnessVersion::kVersion0, pk, btc_list);
+    EXPECT_EQ("23CLVd4USvrBN6atcvbATtsnFi1jFJzBMWG",
+      p2pkh.GetAddress());
+    EXPECT_EQ("28HLc5VZh3n1b2ec5YjcARhcYhk4Q9x2yz8",
+      p2sh.GetAddress());
+    EXPECT_EQ("brt1qn98wsxje7xk68axrn979fuzqrd04880s345gz2",
+      p2wpkh.GetAddress());
+
+    Address reg_p2pkh = Address("23CLVd4USvrBN6atcvbATtsnFi1jFJzBMWG");
+    EXPECT_EQ("23CLVd4USvrBN6atcvbATtsnFi1jFJzBMWG",
+      reg_p2pkh.GetAddress());
+    EXPECT_EQ(NetType::kRegtest, reg_p2pkh.GetNetType());
+    Address reg_p2wpkh = Address("brt1qn98wsxje7xk68axrn979fuzqrd04880s345gz2");
+    EXPECT_EQ("brt1qn98wsxje7xk68axrn979fuzqrd04880s345gz2",
+      reg_p2wpkh.GetAddress());
+    EXPECT_EQ(NetType::kRegtest, reg_p2wpkh.GetNetType());
+
+  } catch (...) {
+    EXPECT_EQ("", "Throw exception.");
+  }
+  cfd::core::ClearCustomAddressFormatList();
+}
+
+#ifndef CFD_DISABLE_ELEMENTS
+
+TEST(AddressFormatData, CustomElementsAddressFormatList) {
+  std::string custom_json = "[{"
+      "\"nettype\":\"elementsregtest\",\"p2pkh\":\"72\","
+      "\"p2sh\":\"84\",\"bech32\":\"elrg\","
+      "\"blinded\":\"18\",\"blech32\":\"lqrg\""
+    "},{"
+      "\"nettype\":\"custom\",\"p2pkh\":\"64\","
+      "\"p2sh\":\"22\",\"bech32\":\"cs\","
+      "\"blinded\":\"55\",\"blindedP2sh\":\"35\",\"blech32\":\"blcs\""
+    "}]";
+  auto list = AddressFormatData::ConvertListFromJson(custom_json);
+  cfd::core::SetCustomAddressFormatList(list);
+  try {
+    auto elm_list = GetElementsAddressFormatList();
+    for (const auto& item : elm_list) {
+      NetType nettype = item.GetNetType();
+      if (nettype == NetType::kLiquidV1) {
+        EXPECT_EQ("39", item.GetString(cfd::core::kPrefixP2pkh));
+        EXPECT_EQ("27", item.GetString(cfd::core::kPrefixP2sh));
+        EXPECT_EQ("ex", item.GetString(cfd::core::kPrefixBech32Hrp));
+        EXPECT_EQ("0c", item.GetString(cfd::core::kPrefixBlindP2pkh));
+        EXPECT_FALSE(item.IsFind(cfd::core::kPrefixBlindP2sh));
+        EXPECT_EQ("lq", item.GetString(cfd::core::kPrefixBlindBech32Hrp));
+      } else if (nettype == NetType::kElementsRegtest) {
+        EXPECT_EQ("72", item.GetString(cfd::core::kPrefixP2pkh));
+        EXPECT_EQ("84", item.GetString(cfd::core::kPrefixP2sh));
+        EXPECT_EQ("elrg", item.GetString(cfd::core::kPrefixBech32Hrp));
+        EXPECT_EQ("18", item.GetString(cfd::core::kPrefixBlindP2pkh));
+        EXPECT_FALSE(item.IsFind(cfd::core::kPrefixBlindP2sh));
+        EXPECT_EQ("lqrg", item.GetString(cfd::core::kPrefixBlindBech32Hrp));
+      } else if (nettype == NetType::kCustomChain) {
+        EXPECT_EQ("64", item.GetString(cfd::core::kPrefixP2pkh));
+        EXPECT_EQ("22", item.GetString(cfd::core::kPrefixP2sh));
+        EXPECT_EQ("cs", item.GetString(cfd::core::kPrefixBech32Hrp));
+        EXPECT_EQ("55", item.GetString(cfd::core::kPrefixBlindP2pkh));
+        EXPECT_EQ("35", item.GetString(cfd::core::kPrefixBlindP2sh));
+        EXPECT_EQ("blcs", item.GetString(cfd::core::kPrefixBlindBech32Hrp));
+      } else {
+        EXPECT_EQ("Invalid nettype.", item.GetString(cfd::core::kNettype));
+      }
+    }
+
+    // address check
+    Pubkey pk(
+      "02d21c625759280111907a06df050cccbc875b11a50bdafa71dae5d1e8695ba82e");
+    Script p2pkh_script = ScriptUtil::CreateP2pkhLockingScript(pk);
+    Address p2pkh = Address(NetType::kElementsRegtest, pk, elm_list);
+    Address p2sh = Address(NetType::kElementsRegtest, p2pkh_script, elm_list);
+    Address p2wpkh = Address(
+      NetType::kElementsRegtest, WitnessVersion::kVersion0, pk, elm_list);
+    EXPECT_EQ("o7WPAG3N5XxhUR1b4uWJvVFigMiEVvS5uz",
+      p2pkh.GetAddress());
+    EXPECT_EQ("vDCWYEd3kN7JVeRUp9cbswSwpcL6rmcj6j",
+      p2sh.GetAddress());
+    EXPECT_EQ("elrg1qn98wsxje7xk68axrn979fuzqrd04880svgjkzc",
+      p2wpkh.GetAddress());
+
+    p2pkh = Address(NetType::kCustomChain, pk, elm_list);
+    p2sh = Address(NetType::kCustomChain, p2pkh_script, elm_list);
+    p2wpkh = Address(
+      NetType::kCustomChain, WitnessVersion::kVersion0, pk, elm_list);
+    EXPECT_EQ("hUmwNjsL91US2M4Nj2qr8jShsJ72UUPcgp",
+      p2pkh.GetAddress());
+    EXPECT_EQ("En5Q3bQpAghSMAkzR2yNMemr9B5fD4c6Wi",
+      p2sh.GetAddress());
+    EXPECT_EQ("cs1qn98wsxje7xk68axrn979fuzqrd04880ssz7cnm",
+      p2wpkh.GetAddress());
+
+    Address reg_p2pkh = Address(
+        "o7WPAG3N5XxhUR1b4uWJvVFigMiEVvS5uz", elm_list);
+    EXPECT_EQ("o7WPAG3N5XxhUR1b4uWJvVFigMiEVvS5uz",
+      reg_p2pkh.GetAddress());
+    EXPECT_EQ(NetType::kElementsRegtest, reg_p2pkh.GetNetType());
+    Address reg_p2wpkh = Address(
+        "elrg1qn98wsxje7xk68axrn979fuzqrd04880svgjkzc", elm_list);
+    EXPECT_EQ("elrg1qn98wsxje7xk68axrn979fuzqrd04880svgjkzc",
+      reg_p2wpkh.GetAddress());
+    EXPECT_EQ(NetType::kElementsRegtest, reg_p2wpkh.GetNetType());
+
+    Address cs_p2pkh = Address(
+        "hUmwNjsL91US2M4Nj2qr8jShsJ72UUPcgp", elm_list);
+    EXPECT_EQ("hUmwNjsL91US2M4Nj2qr8jShsJ72UUPcgp",
+      cs_p2pkh.GetAddress());
+    EXPECT_EQ(NetType::kCustomChain, cs_p2pkh.GetNetType());
+    Address cs_p2wpkh = Address(
+        "cs1qn98wsxje7xk68axrn979fuzqrd04880ssz7cnm", elm_list);
+    EXPECT_EQ("cs1qn98wsxje7xk68axrn979fuzqrd04880ssz7cnm",
+      cs_p2wpkh.GetAddress());
+    EXPECT_EQ(NetType::kCustomChain, cs_p2wpkh.GetNetType());
+
+  } catch (const CfdException& except) {
+    EXPECT_STREQ("", except.what());
+  } catch (...) {
+    EXPECT_EQ("", "Throw exception.");
+  }
+  cfd::core::ClearCustomAddressFormatList();
 }
 
 #endif  // CFD_DISABLE_ELEMENTS

@@ -4,9 +4,11 @@ on:
   push:
     branches:
     - master
+    - stable_v*
   pull_request:
     branches:
     - master
+    - stable_v*
 
 env:
   CMAKE_VERSION: 3.17.2
@@ -38,8 +40,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-10.15]
-#        os: [macos-10.15, macos-11.0]
+        # os: [macos-10.15]
+        os: [macos-10.15, macos-11]
+        xcode_version: ['11.7']
+        include:
+          - os: macos-10.15
+            xcode_version: '12.4'
+          - os: macos-11
+            xcode_version: '12.5.1'
+          - os: macos-11
+            xcode_version: '13.0'
 
     steps:
     - uses: actions/checkout@v2
@@ -61,13 +71,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, ubuntu-16.04]
+        os: [ubuntu-20.04, ubuntu-18.04]
         shared: [on, off]
         elements: [on, off]
         exclude:
           - os: ubuntu-18.04
-            elements: off
-          - os: ubuntu-16.04
             elements: off
 
     steps:

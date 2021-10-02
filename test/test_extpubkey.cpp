@@ -5,6 +5,8 @@
 #include "cfdcore/cfdcore_key.h"
 #include "cfdcore/cfdcore_hdwallet.h"
 #include "cfdcore/cfdcore_exception.h"
+#include "cfdcore/cfdcore_address.h"
+#include "cfdcore/cfdcore_elements_address.h"
 
 using cfd::core::CfdException;
 using cfd::core::ByteData;
@@ -14,6 +16,7 @@ using cfd::core::KeyData;
 using cfd::core::Privkey;
 using cfd::core::Pubkey;
 using cfd::core::NetType;
+using cfd::core::AddressType;
 
 static const uint32_t extpubkey_kVersionMainnetPubkey = ExtPubkey::kVersionMainnetPubkey;
 static const uint32_t extpubkey_kVersionTestnetPubkey = ExtPubkey::kVersionTestnetPubkey;
@@ -58,7 +61,7 @@ TEST(ExtPubkey, Base58ConstructorTest) {
   EXPECT_STREQ("043587cf02f4a831a200000000bdc76da475a6fbdc4f3758939ab2096d4ab53b7d66c0eed66fc0f4be242835fc030061b08c4c80dc04aaa0b44018d2c4bcdb0d9c0992fb4fddf9d2fb096a5164c0", extkey.GetData().GetHex().c_str());
   EXPECT_STREQ("043587cf", extkey.GetVersionData().GetHex().c_str());
   EXPECT_EQ(extpubkey_kVersionTestnetPubkey, extkey.GetVersion());
-  EXPECT_EQ(2721163508, extkey.GetFingerprint());
+  EXPECT_EQ(0xF4A831A2, extkey.GetFingerprint());
   EXPECT_TRUE(extkey.IsValid());
   EXPECT_STREQ(ext_base58.c_str(), extkey.ToString().c_str());
   EXPECT_EQ(2, extkey.GetDepth());
@@ -84,7 +87,7 @@ TEST(ExtPubkey, FromKeyDataTest) {
   EXPECT_STREQ("043587cf04a53a8ff30000002c839fb0d66f1887db167cdc530ab98e871d8b017ebcb198568874b6c98516364e03f1e767c0555ce0105b2a76d0f8b19b6d33a147f82f75a05c4c09580c39694fd3", extkey.GetData().GetHex().c_str());
   EXPECT_STREQ("043587cf", extkey.GetVersionData().GetHex().c_str());
   EXPECT_EQ(extpubkey_kVersionTestnetPubkey, extkey.GetVersion());
-  EXPECT_EQ(4086250149, extkey.GetFingerprint());
+  EXPECT_EQ(0xA53A8FF3, extkey.GetFingerprint());
   EXPECT_STREQ("a53a8ff3", extkey.GetFingerprintData().GetHex().c_str());
   EXPECT_TRUE(extkey.IsValid());
   EXPECT_STREQ(ext_base58.c_str(), extkey.ToString().c_str());
@@ -204,4 +207,64 @@ TEST(ExtPubkey, CreateExtPubkeyFromPubkey) {
   EXPECT_STREQ("03f1e767c0555ce0105b2a76d0f8b19b6d33a147f82f75a05c4c09580c39694fd3", extkey.GetPubkey().GetHex().c_str());
   EXPECT_STREQ("839fb0d66f1887db167cdc530ab98e871d8b017ebcb198568874b6c98516364e", extkey.GetChainCode().GetHex().c_str());
   EXPECT_STREQ("a53a8ff3", extkey.GetFingerprintData().GetHex().c_str());
+}
+
+TEST(ExtPubkey, GetPubkeyAddress) {
+  std::string ext_base58 = "tpubDF7yNiHQHdfns9Mc3XM7PYcS2dqrPqcit3FLkebvHxS4atZxifANou2KTvpQQQP82ANDCkPc5MPQZ28pjYGgmDXGy1iyzaiX6MTBv8i4cua";
+
+  ExtPubkey pubkey(ext_base58);
+  auto addr1 = pubkey.GetPubkeyAddress();
+  EXPECT_EQ("tb1qgrys9hdcsunfh5qklzj85e6qev9v5gmsyl4tfv",
+    addr1.GetAddress());
+  auto addrs1 = pubkey.GetPubkeyAddresses();
+  EXPECT_EQ(4, addrs1.size());
+  if (addrs1.size() == 4) {
+    EXPECT_EQ("tb1qgrys9hdcsunfh5qklzj85e6qev9v5gmsyl4tfv",
+      addrs1[0].GetAddress());
+    EXPECT_EQ("tb1p78nk0sz4tnspqke2wmg03vvmd5e6z3lc9a66qhzvp9vqcwtfflfs5wcm3n",
+      addrs1[1].GetAddress());
+    EXPECT_EQ("2N9E4zD7TeFFuHTvzuVVvVSpmKq2DwGevP6",
+      addrs1[2].GetAddress());
+    EXPECT_EQ("mmRWLqKULV2s5o1j42FhB6ZhdscGmqSRH2",
+      addrs1[3].GetAddress());
+  }
+
+  auto addr2 = pubkey.GetPubkeyAddress(
+      AddressType::kWitnessUnknown, nullptr, NetType::kRegtest);
+  EXPECT_EQ("bcrt1qgrys9hdcsunfh5qklzj85e6qev9v5gmsxkvx79",
+    addr2.GetAddress());
+  auto addrs2 = pubkey.GetPubkeyAddresses(nullptr, NetType::kRegtest);
+  EXPECT_EQ(4, addrs1.size());
+  if (addrs2.size() == 4) {
+    EXPECT_EQ("bcrt1qgrys9hdcsunfh5qklzj85e6qev9v5gmsxkvx79",
+      addrs2[0].GetAddress());
+    EXPECT_EQ("bcrt1p78nk0sz4tnspqke2wmg03vvmd5e6z3lc9a66qhzvp9vqcwtfflfsehjayf",
+      addrs2[1].GetAddress());
+    EXPECT_EQ("2N9E4zD7TeFFuHTvzuVVvVSpmKq2DwGevP6",
+      addrs2[2].GetAddress());
+    EXPECT_EQ("mmRWLqKULV2s5o1j42FhB6ZhdscGmqSRH2",
+      addrs2[3].GetAddress());
+  }
+
+#ifndef CFD_DISABLE_ELEMENTS
+  auto el_list = cfd::core::GetElementsAddressFormatList();
+  auto addr3 = pubkey.GetPubkeyAddress(AddressType::kP2pkhAddress,
+      &el_list, NetType::kElementsRegtest);
+  EXPECT_EQ("2dfLJSJHCNrVWVYJU63ZDJeKFgRZEuxc1JQ",
+    addr3.GetAddress());
+
+  auto addrs3 = pubkey.GetPubkeyAddresses(
+      &el_list, NetType::kElementsRegtest);
+  EXPECT_EQ(4, addrs3.size());
+  if (addrs3.size() == 4) {
+    EXPECT_EQ("ert1qgrys9hdcsunfh5qklzj85e6qev9v5gms7zecq9",
+      addrs3[0].GetAddress());
+    EXPECT_EQ("ert1p78nk0sz4tnspqke2wmg03vvmd5e6z3lc9a66qhzvp9vqcwtfflfsgy6rdd",
+      addrs3[1].GetAddress());
+    EXPECT_EQ("XTL5r53bjRBtL24WwjCMpGtaAnr5wmHkXL",
+      addrs3[2].GetAddress());
+    EXPECT_EQ("2dfLJSJHCNrVWVYJU63ZDJeKFgRZEuxc1JQ",
+      addrs3[3].GetAddress());
+  }
+#endif  // CFD_DISABLE_ELEMENTS
 }

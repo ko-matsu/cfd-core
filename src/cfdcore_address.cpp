@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "cfdcore/cfdcore_elements_address.h"
 #include "cfdcore/cfdcore_logger.h"
 #include "cfdcore/cfdcore_script.h"
 #include "cfdcore/cfdcore_taproot.h"
@@ -23,6 +24,25 @@ namespace core {
 
 using logger::info;
 using logger::warn;
+
+// -----------------------------------------------------------------------------
+// Internal constants
+// -----------------------------------------------------------------------------
+//! network type name list
+static const char* const s_network_type_names[] = {
+    kNettypeMainnet,  kNettypeTestnet,         kNettypeRegtest,
+#ifndef CFD_DISABLE_ELEMENTS
+    kNettypeLiquidV1, kNettypeElementsRegtest,
+#endif  // CFD_DISABLE_ELEMENTS
+};
+
+//! network type value list
+static const NetType s_network_type_values[] = {
+    NetType::kMainnet,  NetType::kTestnet,         NetType::kRegtest,
+#ifndef CFD_DISABLE_ELEMENTS
+    NetType::kLiquidV1, NetType::kElementsRegtest,
+#endif  // CFD_DISABLE_ELEMENTS
+};
 
 // -----------------------------------------------------------------------------
 // AddressFormatData
@@ -56,7 +76,6 @@ AddressFormatData::AddressFormatData(const std::string& default_format_name)
       map_.emplace(kPrefixP2sh, "27");
       map_.emplace(kPrefixBech32Hrp, "ex");
       map_.emplace(kPrefixBlindP2pkh, "0c");
-      map_.emplace(kPrefixBlindP2sh, "0c");
       map_.emplace(kPrefixBlindBech32Hrp, "lq");
     } else if (default_format_name == kNettypeElementsRegtest) {
       map_.emplace(kNettype, kNettypeElementsRegtest);
@@ -64,16 +83,19 @@ AddressFormatData::AddressFormatData(const std::string& default_format_name)
       map_.emplace(kPrefixP2sh, "4b");
       map_.emplace(kPrefixBech32Hrp, "ert");
       map_.emplace(kPrefixBlindP2pkh, "04");
-      map_.emplace(kPrefixBlindP2sh, "04");
       map_.emplace(kPrefixBlindBech32Hrp, "el");
     }
-#endif
+#endif  // CFD_DISABLE_ELEMENTS
   }
 }
 
 AddressFormatData::AddressFormatData(
     const std::map<std::string, std::string>& map_data)
     : map_(map_data) {}
+
+bool AddressFormatData::IsFind(const std::string& key) const {
+  return map_.find(key) != map_.end();
+}
 
 std::string AddressFormatData::GetString(const std::string& key) const {
   if (map_.find(key) == map_.end()) {
@@ -126,6 +148,55 @@ NetType AddressFormatData::GetNetType() const {
   }
   return result;
 }
+
+bool AddressFormatData::IsValid() const {
+  static const std::vector<const char*> key_list = {
+      kNettype, kPrefixP2pkh, kPrefixP2sh, kPrefixBech32Hrp};
+  for (const char* key : key_list) {
+    if (map_.find(key) == map_.end()) return false;
+  }
+  try {
+    if (map_.find(kNettype)->second.empty()) return false;
+
+    auto p2pkh = ByteData(map_.find(kPrefixP2pkh)->second);
+    if (p2pkh.GetDataSize() != 1) return false;
+    auto p2sh = ByteData(map_.find(kPrefixP2sh)->second);
+    if (p2sh.GetDataSize() != 1) return false;
+    auto bech32 = map_.find(kPrefixBech32Hrp)->second;
+    if (bech32.empty() || (bech32.size() > 84)) return false;
+  } catch (const CfdException&) {
+    return false;
+  }
+  return true;
+}
+
+#ifndef CFD_DISABLE_ELEMENTS
+bool AddressFormatData::IsValidElements() const {
+  static const std::vector<const char*> key_list = {
+      kPrefixBlindP2pkh,
+      kPrefixBlindBech32Hrp,
+  };
+
+  if (!IsValid()) return false;
+
+  for (const char* key : key_list) {
+    if (map_.find(key) == map_.end()) return false;
+  }
+  try {
+    auto blind_p2pkh = ByteData(map_.find(kPrefixBlindP2pkh)->second);
+    if (blind_p2pkh.GetDataSize() != 1) return false;
+    if (map_.find(kPrefixBlindP2sh) != map_.end()) {
+      auto blind_p2sh = ByteData(map_.find(kPrefixBlindP2sh)->second);
+      if (blind_p2sh.GetDataSize() != 1) return false;
+    }
+    auto lbech32 = map_.find(kPrefixBlindBech32Hrp)->second;
+    if (lbech32.empty() || (lbech32.size() > 995)) return false;
+  } catch (const CfdException&) {
+    return false;
+  }
+  return true;
+}
+#endif  // CFD_DISABLE_ELEMENTS
 
 AddressFormatData AddressFormatData::ConvertFromJson(
     const std::string& json_data) {
@@ -182,10 +253,89 @@ std::vector<AddressFormatData> AddressFormatData::ConvertListFromJson(
 const std::vector<AddressFormatData> kBitcoinAddressFormatList = {
     AddressFormatData(kNettypeMainnet), AddressFormatData(kNettypeTestnet),
     AddressFormatData(kNettypeRegtest)};
+//! custom bitcoin address format list
+static std::vector<AddressFormatData> g_custom_btc_addr_format_list;
+
+#ifndef CFD_DISABLE_ELEMENTS
+//! elements address format list
+const std::vector<AddressFormatData> kElementsAddressFormatList = {
+    AddressFormatData(kNettypeLiquidV1),
+    AddressFormatData(kNettypeElementsRegtest)};
+//! custom elements address format list
+static std::vector<AddressFormatData> g_custom_elm_addr_format_list;
+#endif  // CFD_DISABLE_ELEMENTS
+
+void SetCustomAddressFormatList(const std::vector<AddressFormatData>& list) {
+  if ((!list.empty()) && g_custom_btc_addr_format_list.empty()) {
+    std::vector<NetType> added_types;
+    for (const auto& item : list) {
+      auto nettype = item.GetNetType();
+      if ((nettype == NetType::kMainnet) || (nettype == NetType::kTestnet) ||
+          (nettype == NetType::kRegtest)) {
+        if (item.IsValid()) {
+          g_custom_btc_addr_format_list.emplace_back(item);
+          added_types.push_back(nettype);
+        }
+      } else {
+#ifndef CFD_DISABLE_ELEMENTS
+        if (item.IsValidElements()) {
+          g_custom_elm_addr_format_list.emplace_back(item);
+          added_types.push_back(nettype);
+        }
+#endif  // CFD_DISABLE_ELEMENTS
+      }
+    }
+
+    size_t max = sizeof(s_network_type_values) / sizeof(NetType);
+    for (size_t index = 0; index < max; ++index) {
+      bool is_find = false;
+      for (const auto& item : added_types) {
+        if (s_network_type_values[index] == item) {
+          is_find = true;
+          break;
+        }
+      }
+      if (is_find) {
+        // do nothing
+      } else if (s_network_type_values[index] <= NetType::kRegtest) {
+        if (!g_custom_btc_addr_format_list.empty()) {
+          g_custom_btc_addr_format_list.emplace_back(
+              AddressFormatData(s_network_type_names[index]));
+        }
+      } else {
+#ifndef CFD_DISABLE_ELEMENTS
+        if (!g_custom_elm_addr_format_list.empty()) {
+          g_custom_elm_addr_format_list.emplace_back(
+              AddressFormatData(s_network_type_names[index]));
+        }
+#endif  // CFD_DISABLE_ELEMENTS
+      }
+    }
+  }
+}
+
+void ClearCustomAddressFormatList() {
+  g_custom_btc_addr_format_list.clear();
+#ifndef CFD_DISABLE_ELEMENTS
+  g_custom_elm_addr_format_list.clear();
+#endif  // CFD_DISABLE_ELEMENTS
+}
 
 std::vector<AddressFormatData> GetBitcoinAddressFormatList() {
+  if (!g_custom_btc_addr_format_list.empty()) {
+    return g_custom_btc_addr_format_list;
+  }
   return kBitcoinAddressFormatList;
 }
+
+#ifndef CFD_DISABLE_ELEMENTS
+std::vector<AddressFormatData> GetElementsAddressFormatList() {
+  if (!g_custom_elm_addr_format_list.empty()) {
+    return g_custom_elm_addr_format_list;
+  }
+  return kElementsAddressFormatList;
+}
+#endif  // CFD_DISABLE_ELEMENTS
 
 // -----------------------------------------------------------------------------
 // Address
@@ -826,8 +976,9 @@ void Address::CalculateP2SH(const ByteData160& hash_data, uint8_t prefix) {
   // Add first to the list the Address Prefix
   uint8_t addr_prefix = prefix;
   if ((addr_prefix == 0) && (kMainnet <= type_) && (type_ <= kRegtest)) {
-    addr_prefix = kBitcoinAddressFormatList[type_].GetP2shPrefix();
-    format_data_ = kBitcoinAddressFormatList[type_];
+    auto prefix_list = GetBitcoinAddressFormatList();
+    addr_prefix = prefix_list[type_].GetP2shPrefix();
+    format_data_ = prefix_list[type_];
     SetNetType(format_data_);
   }
   address_data.insert(address_data.begin(), addr_prefix);
@@ -866,8 +1017,9 @@ void Address::CalculateP2PKH(const ByteData160& hash_data, uint8_t prefix) {
   // 　refer bitcoin definition
   uint8_t addr_prefix = prefix;
   if ((addr_prefix == 0) && (kMainnet <= type_) && (type_ <= kRegtest)) {
-    addr_prefix = kBitcoinAddressFormatList[type_].GetP2pkhPrefix();
-    format_data_ = kBitcoinAddressFormatList[type_];
+    auto prefix_list = GetBitcoinAddressFormatList();
+    addr_prefix = prefix_list[type_].GetP2pkhPrefix();
+    format_data_ = prefix_list[type_];
     SetNetType(format_data_);
   }
   pubkey_hash.insert(pubkey_hash.begin(), addr_prefix);
@@ -912,8 +1064,9 @@ void Address::CalculateP2WSH(
 
   std::string human_code = bech32_hrp;
   if (human_code.empty() && (kMainnet <= type_) && (type_ <= kRegtest)) {
-    human_code = kBitcoinAddressFormatList[type_].GetBech32Hrp();
-    format_data_ = kBitcoinAddressFormatList[type_];
+    auto prefix_list = GetBitcoinAddressFormatList();
+    human_code = prefix_list[type_].GetBech32Hrp();
+    format_data_ = prefix_list[type_];
     SetNetType(format_data_);
   }
   char* output = NULL;
@@ -951,8 +1104,9 @@ void Address::CalculateP2WPKH(
 
   std::string human_code = bech32_hrp;
   if (human_code.empty() && (kMainnet <= type_) && (type_ <= kRegtest)) {
-    human_code = kBitcoinAddressFormatList[type_].GetBech32Hrp();
-    format_data_ = kBitcoinAddressFormatList[type_];
+    auto prefix_list = GetBitcoinAddressFormatList();
+    human_code = prefix_list[type_].GetBech32Hrp();
+    format_data_ = prefix_list[type_];
     SetNetType(format_data_);
   }
   char* output = NULL;
@@ -991,8 +1145,9 @@ void Address::CalculateBech32m(
 
   std::string human_code = bech32_hrp;
   if (human_code.empty() && (kMainnet <= type_) && (type_ <= kRegtest)) {
-    human_code = kBitcoinAddressFormatList[type_].GetBech32Hrp();
-    format_data_ = kBitcoinAddressFormatList[type_];
+    auto prefix_list = GetBitcoinAddressFormatList();
+    human_code = prefix_list[type_].GetBech32Hrp();
+    format_data_ = prefix_list[type_];
     SetNetType(format_data_);
   }
   char* output = NULL;
@@ -1039,7 +1194,7 @@ void Address::DecodeAddress(
       }
     }
   } else {
-    for (const auto& param : kBitcoinAddressFormatList) {
+    for (const auto& param : GetBitcoinAddressFormatList()) {
       if (StartsWith(bs58, param.GetBech32Hrp())) {
         segwit_prefix = param.GetBech32Hrp();
         format_data_ = param;
@@ -1122,7 +1277,7 @@ void Address::DecodeAddress(
         }
       }
     } else {
-      for (const auto& param : kBitcoinAddressFormatList) {
+      for (const auto& param : GetBitcoinAddressFormatList()) {
         if (data_part[0] == param.GetP2shPrefix()) {
           SetAddressType(kP2shAddress);
           find_address_type = true;
@@ -1172,15 +1327,15 @@ void Address::SetAddressType(AddressType addr_type) {
 
 AddressFormatData Address::GetTargetFormatData(
     const std::vector<AddressFormatData>& network_parameters, NetType type) {
-  if (type == NetType::kCustomChain) {
-    throw CfdException(
-        kCfdIllegalArgumentError,
-        "CustomChain is not supported for address format list.");
-  }
   for (const auto& param : network_parameters) {
     if (type == param.GetNetType()) {
       return param;
     }
+  }
+  if (type == NetType::kCustomChain) {
+    throw CfdException(
+        kCfdIllegalArgumentError,
+        "CustomChain is not supported for address format list.");
   }
   throw CfdException(
       kCfdIllegalArgumentError, "target address format unknown error.");
@@ -1221,6 +1376,49 @@ Script Address::GetLockingScript() const {
       break;
   }
   return locking_script;
+}
+
+Address Address::GetPegoutAddress(NetType type, const Script& locking_script) {
+  return GetPegoutAddress(type, locking_script, GetBitcoinAddressFormatList());
+}
+
+Address Address::GetPegoutAddress(
+    NetType type, const Script& locking_script,
+    const AddressFormatData& network_parameter) {
+  const std::vector<AddressFormatData> params = {network_parameter};
+  return GetPegoutAddress(type, locking_script, params);
+}
+
+Address Address::GetPegoutAddress(
+    NetType type, const Script& locking_script,
+    const std::vector<AddressFormatData>& network_parameters) {
+  auto list = locking_script.GetElementList();
+  if ((!locking_script.IsPegoutScript()) || (list.size() <= 2)) {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Invalid pegout script. This script have not a pegout address.");
+  }
+
+  Script pegout_locking_script = Script(list[2].GetBinaryData());
+  auto items = pegout_locking_script.GetElementList();
+  if (pegout_locking_script.IsP2wpkhScript()) {
+    ByteData hash(items[1].GetBinaryData());
+    return Address(type, WitnessVersion::kVersion0, hash, network_parameters);
+  } else if (pegout_locking_script.IsTaprootScript()) {
+    ByteData hash(items[1].GetBinaryData());
+    return Address(type, WitnessVersion::kVersion1, hash, network_parameters);
+  } else if (pegout_locking_script.IsP2pkhScript()) {
+    ByteData160 hash(items[2].GetBinaryData());
+    return Address(type, AddressType::kP2pkhAddress, hash, network_parameters);
+  } else if (pegout_locking_script.IsP2shScript()) {
+    ByteData160 hash(items[1].GetBinaryData());
+    return Address(type, AddressType::kP2shAddress, hash, network_parameters);
+  } else {
+    throw CfdException(
+        CfdError::kCfdIllegalArgumentError,
+        "Invalid pegout script. This script is unsupported by pegout "
+        "address.");
+  }
 }
 
 }  // namespace core
