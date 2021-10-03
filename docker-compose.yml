@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  cfd-core-test:
+    container_name: 'cfd-core-builder'
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: cfd_core_base
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    command: /bin/bash -c "./tools/ci_simple_build.sh"
