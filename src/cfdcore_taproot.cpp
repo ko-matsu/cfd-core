@@ -100,7 +100,7 @@ ByteData256 TapBranch::GetBranchHash(uint8_t depth) const {
   uint8_t index = 0;
   for (const auto& node : nodes) {
     if (index > depth) break;
-    auto hasher = HashUtil(HashUtil::kSha256) << tapbranch_base;
+    HashUtil hasher = HashUtil(HashUtil::kSha256) << tapbranch_base;
     const auto& node_bytes = node.GetBytes();
     const auto& hash_bytes = hash.GetBytes();
     if (std::lexicographical_compare(
@@ -162,7 +162,7 @@ std::string TapBranch::ToString() const {
   ByteData tapbranch_base = kTaggedHash.Concat(kTaggedHash);
   auto nodes = GetNodeList();
   for (const auto& branch : branch_list_) {
-    auto hasher = HashUtil(HashUtil::kSha256) << tapbranch_base;
+    HashUtil hasher = HashUtil(HashUtil::kSha256) << tapbranch_base;
     const auto node = branch.GetCurrentBranchHash();
     const auto& node_bytes = node.GetBytes();
     const auto& hash_bytes = hash.GetBytes();
@@ -192,7 +192,7 @@ TapBranch TapBranch::ChangeTapLeaf(
     if (target_nodes.empty() || (target_nodes == nodes)) return *this;
   }
 
-  auto reverse_nodes = target_nodes;
+  std::vector<ByteData256> reverse_nodes = target_nodes;
   if (!reverse_nodes.empty()) {
     std::reverse(reverse_nodes.begin(), reverse_nodes.end());
   }
@@ -260,7 +260,7 @@ TapBranch TapBranch::ChangeTapLeaf(
       // ignore invalid target.
       if (new_branch.GetBaseHash().IsEmpty()) continue;
 
-      auto based_branch = *this;
+      TapBranch based_branch = *this;
       std::vector<TapBranch> copy_branches;
       for (size_t idx = 0; idx < target_index; ++idx) {
         copy_branches.emplace_back(branch_list_[idx]);
@@ -416,8 +416,8 @@ ByteData256 TapBranch::GetTapTweak(
     const SchnorrPubkey& internal_pubkey) const {
   ByteData256 hash = GetCurrentBranchHash();
   static auto kTaggedHash = HashUtil::Sha256("TapTweak");
-  auto hasher = HashUtil(HashUtil::kSha256)
-                << kTaggedHash << kTaggedHash << internal_pubkey.GetData();
+  HashUtil hasher = HashUtil(HashUtil::kSha256)
+                    << kTaggedHash << kTaggedHash << internal_pubkey.GetData();
   if (!hash.IsEmpty()) hasher << hash;
   return hasher.Output256();
 }
@@ -544,7 +544,7 @@ TaprootScriptTree TaprootScriptTree::FromString(
     const std::string& text, const Script& tapscript,
     const std::vector<ByteData256>& target_nodes) {
   auto branch = TapBranch::FromString(text);
-  auto check_nodes = target_nodes;
+  std::vector<ByteData256> check_nodes = target_nodes;
   if (!check_nodes.empty()) {
     TaprootScriptTree target_leaf(tapscript);
     if (check_nodes.back().Equals(target_leaf.GetTapLeafHash())) {

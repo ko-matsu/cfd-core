@@ -200,16 +200,16 @@ bool ValidatePsbtUtxo(
       pubkeys = ScriptUtil::ExtractPubkeysFromMultisigScript(redeem_script);
     } else {
       auto items = redeem_script.GetElementList();
-      for (auto item : items) {
+      for (const auto &item : items) {
         if (item.IsBinary() && Pubkey::IsValid(item.GetBinaryData())) {
           pubkeys.emplace_back(item.GetBinaryData());
         }
       }
     }
     if (!key_list.empty()) {
-      for (auto key : key_list) {
+      for (const auto &key : key_list) {
         auto cur_pubkey = key.GetPubkey();
-        for (auto pubkey : pubkeys) {
+        for (const auto &pubkey : pubkeys) {
           if (pubkey.Equals(cur_pubkey)) {
             ++count;
             break;
@@ -1860,7 +1860,7 @@ Psbt::Psbt(uint32_t psbt_version, const Transaction &transaction) {
       throw CfdException(kCfdInternalError, "psbt set tx error.");
     }
 
-    for (auto txin : txin_list) {
+    for (const auto &txin : txin_list) {
       auto txid_val = txin.GetTxid().GetData().GetBytes();
       ret = wally_tx_add_raw_input(
           tx, txid_val.data(), txid_val.size(), txin.GetVout(),
@@ -1872,7 +1872,7 @@ Psbt::Psbt(uint32_t psbt_version, const Transaction &transaction) {
         throw CfdException(kCfdInternalError, "psbt set tx input error.");
       }
     }
-    for (auto txout : txout_list) {
+    for (const auto &txout : txout_list) {
       auto script_val = txout.GetLockingScript().GetData().GetBytes();
       ret = wally_tx_add_raw_output(
           tx, static_cast<uint64_t>(txout.GetValue().GetSatoshiValue()),
@@ -2433,7 +2433,7 @@ void Psbt::SetTxInFinalScript(
   bool is_wsh = false;
   int ret;
   if (is_witness) {
-    auto last_stack = unlocking_script.back();
+    const auto &last_stack = unlocking_script.back();
     if (redeem_script.GetData().Equals(last_stack)) {
       is_wsh = true;
     } else if (Pubkey::IsValid(last_stack)) {
@@ -2451,7 +2451,7 @@ void Psbt::SetTxInFinalScript(
       throw CfdException(
           kCfdIllegalArgumentError, "psbt init witness stack error.");
     }
-    for (auto script : unlocking_script) {
+    for (const auto &script : unlocking_script) {
       auto script_val = script.GetBytes();
       ret = wally_tx_witness_stack_add(
           stacks, script_val.data(), script_val.size());
@@ -2477,7 +2477,7 @@ void Psbt::SetTxInFinalScript(
       script_sig = Script(unlocking_script[0]);
     } else {
       ScriptBuilder build;
-      for (auto script : unlocking_script) {
+      for (const auto &script : unlocking_script) {
         auto script_val = script.GetBytes();
         if (script_val.size() == 1) {
           build.AppendOperator(static_cast<ScriptType>(script_val[0]));

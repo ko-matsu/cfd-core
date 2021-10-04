@@ -80,6 +80,11 @@ ByteData::ByteData(const uint8_t single_byte) : data_(1) {
   data_[0] = single_byte;
 }
 
+ByteData& ByteData::operator=(const ByteData& object) {
+  data_ = object.data_;
+  return *this;
+}
+
 std::string ByteData::GetHex() const {
   return StringUtil::ByteToString(data_);
 }
@@ -204,6 +209,11 @@ ByteData160::ByteData160(const std::string& hex)
 ByteData160::ByteData160(const ByteData& byte_data)
     : ByteData160(byte_data.GetBytes()) {}
 
+ByteData160& ByteData160::operator=(const ByteData160& object) {
+  data_ = object.data_;
+  return *this;
+}
+
 std::string ByteData160::GetHex() const {
   return StringUtil::ByteToString(data_);
 }
@@ -274,6 +284,11 @@ std::string ByteData256::GetHex() const {
   return StringUtil::ByteToString(data_);
 }
 
+ByteData256& ByteData256::operator=(const ByteData256& object) {
+  data_ = object.data_;
+  return *this;
+}
+
 std::vector<uint8_t> ByteData256::GetBytes() const { return data_; }
 
 bool ByteData256::Empty() const { return IsEmpty(); }
@@ -313,7 +328,7 @@ Serializer::Serializer() : buffer_(8), offset_(0) {
 }
 
 Serializer::Serializer(uint32_t initial_size)
-    : buffer_(initial_size + 9), offset_(0) {
+    : buffer_(static_cast<size_t>(initial_size) + 9), offset_(0) {
   // do nothing
 }
 
@@ -333,13 +348,14 @@ Serializer& Serializer::operator=(const Serializer& object) {
 bool Serializer::IsBigEndian() { return cfd::core::IsBigEndian(); }
 
 void Serializer::CheckNeedSize(uint32_t need_size) {
+  size_t check_need_size = need_size;
   size_t size = buffer_.size() - static_cast<size_t>(offset_);
   if (size < need_size) {
     size_t cap = buffer_.capacity() - static_cast<size_t>(offset_);
-    if (cap < (need_size * 2)) {
-      buffer_.reserve(buffer_.capacity() + (need_size * 10));
+    if (cap < (check_need_size * 2)) {
+      buffer_.reserve(buffer_.capacity() + (check_need_size * 10));
     }
-    buffer_.resize(buffer_.size() + (need_size * 2));
+    buffer_.resize(buffer_.size() + (check_need_size * 2));
   }
 }
 

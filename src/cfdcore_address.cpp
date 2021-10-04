@@ -162,7 +162,7 @@ bool AddressFormatData::IsValid() const {
     if (p2pkh.GetDataSize() != 1) return false;
     auto p2sh = ByteData(map_.find(kPrefixP2sh)->second);
     if (p2sh.GetDataSize() != 1) return false;
-    auto bech32 = map_.find(kPrefixBech32Hrp)->second;
+    auto& bech32 = map_.find(kPrefixBech32Hrp)->second;
     if (bech32.empty() || (bech32.size() > 84)) return false;
   } catch (const CfdException&) {
     return false;
@@ -189,7 +189,7 @@ bool AddressFormatData::IsValidElements() const {
       auto blind_p2sh = ByteData(map_.find(kPrefixBlindP2sh)->second);
       if (blind_p2sh.GetDataSize() != 1) return false;
     }
-    auto lbech32 = map_.find(kPrefixBlindBech32Hrp)->second;
+    const auto& lbech32 = map_.find(kPrefixBlindBech32Hrp)->second;
     if (lbech32.empty() || (lbech32.size() > 995)) return false;
   } catch (const CfdException&) {
     return false;

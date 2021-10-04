@@ -58,6 +58,7 @@ ltmain.sh
 .dirstamp
 test-driver
 build
+build_ci
 .libs
 node_modules
 package-lock.json
@@ -164,3 +165,5 @@ external/*
 /doc/*.bat
 /tools/*localdebug.bat
 /tools/*localdebug.html
+
+/valgrind.log

@@ -838,7 +838,7 @@ void Script::SetStackData(const ByteData& bytedata) {
   uint32_t collect_buffer_size = 0;
   std::vector<uint8_t> collect_buffer;
   std::vector<ByteData> top_collect_buffer(2);
-  uint32_t offset = 0;
+  uint64_t offset = 0;
   while (offset < buffer.size()) {
     uint8_t view_data = buffer[offset];
     if (kOp_0 == view_data) {
@@ -907,7 +907,7 @@ void Script::SetStackData(const ByteData& bytedata) {
           /// Since OP_CHECKMULTISIG and OP_CHECKMULTISIGVERIFY are
           // in the range of OP_1-OP_16, they are excluded from
           // this conversion process.
-          uint32_t convert_count = 0;
+          size_t convert_count = 0;
           if (kUseScriptNum1.count(type) > 0) {
             if (script_stack_.size() > 1) {
               convert_count = 1;
@@ -925,8 +925,8 @@ void Script::SetStackData(const ByteData& bytedata) {
           static constexpr uint32_t kMaxArray = 5;
           if ((convert_count != 0) && (convert_count <= kMaxArray)) {
             int64_t values[kMaxArray];
-            uint32_t stack_offset =
-                static_cast<uint32_t>(script_stack_.size());
+            memset(values, 0, sizeof(values));
+            size_t stack_offset = script_stack_.size();
             stack_offset -= convert_count + 1;
             uint32_t check_count = 0;
             for (uint32_t index = 0; index < convert_count; ++index) {

@@ -20,7 +20,7 @@ namespace core {
 
 using logger::warn;
 
-Amount::Amount() : amount_(0) {
+Amount::Amount() : amount_(0), ignore_check_(false) {
   // do nothing
 }
 

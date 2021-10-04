@@ -3,10 +3,10 @@ name: sprint pre-merge check
 on: 
   push:
     branches:
-    - features/sprint*
+    - features/*
   pull_request:
     branches:
-    - features/sprint*
+    - features/*
 
 env:
   CMAKE_VERSION: 3.21.2
@@ -14,18 +14,30 @@ env:
 jobs:
   cmake-win:
     name: cmake build-win
-    runs-on: windows-2019
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        generator: ['Visual Studio 16 2019', 'MSYS Makefiles']
+        os: [windows-2019, windows-2022]
+        generator: ['MSYS Makefiles']
         shared: [on]
+        include:
+          - os: windows-2019
+            shared: on
+            generator: 'Visual Studio 16 2019'
+          - os: windows-2022
+            shared: on
+            generator: 'Visual Studio 17 2022'
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: cmake_version
       run: cmake --version
-    - name: cmake_generage
+    - name: cmake_generage msys
+      if: matrix.generator == 'MSYS Makefiles'
       run: cmake -S . -B build -G "${{ matrix.generator }}" -DENABLE_SHARED=${{ matrix.shared }} -DENABLE_TESTS=on
+    - name: cmake_generage vs
+      if: matrix.generator != 'MSYS Makefiles'
+      run: cmake -S . -B build -G "${{ matrix.generator }}" -A x64 -DENABLE_SHARED=${{ matrix.shared }} -DENABLE_TESTS=on
     - name: cmake_build
       run: cmake --build build --config Release --parallel 4
     - name: ctest

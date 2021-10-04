@@ -99,7 +99,8 @@ std::string DescriptorKeyInfo::GetExtPubkeyInformation(
   return result;
 }
 
-DescriptorKeyInfo::DescriptorKeyInfo() {
+DescriptorKeyInfo::DescriptorKeyInfo()
+    : key_type_(DescriptorKeyType::kDescriptorKeyNull) {
   // do nothing
 }
 
@@ -391,6 +392,10 @@ SchnorrPubkey DescriptorKeyReference::GetSchnorrPubkey() const {
   return schnorr_pubkey_;
 }
 
+bool DescriptorKeyReference::HasSchnorrPubkey() const {
+  return key_type_ == DescriptorKeyType::kDescriptorKeySchnorr;
+}
+
 std::string DescriptorKeyReference::GetArgument() const { return argument_; }
 
 bool DescriptorKeyReference::HasExtPubkey() const {
@@ -443,6 +448,7 @@ DescriptorKeyType DescriptorKeyReference::GetKeyType() const {
 DescriptorScriptReference::DescriptorScriptReference()
     : script_type_(DescriptorScriptType::kDescriptorScriptNull),
       is_script_(false),
+      req_num_(0),
       is_tapbranch_(false) {
   // do nothing
 }
@@ -453,6 +459,7 @@ DescriptorScriptReference::DescriptorScriptReference(
     : script_type_(script_type),
       locking_script_(locking_script),
       is_script_(false),
+      req_num_(0),
       is_tapbranch_(false),
       addr_prefixes_(address_prefixes) {
   if ((script_type != DescriptorScriptType::kDescriptorScriptRaw) &&
@@ -472,6 +479,7 @@ DescriptorScriptReference::DescriptorScriptReference(
     : script_type_(script_type),
       locking_script_(locking_script),
       is_script_(true),
+      req_num_(0),
       is_tapbranch_(false),
       addr_prefixes_(address_prefixes) {
   redeem_script_ = child_script.locking_script_;
@@ -500,6 +508,7 @@ DescriptorScriptReference::DescriptorScriptReference(
       locking_script_(address_script.GetLockingScript()),
       is_script_(false),
       address_script_(address_script),
+      req_num_(0),
       is_tapbranch_(false),
       addr_prefixes_(address_prefixes) {
   // do nothing
@@ -513,6 +522,7 @@ DescriptorScriptReference::DescriptorScriptReference(
     : script_type_(script_type),
       locking_script_(locking_script),
       is_script_(false),
+      req_num_(0),
       tapbranch_(tapbranch),
       is_tapbranch_(true),
       keys_(key_list),
@@ -528,6 +538,7 @@ DescriptorScriptReference::DescriptorScriptReference(
     : script_type_(script_type),
       locking_script_(locking_script),
       is_script_(false),
+      req_num_(0),
       is_tapbranch_(false),
       script_tree_(script_tree),
       keys_(key_list),
@@ -1498,7 +1509,7 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
 }
 
 void DescriptorNode::AnalyzeScriptTree() {
-  auto desc = value_;
+  const auto& desc = value_;
 
   uint32_t script_depth = 0;
   size_t offset = 0;
@@ -2098,7 +2109,8 @@ Descriptor Descriptor::CreateDescriptor(
               CfdError::kCfdIllegalArgumentError,
               "Failed to createDescriptor. key list is empty.");
         }
-        if ((!p_data->multisig) && (key_info_list.size() > 1)) {
+        if ((p_data != nullptr) && (!p_data->multisig) &&
+            (key_info_list.size() > 1)) {
           warn(CFD_LOG_SOURCE, "multiple key is multisig only.");
           throw CfdException(
               CfdError::kCfdIllegalArgumentError,
@@ -2125,7 +2137,12 @@ Descriptor Descriptor::CreateDescriptor(
         break;
     }
 
-    if (key_text.empty()) {
+    if (p_data == nullptr) {
+      warn(CFD_LOG_SOURCE, "Failed to script type.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to script type. this type is unsupported.");
+    } else if (key_text.empty()) {
       output_descriptor = p_data->name + "(" + output_descriptor + ")";
     } else if (p_data->multisig) {
       output_descriptor = p_data->name + "(" + std::to_string(require_num) +
@@ -2236,7 +2253,7 @@ std::vector<KeyData> Descriptor::GetKeyDataAll(
   std::vector<KeyData> result;
 
   for (const auto& ref : ref_list) {
-    auto script_data = ref;
+    DescriptorScriptReference script_data = ref;
     do {
       if (script_data.HasKey()) {
         auto key_list = script_data.GetKeyList();

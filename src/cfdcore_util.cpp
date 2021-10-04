@@ -1159,15 +1159,16 @@ std::vector<uint32_t> RandomNumberUtil::GetRandomIndexes(uint32_t length) {
   std::vector<uint32_t> result(length);
   std::set<uint32_t> exist_value;
   uint32_t value;
+  size_t check_len = length;
 
-  if (length == 1) {
+  if (check_len == 1) {
     result[0] = 0;
-  } else if (length > 1) {
+  } else if (check_len > 1) {
     uint32_t index = 0;
-    while (index < (length - 1)) {
+    while (index < (check_len - 1)) {
       value = dist(engine);
-      if (value >= length) {
-        value /= length;
+      if (value >= check_len) {
+        value /= static_cast<uint32_t>(check_len);
       }
       if ((exist_value.empty()) || (exist_value.count(value) == 0)) {  // MSVC
         result[index] = value;
@@ -1176,9 +1177,9 @@ std::vector<uint32_t> RandomNumberUtil::GetRandomIndexes(uint32_t length) {
       }
     }
 
-    for (value = 0; value < length; ++value) {
+    for (value = 0; value < check_len; ++value) {
       if (exist_value.count(value) == 0) {
-        result[length - 1] = value;
+        result[check_len - 1] = value;
         break;
       }
     }
