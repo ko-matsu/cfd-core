@@ -3,10 +3,10 @@ name: sprint pre-merge check
 on: 
   push:
     branches:
-    - features/sprint*
+    - features/*
   pull_request:
     branches:
-    - features/sprint*
+    - features/*
 
 env:
   CMAKE_VERSION: 3.21.2
