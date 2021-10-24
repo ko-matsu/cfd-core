@@ -2044,7 +2044,8 @@ Descriptor Descriptor::Parse(
     network_pefixes = GetBitcoinAddressFormatList();
   }
   Descriptor desc;
-  desc.root_node_ = DescriptorNode::Parse(output_descriptor, network_pefixes, network_type);
+  desc.root_node_ =
+      DescriptorNode::Parse(output_descriptor, network_pefixes, network_type);
   return desc;
 }
 

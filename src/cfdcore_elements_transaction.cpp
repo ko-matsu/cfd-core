@@ -3132,9 +3132,9 @@ ByteData256 ConfidentialTransaction::GetElementsSignatureHash(
 
 ByteData256 ConfidentialTransaction::GetElementsSchnorrSignatureHash(
     uint32_t txin_index, SigHashType sighash_type,
-    const BlockHash& genesis_block_hash,
-    const std::vector<ConfidentialTxOut>& utxo_list,
-    const TapScriptData* script_data, const ByteData& annex) const {
+    const BlockHash &genesis_block_hash,
+    const std::vector<ConfidentialTxOut> &utxo_list,
+    const TapScriptData *script_data, const ByteData &annex) const {
   CheckTxInIndex(txin_index, __LINE__, __FUNCTION__);
   if (this->vin_.size() > utxo_list.size()) {
     warn(CFD_LOG_SOURCE, "not enough utxo list.");

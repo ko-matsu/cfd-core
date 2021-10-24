@@ -33,15 +33,17 @@ using logger::warn;
 TapBranch::TapBranch() : TapBranch(NetType::kMainnet) {}
 
 TapBranch::TapBranch(NetType network_type)
-  : has_leaf_(false), leaf_version_(0),
-   is_elements_(IsElementsNetwork(network_type)) {}
+    : has_leaf_(false),
+      leaf_version_(0),
+      is_elements_(IsElementsNetwork(network_type)) {}
 
 TapBranch::TapBranch(const ByteData256& commitment)
     : TapBranch(commitment, NetType::kMainnet) {}
 
 TapBranch::TapBranch(const ByteData256& commitment, NetType network_type)
-    : has_leaf_(false), leaf_version_(0), 
-    is_elements_(IsElementsNetwork(network_type)) {
+    : has_leaf_(false),
+      leaf_version_(0),
+      is_elements_(IsElementsNetwork(network_type)) {
   root_commitment_ = commitment;
 }
 
@@ -324,7 +326,8 @@ TapBranch TapBranch::FromString(
     return false;
   };
 
-  static auto analyze_func = [](const std::string& target, NetType network_type) -> TapBranch {
+  static auto analyze_func = [](const std::string& target,
+                                NetType network_type) -> TapBranch {
     TapBranch result;
     if (*target.begin() == '{') {
       result = TapBranch::FromString(target, network_type);  // analyze branch
@@ -486,16 +489,16 @@ void TapBranch::SetElementsFlag(bool is_elements) {
   is_elements_ = is_elements;
 }
 
-bool TapBranch::IsElements() const {  return is_elements_; }
+bool TapBranch::IsElements() const { return is_elements_; }
 
 // ----------------------------------------------------------------------------
 // TaprootScriptTree
 // ----------------------------------------------------------------------------
 TaprootScriptTree::TaprootScriptTree()
-  : TaprootScriptTree(NetType::kMainnet) {}
+    : TaprootScriptTree(NetType::kMainnet) {}
 
-TaprootScriptTree::TaprootScriptTree(
-    NetType network_type) : TapBranch(network_type) {
+TaprootScriptTree::TaprootScriptTree(NetType network_type)
+    : TapBranch(network_type) {
   has_leaf_ = true;
   leaf_version_ = kTapScriptLeafVersion;
 }
@@ -503,12 +506,13 @@ TaprootScriptTree::TaprootScriptTree(
 TaprootScriptTree::TaprootScriptTree(const Script& script)
     : TaprootScriptTree(kTapScriptLeafVersion, script) {}
 
-TaprootScriptTree::TaprootScriptTree(const Script& script, NetType network_type)
+TaprootScriptTree::TaprootScriptTree(
+    const Script& script, NetType network_type)
     : TaprootScriptTree(kTapScriptLeafVersion, script, network_type) {}
 
 TaprootScriptTree::TaprootScriptTree(
     uint8_t leaf_version, const Script& script)
-     : TaprootScriptTree(leaf_version, script, NetType::kMainnet) {}
+    : TaprootScriptTree(leaf_version, script, NetType::kMainnet) {}
 
 TaprootScriptTree::TaprootScriptTree(
     uint8_t leaf_version, const Script& script, NetType network_type)
@@ -660,8 +664,7 @@ bool TaprootUtil::VerifyTaprootCommitment(
     const SchnorrPubkey& target_taproot,  // witness program
     const SchnorrPubkey& internal_pubkey,
     const std::vector<ByteData256>& nodes, const Script& tapscript,
-    ByteData256* tapleaf_hash,
-    NetType network_type) {
+    ByteData256* tapleaf_hash, NetType network_type) {
   if (nodes.size() > TaprootScriptTree::kTaprootControlMaxNodeCount) {
     warn(CFD_LOG_SOURCE, "control node maximum over. [{}]", nodes.size());
     return false;
