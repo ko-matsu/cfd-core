@@ -862,9 +862,9 @@ ByteData256 ConfidentialTxIn::GetWitnessHash() const {
 uint8_t ConfidentialTxIn::GetOutPointFlag() const {
   uint32_t flag = 0;
   if (!asset_entropy_.IsEmpty()) {
-    flag = WALLY_TX_ISSUANCE_FLAG;
+    flag = static_cast<uint32_t>(WALLY_TX_ISSUANCE_FLAG);
   } else if (!pegin_witness_.IsEmpty()) {
-    flag = WALLY_TX_PEGIN_FLAG;
+    flag = static_cast<uint32_t>(WALLY_TX_PEGIN_FLAG);
   }
   return static_cast<uint8_t>(flag >> 24);
 }
