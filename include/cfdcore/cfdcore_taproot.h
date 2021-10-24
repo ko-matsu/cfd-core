@@ -32,7 +32,7 @@ class CFD_CORE_EXPORT TapBranch {
    * @brief default constructor.
    * @param[in] network_type    network type
    */
-  TapBranch(NetType network_type);
+  explicit TapBranch(NetType network_type);
   /**
    * @brief constructor.
    * @param[in] commitment      commitment
@@ -151,6 +151,10 @@ class CFD_CORE_EXPORT TapBranch {
    */
   bool IsFindTapScript(const Script& tapscript) const;
 
+  /**
+   * @brief Get elements flag
+   * @return elements flag
+   */
   bool IsElements() const;
 
   /**
@@ -179,6 +183,10 @@ class CFD_CORE_EXPORT TapBranch {
   static TapBranch FromString(
       const std::string& text, NetType network_type = NetType::kMainnet);
 
+  /**
+   * @brief Set elements flag
+   * @param[in] is_elements    elements flag
+   */
   void SetElementsFlag(bool is_elements);
 
  protected:
@@ -189,9 +197,27 @@ class CFD_CORE_EXPORT TapBranch {
   std::vector<TapBranch> branch_list_;  //!< branch list
   bool is_elements_;                    //!< elements mode
 
+  /**
+   * @brief Get TapTweak tagged.
+   * @return TapTweak tagged
+   */
   ByteData256 GetTapTweakTagged() const;
+  /**
+   * @brief Get TapLeaf tagged.
+   * @return TapLeaf tagged
+   */
   ByteData256 GetTapLeafTagged() const;
+  /**
+   * @brief Get TapBranch tagged.
+   * @return TapBranch tagged
+   */
   ByteData256 GetTapBranchTagged() const;
+
+  /**
+   * @brief Get elements flag
+   * @param[in] net_type    network type
+   * @return elements flag
+   */
   static bool IsElementsNetwork(NetType net_type);
 };
 
@@ -216,8 +242,9 @@ class CFD_CORE_EXPORT TaprootScriptTree : public TapBranch {
   TaprootScriptTree();
   /**
    * @brief constructor.
+   * @param[in] network_type    network type
    */
-  TaprootScriptTree(NetType network_type);
+  explicit TaprootScriptTree(NetType network_type);
   /**
    * @brief constructor.
    * @param[in] script  tapscript
@@ -363,6 +390,7 @@ class CFD_CORE_EXPORT TaprootUtil {
    * @param[in] nodes               taptree node list
    * @param[in] tapscript           tapscript
    * @param[out] tapleaf_hash       tapleaf hash
+   * @param[in] network_type        network type
    * @retval true   valid
    * @retval false  invalid
    */
