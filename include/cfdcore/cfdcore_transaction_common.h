@@ -23,6 +23,18 @@
 namespace cfd {
 namespace core {
 
+//! OP_CODESEPARATOR default position
+constexpr const uint32_t kDefaultCodeSeparatorPosition = 0xffffffff;
+
+/**
+ * @brief Tapscript data struct.
+ */
+struct TapScriptData {
+  ByteData256 tap_leaf_hash;  //!< tapleaf hash
+  //! OP_CODESEPARATOR position
+  uint32_t code_separator_position = kDefaultCodeSeparatorPosition;
+};
+
 /**
  * @brief Hash type definition
  */

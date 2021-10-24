@@ -24,18 +24,6 @@
 namespace cfd {
 namespace core {
 
-//! OP_CODESEPARATOR default position
-constexpr const uint32_t kDefaultCodeSeparatorPosition = 0xffffffff;
-
-/**
- * @brief Tapscript data struct.
- */
-struct TapScriptData {
-  ByteData256 tap_leaf_hash;  //!< tapleaf hash
-  //! OP_CODESEPARATOR position
-  uint32_t code_separator_position = kDefaultCodeSeparatorPosition;
-};
-
 //! transaction callback type: add txin
 constexpr const uint32_t kStateChangeAddTxIn = 0x00000001;
 //! transaction callback type: update txin

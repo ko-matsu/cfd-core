@@ -16,6 +16,7 @@ using cfd::core::Privkey;
 using cfd::core::Pubkey;
 using cfd::core::SchnorrPubkey;
 using cfd::core::ByteData256;
+using cfd::core::NetType;
 using cfd::core::Script;
 using cfd::core::ScriptBuilder;
 using cfd::core::ScriptOperator;
@@ -38,6 +39,34 @@ TEST(TapBranch, Empty) {
   EXPECT_EQ("cc3b1538e0c8144375f71e848b12d609d743992fddfc60dd6ca9b33b8392f27a",
       tree.GetTweakedPubkey(schnorr_pubkey).GetHex());
   EXPECT_EQ("3a56ec9129732312a78db4b845138a3180c102621d7381ae6e6a5d530f14856a",
+      tree.GetTweakedPrivkey(key).GetHex());
+  EXPECT_FALSE(tree.HasTapLeaf());
+  EXPECT_EQ("", tree.ToString());
+
+  ByteData256 msg("e5b11ddceab1e4fc49a8132ae589a39b07acf49cabb2b0fbf6104bc31da12c02");
+  auto pk = tree.GetTweakedPubkey(schnorr_pubkey);
+  auto sk = tree.GetTweakedPrivkey(key);
+  auto sig = SchnorrUtil::Sign(msg, sk);
+  EXPECT_TRUE(pk.Verify(sig, msg));
+}
+
+TEST(TapBranch, Empty_ByElements) {
+  Privkey key("305e293b010d29bf3c888b617763a438fee9054c8cab66eb12ad078f819d9f27");
+  Pubkey pubkey = key.GeneratePubkey();
+  bool is_parity = false;
+  SchnorrPubkey schnorr_pubkey = SchnorrPubkey::FromPubkey(pubkey, &is_parity);
+  EXPECT_EQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+      schnorr_pubkey.GetHex());
+  EXPECT_TRUE(is_parity);
+
+  TapBranch tree(NetType::kLiquidV1);
+  EXPECT_EQ("0000000000000000000000000000000000000000000000000000000000000000",
+      tree.GetBaseHash().GetHex());
+  EXPECT_EQ("0000000000000000000000000000000000000000000000000000000000000000",
+      tree.GetCurrentBranchHash().GetHex());
+  EXPECT_EQ("d5b7aa439d4a378acfedc04dfd5da10a527076b716d74ee8e0dc8625fc58dc84",
+      tree.GetTweakedPubkey(schnorr_pubkey).GetHex());
+  EXPECT_EQ("8001c27b1d528df2e94f43698fa4a6cbe234f875c2d8e2d2cde15c0d2f38f546",
       tree.GetTweakedPrivkey(key).GetHex());
   EXPECT_FALSE(tree.HasTapLeaf());
   EXPECT_EQ("", tree.ToString());

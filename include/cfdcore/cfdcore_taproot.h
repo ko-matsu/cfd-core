@@ -29,10 +29,21 @@ class CFD_CORE_EXPORT TapBranch {
    */
   TapBranch();
   /**
+   * @brief default constructor.
+   * @param[in] network_type    network type
+   */
+  TapBranch(NetType network_type);
+  /**
    * @brief constructor.
    * @param[in] commitment      commitment
    */
   explicit TapBranch(const ByteData256& commitment);
+  /**
+   * @brief constructor.
+   * @param[in] commitment      commitment
+   * @param[in] network_type    network type
+   */
+  explicit TapBranch(const ByteData256& commitment, NetType network_type);
   /**
    * @brief copy constructor.
    * @param[in] branch    branch object
@@ -140,6 +151,8 @@ class CFD_CORE_EXPORT TapBranch {
    */
   bool IsFindTapScript(const Script& tapscript) const;
 
+  bool IsElements() const;
+
   /**
    * @brief Get a string format. (cfd original)
    * @return text data.
@@ -158,11 +171,15 @@ class CFD_CORE_EXPORT TapBranch {
 
   /**
    * @brief Convert from string format. (cfd original)
-   * @param[in] text        string format.
+   * @param[in] text            string format.
+   * @param[in] network_type    network type
    * @return object
    * @see TapBranch::ToString()
    */
-  static TapBranch FromString(const std::string& text);
+  static TapBranch FromString(
+      const std::string& text, NetType network_type = NetType::kMainnet);
+
+  void SetElementsFlag(bool is_elements);
 
  protected:
   bool has_leaf_;                       //!< exist leaf
@@ -170,6 +187,12 @@ class CFD_CORE_EXPORT TapBranch {
   Script script_;                       //!< tapscript
   ByteData256 root_commitment_;         //!< root commitment data
   std::vector<TapBranch> branch_list_;  //!< branch list
+  bool is_elements_;                    //!< elements mode
+
+  ByteData256 GetTapTweakTagged() const;
+  ByteData256 GetTapLeafTagged() const;
+  ByteData256 GetTapBranchTagged() const;
+  static bool IsElementsNetwork(NetType net_type);
 };
 
 /**
@@ -193,15 +216,33 @@ class CFD_CORE_EXPORT TaprootScriptTree : public TapBranch {
   TaprootScriptTree();
   /**
    * @brief constructor.
+   */
+  TaprootScriptTree(NetType network_type);
+  /**
+   * @brief constructor.
    * @param[in] script  tapscript
    */
   explicit TaprootScriptTree(const Script& script);
+  /**
+   * @brief constructor.
+   * @param[in] script  tapscript
+   * @param[in] network_type    network type
+   */
+  explicit TaprootScriptTree(const Script& script, NetType network_type);
   /**
    * @brief constructor.
    * @param[in] leaf_version    leaf version
    * @param[in] script          tapscript
    */
   explicit TaprootScriptTree(uint8_t leaf_version, const Script& script);
+  /**
+   * @brief constructor.
+   * @param[in] leaf_version    leaf version
+   * @param[in] script          tapscript
+   * @param[in] network_type    network type
+   */
+  explicit TaprootScriptTree(
+      uint8_t leaf_version, const Script& script, NetType network_type);
   /**
    * @brief constructor. convert from tapleaf branch.
    * @param[in] leaf_branch    leaf branch
@@ -268,13 +309,15 @@ class CFD_CORE_EXPORT TaprootScriptTree : public TapBranch {
    * @param[in] text            string format.
    * @param[in] tapscript       leaf tapscript.
    * @param[in] target_nodes    target nodes.
+   * @param[in] network_type    network type
    * @return object
    * @see TapBranch::FromString()
    */
   static TaprootScriptTree FromString(
       const std::string& text, const Script& tapscript,
       const std::vector<ByteData256>& target_nodes =
-          std::vector<ByteData256>());
+          std::vector<ByteData256>(),
+      NetType network_type = NetType::kMainnet);
 
  private:
   std::vector<ByteData256> nodes_;  //!< node list
@@ -328,7 +371,8 @@ class CFD_CORE_EXPORT TaprootUtil {
       const SchnorrPubkey& target_taproot,
       const SchnorrPubkey& internal_pubkey,
       const std::vector<ByteData256>& nodes, const Script& tapscript,
-      ByteData256* tapleaf_hash = nullptr);
+      ByteData256* tapleaf_hash = nullptr,
+      NetType network_type = NetType::kMainnet);
 
   /**
    * @brief Parse taproot sign (witness stack) data

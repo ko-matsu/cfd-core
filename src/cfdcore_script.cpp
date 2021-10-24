@@ -183,12 +183,40 @@ const ScriptOperator ScriptOperator::OP_CHECKSIGFROMSTACK(
     kOpCheckSigFromStack, "OP_CHECKSIGFROMSTACK");
 const ScriptOperator ScriptOperator::OP_CHECKSIGFROMSTACKVERIFY(
     kOpCheckSigFromStackVerify, "OP_CHECKSIGFROMSTACKVERIFY");
-const ScriptOperator ScriptOperator::OP_SMALLINTEGER(
-    kOpSmallInteger, "OP_SMALLINTEGER");
-const ScriptOperator ScriptOperator::OP_PUBKEYS(kOpPubkeys, "OP_PUBKEYS");
-const ScriptOperator ScriptOperator::OP_PUBKEYHASH(
-    kOpPubkeyHash, "OP_PUBKEYHASH");
-const ScriptOperator ScriptOperator::OP_PUBKEY(kOpPubkey, "OP_PUBKEY");
+const ScriptOperator ScriptOperator::OP_SHA256INITIALIZE(kOpSha256Initialize, "OP_SHA256INITIALIZE");
+const ScriptOperator ScriptOperator::OP_SHA256UPDATE(kOpSha256Update, "OP_SHA256UPDATE");
+const ScriptOperator ScriptOperator::OP_SHA256FINALIZE(kOpSha256Finalize, "OP_SHA256FINALIZE");
+const ScriptOperator ScriptOperator::OP_INSPECTINPUTOUTPOINT(kOpInspectInputOutPint, "OP_INSPECTINPUTOUTPOINT");
+const ScriptOperator ScriptOperator::OP_INSPECTINPUTASSET(kOpInspectInputAsset, "OP_INSPECTINPUTASSET");
+const ScriptOperator ScriptOperator::OP_INSPECTINPUTVALUE(kOpInspectInputValue, "OP_INSPECTINPUTVALUE");
+const ScriptOperator ScriptOperator::OP_INSPECTINPUTSCRIPTPUBKEY(kOpInspectInputScriptPubkey, "OP_INSPECTINPUTSCRIPTPUBKEY");
+const ScriptOperator ScriptOperator::OP_INSPECTINPUTSEQUENCE(kOpInspectInputSequence, "OP_INSPECTINPUTSEQUENCE");
+const ScriptOperator ScriptOperator::OP_INSPECTINPUTISSUANCE(kOpInspectInputIssuance, "OP_INSPECTINPUTISSUANCE");
+const ScriptOperator ScriptOperator::OP_PUSHCURRENTINPUTINDEX(kOpPushCurrentInputIndex, "OP_PUSHCURRENTINPUTINDEX");
+const ScriptOperator ScriptOperator::OP_INSPECTOUTPUTASSET(kOpInspectOutputAsset, "OP_INSPECTOUTPUTASSET");
+const ScriptOperator ScriptOperator::OP_INSPECTOUTPUTVALUE(kOpInspectOutputValue, "OP_INSPECTOUTPUTVALUE");
+const ScriptOperator ScriptOperator::OP_INSPECTOUTPUTNONCE(kOpInspectOutputNonce, "OP_INSPECTOUTPUTNONCE");
+const ScriptOperator ScriptOperator::OP_INSPECTOUTPUTSCRIPTPUBKEY(kOpInspectOutputScriptPubkey, "OP_INSPECTOUTPUTSCRIPTPUBKEY");
+const ScriptOperator ScriptOperator::OP_INSPECTVERSION(kOpInspectVersion, "OP_INSPECTVERSION");
+const ScriptOperator ScriptOperator::OP_INSPECTLOCKTIME(kOpInspectLocktime, "OP_INSPECTLOCKTIME");
+const ScriptOperator ScriptOperator::OP_INSPECTNUMINPUTS(kOpInspectNumInputs, "OP_INSPECTNUMINPUTS");
+const ScriptOperator ScriptOperator::OP_INSPECTNUMOUTPUTS(kOpInspectNumOutputs, "OP_INSPECTNUMOUTPUTS");
+const ScriptOperator ScriptOperator::OP_TXWEIGHT(kOpTxWeight, "OP_TXWEIGHT");
+const ScriptOperator ScriptOperator::OP_ADD64(kOpAdd64, "OP_ADD64");
+const ScriptOperator ScriptOperator::OP_SUB64(kOpSub64, "OP_SUB64");
+const ScriptOperator ScriptOperator::OP_MUL64(kOpMul64, "OP_MUL64");
+const ScriptOperator ScriptOperator::OP_DIV64(kOpDiv64, "OP_DIV64");
+const ScriptOperator ScriptOperator::OP_NEG64(kOpNeg64, "OP_NEG64");
+const ScriptOperator ScriptOperator::OP_LESSTHAN64(kOpLessThan64, "OP_LESSTHAN64");
+const ScriptOperator ScriptOperator::OP_LESSTHANOREQUAL64(kOpLessThanOrEqual64, "OP_LESSTHANOREQUAL64");
+const ScriptOperator ScriptOperator::OP_GREATERTHAN64(kOpGreaterThan64, "OP_GREATERTHAN64");
+const ScriptOperator ScriptOperator::OP_GREATERTHANOREQUAL64(kOpGreaterThanOrEqual64, "OP_GREATERTHANOREQUAL64");
+const ScriptOperator ScriptOperator::OP_SCRIPTNUMTOLE64(kOpScriptNumToLE64, "OP_SCRIPTNUMTOLE64");
+const ScriptOperator ScriptOperator::OP_LE64TOSCRIPTNUM(kOpLE64ToScriptNum, "OP_LE64TOSCRIPTNUM");
+const ScriptOperator ScriptOperator::OP_LE32TOLE64(kOpLE32ToLE64, "OP_LE32TOLE64");
+const ScriptOperator ScriptOperator::OP_ECMULSCALARVERIFY(kOpEcMulScalarVerify, "OP_ECMULSCALARVERIFY");
+const ScriptOperator ScriptOperator::OP_TWEAKVERIFY(kOpTweakVerify, "OP_TWEAKVERIFY");
+
 #endif  // CFD_DISABLE_ELEMENTS
 const ScriptOperator ScriptOperator::OP_SUCCESS80(
     kOpSuccess80, "OP_SUCCESS80");
@@ -478,13 +506,12 @@ bool ScriptOperator::IsOpSuccess(ScriptType op_code, bool is_elements) {
       ((op_code >= kOpSuccess141) && (op_code <= kOpSuccess142)) ||
       ((op_code >= kOpSuccess149) && (op_code <= kOpSuccess153)) ||
       ((op_code >= kOpSuccess187) && (op_code <= kOpSuccess191)) ||
-      ((op_code >= kOpSuccess195) && (op_code <= kOpSuccess249)) ||
-      (op_code == kOpSuccess252)) {
+      (op_code == kOpSuccess195) ||
+      ((op_code >= kOpSuccess229) && (op_code <= kOpSuccess254))) {
     return true;
   } else if (!is_elements) {
     if (((op_code >= kOpSuccess192) && (op_code <= kOpSuccess194)) ||
-        ((op_code >= kOpSuccess250) && (op_code <= kOpSuccess251)) ||
-        ((op_code >= kOpSuccess253) && (op_code <= kOpSuccess254))) {
+        ((op_code >= kOpSuccess196) && (op_code <= kOpSuccess228))) {
       return true;
     }
   }
@@ -804,34 +831,77 @@ Script& Script::operator=(const Script& object) & {
   return *this;
 }
 
+/// a map to search ScriptType using script stack count.
+static const std::set<ScriptType> kUseScriptNum1{
+    kOpCheckSequenceVerify,
+    kOpCheckLockTimeVerify,
+    kOp1Add,
+    kOp1Sub,
+    kOpNegate,
+    kOpAbs,
+    kOpNot,
+    kOp0NotEqual,
+    kOpPick,
+    kOpRoll,
+#ifndef CFD_DISABLE_ELEMENTS
+    kOpSha256Initialize,
+    kOpInspectInputOutPint,
+    kOpInspectInputAsset,
+    kOpInspectInputValue,
+    kOpInspectInputScriptPubkey,
+    kOpInspectInputSequence,
+    kOpInspectInputIssuance,
+    kOpInspectOutputAsset,
+    kOpInspectOutputValue,
+    kOpInspectOutputNonce,
+    kOpInspectOutputScriptPubkey,
+    kOpNeg64,
+    kOpScriptNumToLE64,
+    kOpLE64ToScriptNum,
+    kOpLE32ToLE64,
+#endif  // CFD_DISABLE_ELEMENTS
+};
+/// a map to search ScriptType using script stack count.
+static const std::set<ScriptType> kUseScriptNum2{
+    kOpAdd,
+    kOpSub,
+    kOpGreaterThan,
+    kOpBoolOr,
+    kOpNumEqual,
+    kOpNumEqualVerify,
+    kOpNumNotEqual,
+    kOpLessThan,
+    kOpBoolAnd,
+    kOpLessThanOrEqual,
+    kOpMin,
+    kOpMax,
+    kOpGreaterThanOrEqual,
+#ifndef CFD_DISABLE_ELEMENTS
+    kOpSha256Update,
+    kOpSha256Finalize,
+    kOpAdd64,
+    kOpSub64,
+    kOpMul64,
+    kOpDiv64,
+    kOpLessThan64,
+    kOpLessThanOrEqual64,
+    kOpGreaterThan64,
+    kOpGreaterThanOrEqual64,
+#endif  // CFD_DISABLE_ELEMENTS
+};
+/// a map to search ScriptType using script stack count.
+static const std::set<ScriptType> kUseScriptNum3{
+    kOpWithIn,
+    kOpCheckSigAdd,
+#ifndef CFD_DISABLE_ELEMENTS
+    kOpDeterministricRandom,
+    kOpCheckSigFromStack,
+    kOpCheckSigFromStackVerify,
+#endif  // CFD_DISABLE_ELEMENTS
+};
+
 void Script::SetStackData(const ByteData& bytedata) {
   std::vector<uint8_t> buffer = bytedata.GetBytes();
-  static const std::set<ScriptType> kUseScriptNum1{
-      kOpCheckSequenceVerify,
-      kOpCheckLockTimeVerify,
-      kOp1Add,
-      kOp1Sub,
-      kOpNegate,
-      kOpAbs,
-      kOpNot,
-      kOp0NotEqual,
-      kOpPick,
-      kOpRoll};
-  static const std::set<ScriptType> kUseScriptNum2{
-      kOpAdd,
-      kOpSub,
-      kOpGreaterThan,
-      kOpBoolOr,
-      kOpNumEqual,
-      kOpNumEqualVerify,
-      kOpNumNotEqual,
-      kOpLessThan,
-      kOpBoolAnd,
-      kOpLessThanOrEqual,
-      kOpMin,
-      kOpMax,
-      kOpGreaterThanOrEqual};
-  static const std::set<ScriptType> kUseScriptNum3{kOpWithIn, kOpCheckSigAdd};
 
   // create stack
   bool is_collect_buffer = false;

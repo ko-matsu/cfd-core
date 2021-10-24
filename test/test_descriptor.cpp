@@ -1059,6 +1059,36 @@ TEST(Descriptor, Parse_Taproot_pubkey) {
     EXPECT_STREQ("Failed to taproot key. taproot is xonly pubkey only.",
         except.what());
   }
+
+  // for elements
+  try {
+    desc = Descriptor::ParseElements(descriptor1);
+  } catch (const CfdException& except) {
+    EXPECT_STREQ(except.what(), "");
+  }
+
+  EXPECT_NO_THROW(script_ref = desc.GetReference());
+  EXPECT_NO_THROW(node = desc.GetNode());
+  EXPECT_TRUE(script_ref.HasKey());
+  EXPECT_TRUE(script_ref.HasAddress());
+  EXPECT_EQ(1, script_ref.GetKeyNum());
+  EXPECT_FALSE(script_ref.HasChild());
+  EXPECT_FALSE(script_ref.HasReqNum());
+  EXPECT_FALSE(script_ref.HasRedeemScript());
+  EXPECT_FALSE(script_ref.HasScriptTree());
+  EXPECT_NO_THROW(locking_script = desc.GetLockingScript());
+  EXPECT_NO_THROW(desc_str = desc.ToString(false));
+  EXPECT_EQ(AddressType::kTaprootAddress, script_ref.GetAddressType());
+  EXPECT_EQ(HashType::kTaproot, script_ref.GetHashType());
+  EXPECT_STREQ(
+      script_ref.GenerateAddress(NetType::kElementsRegtest).GetAddress().c_str(),
+      "ert1p5l62rfvlte3axg3aeu6p0zwnqr60adqc427jkz70sadzxtjdy7tshjlu6s");
+  EXPECT_NO_THROW(pubkey = script_ref.GetKeyList()[0].GetSchnorrPubkey());
+  EXPECT_STREQ(desc_str.c_str(), descriptor1.c_str());
+  EXPECT_STREQ(locking_script.ToString().c_str(),
+      "1 a7f4a1a59f5e63d3223dcf341789d300f4feb418aabd2b0bcf875a232e4d2797");
+  EXPECT_STREQ(pubkey.GetHex().c_str(),
+      pubkey_hex.c_str());
 }
 
 TEST(Descriptor, Parse_Taproot_xpubkey) {
