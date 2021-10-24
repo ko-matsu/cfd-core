@@ -1060,6 +1060,7 @@ TEST(Descriptor, Parse_Taproot_pubkey) {
         except.what());
   }
 
+#ifndef CFD_DISABLE_ELEMENTS
   // for elements
   try {
     desc = Descriptor::ParseElements(descriptor1);
@@ -1089,6 +1090,7 @@ TEST(Descriptor, Parse_Taproot_pubkey) {
       "1 a7f4a1a59f5e63d3223dcf341789d300f4feb418aabd2b0bcf875a232e4d2797");
   EXPECT_STREQ(pubkey.GetHex().c_str(),
       pubkey_hex.c_str());
+#endif  // CFD_DISABLE_ELEMENTS
 }
 
 TEST(Descriptor, Parse_Taproot_xpubkey) {
