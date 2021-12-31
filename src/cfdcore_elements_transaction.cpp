@@ -861,10 +861,11 @@ ByteData256 ConfidentialTxIn::GetWitnessHash() const {
 
 uint8_t ConfidentialTxIn::GetOutPointFlag() const {
   uint32_t flag = 0;
-  if (!asset_entropy_.IsEmpty()) {
-    flag = static_cast<uint32_t>(WALLY_TX_ISSUANCE_FLAG);
-  } else if (!pegin_witness_.IsEmpty()) {
-    flag = static_cast<uint32_t>(WALLY_TX_PEGIN_FLAG);
+  if (!issuance_amount_.IsEmpty()) {
+    flag |= static_cast<uint32_t>(WALLY_TX_ISSUANCE_FLAG);
+  }
+  if (!pegin_witness_.IsEmpty()) {
+    flag |= static_cast<uint32_t>(WALLY_TX_PEGIN_FLAG);
   }
   return static_cast<uint8_t>(flag >> 24);
 }
@@ -3204,12 +3205,12 @@ ByteData256 ConfidentialTransaction::GetElementsSchnorrSignatureHash(
       prevouts_buf.AddDirectNumber(vin_[index].GetVout());
       spent_buf.AddDirectBytes(utxo_list[index].GetAsset().GetData());
       spent_buf.AddDirectBytes(
-          utxo_list[index].GetConfidentialValue().GetData());
+          utxo_list[index].GetConfidentialValue().GetSerializeData());
       scripts_buf.AddVariableBuffer(
           utxo_list[index].GetLockingScript().GetData());
       sequences_buf.AddDirectNumber(vin_[index].GetSequence());
 
-      if (vin_[index].GetAssetEntropy().IsEmpty()) {
+      if (vin_[index].GetIssuanceAmount().IsEmpty()) {
         issuance_buf.AddDirectByte(0);
       } else {
         issuance_buf.AddDirectBytes(vin_[index].GetBlindingNonce());
@@ -3237,7 +3238,8 @@ ByteData256 ConfidentialTransaction::GetElementsSchnorrSignatureHash(
     Serializer rangeproof_buf;
     for (const auto &txout : vout_) {
       outputs_buf.AddDirectBytes(txout.GetAsset().GetData());
-      outputs_buf.AddDirectBytes(txout.GetConfidentialValue().GetData());
+      outputs_buf.AddDirectBytes(
+          txout.GetConfidentialValue().GetSerializeData());
       outputs_buf.AddDirectBytes(txout.GetNonce().GetSerializeData());
       outputs_buf.AddVariableBuffer(txout.GetLockingScript().GetData());
       rangeproof_buf.AddVariableBuffer(txout.GetSurjectionProof());
@@ -3254,14 +3256,14 @@ ByteData256 ConfidentialTransaction::GetElementsSchnorrSignatureHash(
     builder.AddDirectBytes(vin_[txin_index].GetTxid().GetData());
     builder.AddDirectNumber(vin_[txin_index].GetVout());
     builder.AddDirectBytes(
-        utxo_list[txin_index].GetAsset().GetSerializeData());
+        utxo_list[txin_index].GetAsset().GetData());
     builder.AddDirectBytes(
         utxo_list[txin_index].GetConfidentialValue().GetSerializeData());
     builder.AddVariableBuffer(
         utxo_list[txin_index].GetLockingScript().GetData());
     builder.AddDirectNumber(vin_[txin_index].GetSequence());
 
-    if (vin_[txin_index].GetAssetEntropy().IsEmpty()) {
+    if (vin_[txin_index].GetIssuanceAmount().IsEmpty()) {
       builder.AddDirectByte(0);
     } else {
       builder.AddDirectBytes(vin_[txin_index].GetBlindingNonce());
@@ -3288,7 +3290,7 @@ ByteData256 ConfidentialTransaction::GetElementsSchnorrSignatureHash(
     CheckTxOutIndex(txin_index, __LINE__, __FUNCTION__);
     Serializer outputs_buf;
     outputs_buf.AddDirectBytes(
-        vout_[txin_index].GetAsset().GetSerializeData());
+        vout_[txin_index].GetAsset().GetData());
     outputs_buf.AddDirectBytes(
         vout_[txin_index].GetConfidentialValue().GetSerializeData());
     outputs_buf.AddDirectBytes(

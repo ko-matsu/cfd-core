@@ -160,7 +160,8 @@ std::string TapBranch::ToString() const {
   std::string buf;
   if (has_leaf_) {
     std::string ver_str;
-    if (leaf_version_ != TaprootScriptTree::kTapScriptLeafVersion) {
+    if ((!is_elements_ && (leaf_version_ != TaprootScriptTree::kTapScriptLeafVersion)) || // NOLINT
+        (is_elements_ && (leaf_version_ != TaprootScriptTree::kElementsTapScriptLeafVersion))) { // NOLINT
       ver_str = "," + ByteData(leaf_version_).GetHex();
     }
     buf = "tl(" + script_.GetHex() + ver_str + ")";
@@ -301,13 +302,15 @@ TapBranch TapBranch::ChangeTapLeaf(
 TapBranch TapBranch::FromString(
     const std::string& text, NetType network_type) {
   static auto check_tapleaf_func = [](const std::string& text,
+                                      NetType network_type,
                                       TapBranch* branch) -> bool {
     if (text.size() < 6) return false;
     std::string head = text.substr(0, 3);
     if ((head == "tl(") && (*(text.end() - 1) == ')')) {
       size_t leaf_ver_offset = text.find(',');
       if (leaf_ver_offset == std::string::npos) {
-        *branch = TaprootScriptTree(Script(text.substr(3, text.length() - 4)));
+        *branch = TaprootScriptTree(
+          Script(text.substr(3, text.length() - 4)), network_type);
       } else {
         auto script_str = text.substr(3, leaf_ver_offset - 3);
         auto leaf_ver_str = text.substr(leaf_ver_offset + 1, 2);
@@ -319,7 +322,8 @@ TapBranch TapBranch::FromString(
               CfdError::kCfdIllegalArgumentError, "Invalid leaf version.");
         }
         *branch = TaprootScriptTree(
-            static_cast<uint8_t>(leaf_version), Script(script_str));
+            static_cast<uint8_t>(leaf_version), Script(script_str),
+            network_type);
       }
       return true;
     }
@@ -328,10 +332,10 @@ TapBranch TapBranch::FromString(
 
   static auto analyze_func = [](const std::string& target,
                                 NetType network_type) -> TapBranch {
-    TapBranch result;
+    TapBranch result(network_type);
     if (*target.begin() == '{') {
       result = TapBranch::FromString(target, network_type);  // analyze branch
-    } else if (!check_tapleaf_func(target, &result)) {
+    } else if (!check_tapleaf_func(target, network_type, &result)) {
       result = TapBranch(ByteData256(target), network_type);
     }
     return result;
@@ -500,7 +504,11 @@ TaprootScriptTree::TaprootScriptTree()
 TaprootScriptTree::TaprootScriptTree(NetType network_type)
     : TapBranch(network_type) {
   has_leaf_ = true;
-  leaf_version_ = kTapScriptLeafVersion;
+  if (TapBranch::IsElementsNetwork(network_type)) {
+    leaf_version_ = kElementsTapScriptLeafVersion;
+  } else {
+    leaf_version_ = kTapScriptLeafVersion;
+  }
 }
 
 TaprootScriptTree::TaprootScriptTree(const Script& script)
@@ -519,6 +527,9 @@ TaprootScriptTree::TaprootScriptTree(
     : TapBranch(network_type) {
   has_leaf_ = true;
   leaf_version_ = leaf_version;
+  if (is_elements_ && (leaf_version_ == kTapScriptLeafVersion)) {
+    leaf_version_ = kElementsTapScriptLeafVersion;
+  }
   script_ = script;
   if (!TaprootUtil::IsValidLeafVersion(leaf_version)) {
     warn(CFD_LOG_SOURCE, "Unsupported leaf version. [{}]", leaf_version);
@@ -642,7 +653,13 @@ ByteData TaprootUtil::CreateTapScriptControl(
   auto pubkey_data =
       merkle_tree.GetTweakedPubkey(internal_pubkey, &parity).GetByteData256();
   uint8_t top = merkle_tree.GetLeafVersion();
-  if (top == 0) top = TaprootScriptTree::kTapScriptLeafVersion;
+  if (top == 0) {
+    if (merkle_tree.IsElements()) {
+      top = TaprootScriptTree::kElementsTapScriptLeafVersion;
+    } else {
+      top = TaprootScriptTree::kTapScriptLeafVersion;
+    }
+  }
   if (parity) top |= 0x01;
   Serializer builder;
   builder.AddDirectByte(top);

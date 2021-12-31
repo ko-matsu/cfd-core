@@ -235,6 +235,10 @@ class CFD_CORE_EXPORT TaprootScriptTree : public TapBranch {
    * @brief The tapleaf version on tapscript.
    */
   static constexpr uint8_t kTapScriptLeafVersion = 0xc0;
+  /**
+   * @brief The tapleaf version on elements tapscript.
+   */
+  static constexpr uint8_t kElementsTapScriptLeafVersion = 0xc4;
 
   /**
    * @brief constructor.
