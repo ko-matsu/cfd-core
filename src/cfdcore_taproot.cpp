@@ -30,10 +30,20 @@ using logger::warn;
 // ----------------------------------------------------------------------------
 // TapBranch
 // ----------------------------------------------------------------------------
-TapBranch::TapBranch() : has_leaf_(false), leaf_version_(0) {}
+TapBranch::TapBranch() : TapBranch(NetType::kMainnet) {}
+
+TapBranch::TapBranch(NetType network_type)
+    : has_leaf_(false),
+      leaf_version_(0),
+      is_elements_(IsElementsNetwork(network_type)) {}
 
 TapBranch::TapBranch(const ByteData256& commitment)
-    : has_leaf_(false), leaf_version_(0) {
+    : TapBranch(commitment, NetType::kMainnet) {}
+
+TapBranch::TapBranch(const ByteData256& commitment, NetType network_type)
+    : has_leaf_(false),
+      leaf_version_(0),
+      is_elements_(IsElementsNetwork(network_type)) {
   root_commitment_ = commitment;
 }
 
@@ -43,6 +53,7 @@ TapBranch::TapBranch(const TapBranch& tap_tree) {
   script_ = tap_tree.script_;
   root_commitment_ = tap_tree.root_commitment_;
   branch_list_ = tap_tree.branch_list_;
+  is_elements_ = tap_tree.is_elements_;
 }
 
 void TapBranch::AddBranch(const SchnorrPubkey& pubkey) {
@@ -55,6 +66,7 @@ void TapBranch::AddBranch(const ByteData256& commitment) {
     throw CfdException(
         CfdError::kCfdIllegalStateError, "tapbranch maximum over.");
   }
+  branch_list_.back().SetElementsFlag(is_elements_);
 }
 
 void TapBranch::AddBranch(const TapBranch& branch) {
@@ -63,6 +75,7 @@ void TapBranch::AddBranch(const TapBranch& branch) {
     throw CfdException(
         CfdError::kCfdIllegalStateError, "tapbranch maximum over.");
   }
+  branch_list_.back().SetElementsFlag(is_elements_);
 }
 
 TapBranch& TapBranch::operator=(const TapBranch& object) {
@@ -72,6 +85,7 @@ TapBranch& TapBranch::operator=(const TapBranch& object) {
     script_ = object.script_;
     root_commitment_ = object.root_commitment_;
     branch_list_ = object.branch_list_;
+    is_elements_ = object.is_elements_;
   }
   return *this;
 }
@@ -79,7 +93,7 @@ TapBranch& TapBranch::operator=(const TapBranch& object) {
 ByteData256 TapBranch::GetBaseHash() const {
   if (!has_leaf_) return root_commitment_;
 
-  static auto kTaggedHash = HashUtil::Sha256("TapLeaf");
+  auto kTaggedHash = GetTapLeafTagged();
   return (HashUtil(HashUtil::kSha256)
           << kTaggedHash << kTaggedHash << ByteData(leaf_version_)
           << script_.GetData().Serialize())
@@ -94,7 +108,7 @@ ByteData256 TapBranch::GetBranchHash(uint8_t depth) const {
   ByteData256 hash = GetBaseHash();
   if (branch_list_.empty()) return hash;
 
-  static auto kTaggedHash = HashUtil::Sha256("TapBranch");
+  auto kTaggedHash = GetTapBranchTagged();
   ByteData tapbranch_base = kTaggedHash.Concat(kTaggedHash);
   auto nodes = GetNodeList();
   uint8_t index = 0;
@@ -146,7 +160,8 @@ std::string TapBranch::ToString() const {
   std::string buf;
   if (has_leaf_) {
     std::string ver_str;
-    if (leaf_version_ != TaprootScriptTree::kTapScriptLeafVersion) {
+    if ((!is_elements_ && (leaf_version_ != TaprootScriptTree::kTapScriptLeafVersion)) || // NOLINT
+        (is_elements_ && (leaf_version_ != TaprootScriptTree::kElementsTapScriptLeafVersion))) { // NOLINT
       ver_str = "," + ByteData(leaf_version_).GetHex();
     }
     buf = "tl(" + script_.GetHex() + ver_str + ")";
@@ -158,7 +173,7 @@ std::string TapBranch::ToString() const {
   if (branch_list_.empty()) return buf;
 
   ByteData256 hash = GetBaseHash();
-  static auto kTaggedHash = HashUtil::Sha256("TapBranch");
+  auto kTaggedHash = GetTapBranchTagged();
   ByteData tapbranch_base = kTaggedHash.Concat(kTaggedHash);
   auto nodes = GetNodeList();
   for (const auto& branch : branch_list_) {
@@ -284,15 +299,18 @@ TapBranch TapBranch::ChangeTapLeaf(
   return new_branches[0];  // response is top data.
 }
 
-TapBranch TapBranch::FromString(const std::string& text) {
+TapBranch TapBranch::FromString(
+    const std::string& text, NetType network_type) {
   static auto check_tapleaf_func = [](const std::string& text,
+                                      NetType network_type,
                                       TapBranch* branch) -> bool {
     if (text.size() < 6) return false;
     std::string head = text.substr(0, 3);
     if ((head == "tl(") && (*(text.end() - 1) == ')')) {
       size_t leaf_ver_offset = text.find(',');
       if (leaf_ver_offset == std::string::npos) {
-        *branch = TaprootScriptTree(Script(text.substr(3, text.length() - 4)));
+        *branch = TaprootScriptTree(
+          Script(text.substr(3, text.length() - 4)), network_type);
       } else {
         auto script_str = text.substr(3, leaf_ver_offset - 3);
         auto leaf_ver_str = text.substr(leaf_ver_offset + 1, 2);
@@ -304,19 +322,21 @@ TapBranch TapBranch::FromString(const std::string& text) {
               CfdError::kCfdIllegalArgumentError, "Invalid leaf version.");
         }
         *branch = TaprootScriptTree(
-            static_cast<uint8_t>(leaf_version), Script(script_str));
+            static_cast<uint8_t>(leaf_version), Script(script_str),
+            network_type);
       }
       return true;
     }
     return false;
   };
 
-  static auto analyze_func = [](const std::string& target) -> TapBranch {
-    TapBranch result;
+  static auto analyze_func = [](const std::string& target,
+                                NetType network_type) -> TapBranch {
+    TapBranch result(network_type);
     if (*target.begin() == '{') {
-      result = TapBranch::FromString(target);  // analyze branch
-    } else if (!check_tapleaf_func(target, &result)) {
-      result = TapBranch(ByteData256(target));
+      result = TapBranch::FromString(target, network_type);  // analyze branch
+    } else if (!check_tapleaf_func(target, network_type, &result)) {
+      result = TapBranch(ByteData256(target), network_type);
     }
     return result;
   };
@@ -396,10 +416,10 @@ TapBranch TapBranch::FromString(const std::string& text) {
   TapBranch result;
   auto text_list = collect_items_func(text);
   if (text_list.empty()) {
-    result = analyze_func(text);
+    result = analyze_func(text, network_type);
   } else {
-    auto branch1 = analyze_func(text_list.at(0));
-    auto branch2 = analyze_func(text_list.at(1));
+    auto branch1 = analyze_func(text_list.at(0), network_type);
+    auto branch2 = analyze_func(text_list.at(1), network_type);
     if ((!branch1.has_leaf_) && (branch2.has_leaf_)) {
       branch2.AddBranch(branch1);
       result = branch2;
@@ -415,7 +435,7 @@ TapBranch TapBranch::FromString(const std::string& text) {
 ByteData256 TapBranch::GetTapTweak(
     const SchnorrPubkey& internal_pubkey) const {
   ByteData256 hash = GetCurrentBranchHash();
-  static auto kTaggedHash = HashUtil::Sha256("TapTweak");
+  auto kTaggedHash = GetTapTweakTagged();
   HashUtil hasher = HashUtil(HashUtil::kSha256)
                     << kTaggedHash << kTaggedHash << internal_pubkey.GetData();
   if (!hash.IsEmpty()) hasher << hash;
@@ -442,22 +462,74 @@ Privkey TapBranch::GetTweakedPrivkey(
   return privkey.CreateTweakAdd(hash);
 }
 
+ByteData256 TapBranch::GetTapTweakTagged() const {
+  static auto kTaggedHash = HashUtil::Sha256("TapTweak");
+  static auto kElementsTaggedHash = HashUtil::Sha256("TapTweak/elements");
+  return (is_elements_) ? kElementsTaggedHash : kTaggedHash;
+}
+
+ByteData256 TapBranch::GetTapLeafTagged() const {
+  static auto kTaggedHash = HashUtil::Sha256("TapLeaf");
+  static auto kElementsTaggedHash = HashUtil::Sha256("TapLeaf/elements");
+  return (is_elements_) ? kElementsTaggedHash : kTaggedHash;
+}
+
+ByteData256 TapBranch::GetTapBranchTagged() const {
+  static auto kTaggedHash = HashUtil::Sha256("TapBranch");
+  static auto kElementsTaggedHash = HashUtil::Sha256("TapBranch/elements");
+  return (is_elements_) ? kElementsTaggedHash : kTaggedHash;
+}
+
+bool TapBranch::IsElementsNetwork(NetType net_type) {
+  if ((net_type == NetType::kLiquidV1) ||
+      (net_type == NetType::kElementsRegtest) ||
+      (net_type == NetType::kCustomChain)) {
+    return true;
+  }
+  return false;
+}
+
+void TapBranch::SetElementsFlag(bool is_elements) {
+  is_elements_ = is_elements;
+}
+
+bool TapBranch::IsElements() const { return is_elements_; }
+
 // ----------------------------------------------------------------------------
 // TaprootScriptTree
 // ----------------------------------------------------------------------------
-TaprootScriptTree::TaprootScriptTree() : TapBranch() {
+TaprootScriptTree::TaprootScriptTree()
+    : TaprootScriptTree(NetType::kMainnet) {}
+
+TaprootScriptTree::TaprootScriptTree(NetType network_type)
+    : TapBranch(network_type) {
   has_leaf_ = true;
-  leaf_version_ = kTapScriptLeafVersion;
+  if (TapBranch::IsElementsNetwork(network_type)) {
+    leaf_version_ = kElementsTapScriptLeafVersion;
+  } else {
+    leaf_version_ = kTapScriptLeafVersion;
+  }
 }
 
 TaprootScriptTree::TaprootScriptTree(const Script& script)
     : TaprootScriptTree(kTapScriptLeafVersion, script) {}
 
 TaprootScriptTree::TaprootScriptTree(
+    const Script& script, NetType network_type)
+    : TaprootScriptTree(kTapScriptLeafVersion, script, network_type) {}
+
+TaprootScriptTree::TaprootScriptTree(
     uint8_t leaf_version, const Script& script)
-    : TapBranch() {
+    : TaprootScriptTree(leaf_version, script, NetType::kMainnet) {}
+
+TaprootScriptTree::TaprootScriptTree(
+    uint8_t leaf_version, const Script& script, NetType network_type)
+    : TapBranch(network_type) {
   has_leaf_ = true;
   leaf_version_ = leaf_version;
+  if (is_elements_ && (leaf_version_ == kTapScriptLeafVersion)) {
+    leaf_version_ = kElementsTapScriptLeafVersion;
+  }
   script_ = script;
   if (!TaprootUtil::IsValidLeafVersion(leaf_version)) {
     warn(CFD_LOG_SOURCE, "Unsupported leaf version. [{}]", leaf_version);
@@ -485,6 +557,7 @@ TaprootScriptTree::TaprootScriptTree(const TapBranch& leaf_branch)
   script_ = leaf_branch.GetScript();
   branch_list_ = leaf_branch.GetBranchList();
   nodes_ = leaf_branch.GetNodeList();
+  is_elements_ = leaf_branch.IsElements();
 }
 
 TaprootScriptTree::TaprootScriptTree(const TaprootScriptTree& tap_tree)
@@ -502,6 +575,7 @@ TaprootScriptTree::TaprootScriptTree(const TaprootScriptTree& tap_tree)
   root_commitment_ = tap_tree.root_commitment_;
   branch_list_ = tap_tree.branch_list_;
   nodes_ = tap_tree.nodes_;
+  is_elements_ = tap_tree.is_elements_;
 }
 
 TaprootScriptTree& TaprootScriptTree::operator=(
@@ -513,6 +587,7 @@ TaprootScriptTree& TaprootScriptTree::operator=(
     root_commitment_ = object.root_commitment_;
     branch_list_ = object.branch_list_;
     nodes_ = object.nodes_;
+    is_elements_ = object.is_elements_;
   }
   return *this;
 }
@@ -542,11 +617,11 @@ std::vector<ByteData256> TaprootScriptTree::GetNodeList() const {
 
 TaprootScriptTree TaprootScriptTree::FromString(
     const std::string& text, const Script& tapscript,
-    const std::vector<ByteData256>& target_nodes) {
-  auto branch = TapBranch::FromString(text);
+    const std::vector<ByteData256>& target_nodes, NetType network_type) {
+  auto branch = TapBranch::FromString(text, network_type);
   std::vector<ByteData256> check_nodes = target_nodes;
   if (!check_nodes.empty()) {
-    TaprootScriptTree target_leaf(tapscript);
+    TaprootScriptTree target_leaf(tapscript, network_type);
     if (check_nodes.back().Equals(target_leaf.GetTapLeafHash())) {
       check_nodes.erase(check_nodes.end() - 1);
     }
@@ -578,7 +653,13 @@ ByteData TaprootUtil::CreateTapScriptControl(
   auto pubkey_data =
       merkle_tree.GetTweakedPubkey(internal_pubkey, &parity).GetByteData256();
   uint8_t top = merkle_tree.GetLeafVersion();
-  if (top == 0) top = TaprootScriptTree::kTapScriptLeafVersion;
+  if (top == 0) {
+    if (merkle_tree.IsElements()) {
+      top = TaprootScriptTree::kElementsTapScriptLeafVersion;
+    } else {
+      top = TaprootScriptTree::kTapScriptLeafVersion;
+    }
+  }
   if (parity) top |= 0x01;
   Serializer builder;
   builder.AddDirectByte(top);
@@ -600,14 +681,14 @@ bool TaprootUtil::VerifyTaprootCommitment(
     const SchnorrPubkey& target_taproot,  // witness program
     const SchnorrPubkey& internal_pubkey,
     const std::vector<ByteData256>& nodes, const Script& tapscript,
-    ByteData256* tapleaf_hash) {
+    ByteData256* tapleaf_hash, NetType network_type) {
   if (nodes.size() > TaprootScriptTree::kTaprootControlMaxNodeCount) {
     warn(CFD_LOG_SOURCE, "control node maximum over. [{}]", nodes.size());
     return false;
   }
 
   // Compute the tapleaf hash.
-  TaprootScriptTree tree(tapleaf_bit, tapscript);
+  TaprootScriptTree tree(tapleaf_bit, tapscript, network_type);
   if (tapleaf_hash != nullptr) *tapleaf_hash = tree.GetTapLeafHash();
 
   // Compute the Merkle root from the leaf and the provided path.

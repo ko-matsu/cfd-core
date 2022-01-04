@@ -284,10 +284,51 @@ enum ScriptType {
   kOpDeterministricRandom = 0xc0,     //!< kOpDeterministricRandom
   kOpCheckSigFromStack = 0xc1,        //!< kOpCheckSigFromStack
   kOpCheckSigFromStackVerify = 0xc2,  //!< kOpCheckSigFromStackVerify
-  kOpSmallInteger = 0xfa,             //!< kOpSmallInteger
-  kOpPubkeys = 0xfb,                  //!< kOpPubkeys
-  kOpPubkeyHash = 0xfd,               //!< kOpPubkeyHash
-  kOpPubkey = 0xfe,                   //!< kOpPubkey
+  // kOpSmallInteger = 0xfa,             //!< kOpSmallInteger delete
+  // kOpPubkeys = 0xfb,                  //!< kOpPubkeys
+  // kOpPubkeyHash = 0xfd,               //!< kOpPubkeyHash
+  // kOpPubkey = 0xfe,                   //!< kOpPubkey
+  // Elements: Tapscript (Streaming sha2 opcodes)
+  kOpSha256Initialize = 0xc4,         //!< kOpSha256Initialize
+  kOpSha256Update = 0xc5,             //!< kOpSha256Update
+  kOpSha256Finalize = 0xc6,           //!< kOpSha256Finalize
+  // Introspection opcodes inputs
+  kOpInspectInputOutPint = 0xc7,        //!< kOpInspectInputOutPint
+  kOpInspectInputAsset = 0xc8,          //!< kOpInspectInputAsset
+  kOpInspectInputValue = 0xc9,          //!< kOpInspectInputValue
+  kOpInspectInputScriptPubkey = 0xca,   //!< kOpInspectInputScriptPubkey
+  kOpInspectInputSequence = 0xcb,       //!< kOpInspectInputSequence
+  kOpInspectInputIssuance = 0xcc,       //!< kOpInspectInputIssuance
+  // current index
+  kOpPushCurrentInputIndex = 0xcd,    //!< kOpPushCurrentInputIndex
+  // outputs
+  kOpInspectOutputAsset = 0xce,         //!< kOpInspectOutputAsset
+  kOpInspectOutputValue = 0xcf,         //!< kOpInspectOutputValue
+  kOpInspectOutputNonce = 0xd0,         //!< kOpInspectOutputNonce
+  kOpInspectOutputScriptPubkey = 0xd1,  //!< kOpInspectOutputScriptPubkey
+  // transaction
+  kOpInspectVersion = 0xd2,           //!< kOpInspectVersion
+  kOpInspectLocktime = 0xd3,          //!< kOpInspectLocktime
+  kOpInspectNumInputs = 0xd4,         //!< kOpInspectNumInputs
+  kOpInspectNumOutputs = 0xd5,        //!< kOpInspectNumOutputs
+  kOpTxWeight = 0xd6,                 //!< kOpTxWeight
+  // Arithmetic opcodes
+  kOpAdd64 = 0xd7,                    //!< kOpAdd64
+  kOpSub64 = 0xd8,                    //!< kOpSub64
+  kOpMul64 = 0xd9,                    //!< kOpMul64
+  kOpDiv64 = 0xda,                    //!< kOpDiv64
+  kOpNeg64 = 0xdb,                    //!< kOpNeg64
+  kOpLessThan64 = 0xdc,               //!< kOpLessThan64
+  kOpLessThanOrEqual64 = 0xdd,        //!< kOpLessThanOrEqual64
+  kOpGreaterThan64 = 0xde,            //!< kOpGreaterThan64
+  kOpGreaterThanOrEqual64 = 0xdf,     //!< kOpGreaterThanOrEqual64
+  // Conversion opcodes
+  kOpScriptNumToLE64 = 0xe0,          //!< kOpScriptNumToLE64
+  kOpLE64ToScriptNum = 0xe1,          //!< kOpLE64ToScriptNum
+  kOpLE32ToLE64 = 0xe2,               //!< kOpLE32ToLE64
+  // Crypto opcodes
+  kOpEcMulScalarVerify = 0xe3,        //!< kOpEcMulScalarVerify
+  kOpTweakVerify = 0xe4,              //!< kOpTweakVerify
 #endif  // CFD_DISABLE_ELEMENTS
 };
 // @formatter:on
@@ -432,10 +473,43 @@ class CFD_CORE_EXPORT ScriptOperator {
       OP_CHECKSIGFROMSTACK;  //!< OP_CHECKSIGFROMSTACK        // NOLINT
   static const ScriptOperator
       OP_CHECKSIGFROMSTACKVERIFY;  //!< OP_CHECKSIGFROMSTACKVERIFY  // NOLINT
-  static const ScriptOperator OP_SMALLINTEGER;  //!< OP_SMALLINTEGER
-  static const ScriptOperator OP_PUBKEYS;       //!< OP_PUBKEYS
-  static const ScriptOperator OP_PUBKEYHASH;    //!< OP_PUBKEYHASH
-  static const ScriptOperator OP_PUBKEY;        //!< OP_PUBKEY
+  // static const ScriptOperator OP_SMALLINTEGER;  //!< OP_SMALLINTEGER
+  // static const ScriptOperator OP_PUBKEYS;       //!< OP_PUBKEYS
+  // static const ScriptOperator OP_PUBKEYHASH;    //!< OP_PUBKEYHASH
+  // static const ScriptOperator OP_PUBKEY;        //!< OP_PUBKEY
+  static const ScriptOperator OP_SHA256INITIALIZE;  //!< OP_SHA256INITIALIZE
+  static const ScriptOperator OP_SHA256UPDATE;  //!< OP_SHA256UPDATE
+  static const ScriptOperator OP_SHA256FINALIZE;  //!< OP_SHA256FINALIZE
+  static const ScriptOperator OP_INSPECTINPUTOUTPOINT;  //!< OP_INSPECTINPUTOUTPOINT  //NOLINT
+  static const ScriptOperator OP_INSPECTINPUTASSET;  //!< OP_INSPECTINPUTASSET  //NOLINT
+  static const ScriptOperator OP_INSPECTINPUTVALUE;  //!< OP_INSPECTINPUTVALUE  //NOLINT
+  static const ScriptOperator OP_INSPECTINPUTSCRIPTPUBKEY;  //!< OP_INSPECTINPUTSCRIPTPUBKEY  //NOLINT
+  static const ScriptOperator OP_INSPECTINPUTSEQUENCE;  //!< OP_INSPECTINPUTSEQUENCE  //NOLINT
+  static const ScriptOperator OP_INSPECTINPUTISSUANCE;  //!< OP_INSPECTINPUTISSUANCE  //NOLINT
+  static const ScriptOperator OP_PUSHCURRENTINPUTINDEX;  //!< OP_PUSHCURRENTINPUTINDEX  //NOLINT
+  static const ScriptOperator OP_INSPECTOUTPUTASSET;  //!< OP_INSPECTOUTPUTASSET  //NOLINT
+  static const ScriptOperator OP_INSPECTOUTPUTVALUE;  //!< OP_INSPECTOUTPUTVALUE  //NOLINT
+  static const ScriptOperator OP_INSPECTOUTPUTNONCE;  //!< OP_INSPECTOUTPUTNONCE  //NOLINT
+  static const ScriptOperator OP_INSPECTOUTPUTSCRIPTPUBKEY;  //!< OP_INSPECTOUTPUTSCRIPTPUBKEY  //NOLINT
+  static const ScriptOperator OP_INSPECTVERSION;  //!< OP_INSPECTVERSION  //NOLINT
+  static const ScriptOperator OP_INSPECTLOCKTIME;  //!< OP_INSPECTLOCKTIME  //NOLINT
+  static const ScriptOperator OP_INSPECTNUMINPUTS;  //!< OP_INSPECTNUMINPUTS  //NOLINT
+  static const ScriptOperator OP_INSPECTNUMOUTPUTS;  //!< OP_INSPECTNUMOUTPUTS  //NOLINT
+  static const ScriptOperator OP_TXWEIGHT;  //!< OP_TXWEIGHT
+  static const ScriptOperator OP_ADD64;  //!< OP_ADD64
+  static const ScriptOperator OP_SUB64;  //!< OP_SUB64
+  static const ScriptOperator OP_MUL64;  //!< OP_MUL64
+  static const ScriptOperator OP_DIV64;  //!< OP_DIV64
+  static const ScriptOperator OP_NEG64;  //!< OP_NEG64
+  static const ScriptOperator OP_LESSTHAN64;  //!< OP_LESSTHAN64
+  static const ScriptOperator OP_LESSTHANOREQUAL64;  //!< OP_LESSTHANOREQUAL64  //NOLINT
+  static const ScriptOperator OP_GREATERTHAN64;  //!< OP_GREATERTHAN64  //NOLINT
+  static const ScriptOperator OP_GREATERTHANOREQUAL64;  //!< OP_GREATERTHANOREQUAL64  //NOLINT
+  static const ScriptOperator OP_SCRIPTNUMTOLE64;  //!< OP_SCRIPTNUMTOLE64  //NOLINT
+  static const ScriptOperator OP_LE64TOSCRIPTNUM;  //!< OP_LE64TOSCRIPTNUM  //NOLINT
+  static const ScriptOperator OP_LE32TOLE64;  //!< OP_LE32TOLE64  //NOLINT
+  static const ScriptOperator OP_ECMULSCALARVERIFY;  //!< OP_ECMULSCALARVERIFY  //NOLINT
+  static const ScriptOperator OP_TWEAKVERIFY;  //!< OP_TWEAKVERIFY  //NOLINT
 #endif  // CFD_DISABLE_ELEMENTS
   static const ScriptOperator OP_SUCCESS80;   //!< OP_SUCCESS80 (BIP-342)
   static const ScriptOperator OP_SUCCESS98;   //!< OP_SUCCESS98 (BIP-342)

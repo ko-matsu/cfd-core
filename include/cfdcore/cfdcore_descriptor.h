@@ -592,11 +592,13 @@ class CFD_CORE_EXPORT DescriptorNode {
    * @brief parse output descriptor.
    * @param[in] output_descriptor   output descriptor
    * @param[in] network_parameters  network parameter
+   * @param[in] network_type        network type
    * @return DescriptorNode object
    */
   static DescriptorNode Parse(
       const std::string& output_descriptor,
-      const std::vector<AddressFormatData>& network_parameters);
+      const std::vector<AddressFormatData>& network_parameters,
+      NetType network_type = NetType::kMainnet);
 
   /**
    * @brief generate to checksum from descriptor.
@@ -612,9 +614,11 @@ class CFD_CORE_EXPORT DescriptorNode {
   /**
    * @brief constructor.
    * @param[in] network_parameters  network parameter
+   * @param[in] network_type        network type
    */
   explicit DescriptorNode(
-      const std::vector<AddressFormatData>& network_parameters);
+      const std::vector<AddressFormatData>& network_parameters,
+      NetType network_type);
   /**
    * @brief copy constructor.
    * @param[in] object    DescriptorNode object
@@ -716,6 +720,7 @@ class CFD_CORE_EXPORT DescriptorNode {
   DescriptorKeyType key_type_;                       //!< node key type
   std::vector<AddressFormatData> addr_prefixes_;     //!< address prefixes
   std::string parent_kind_;                          //!< parent kind
+  NetType network_type_;                             //!< network type
 
   /**
    * @brief analyze child node.
@@ -753,11 +758,13 @@ class CFD_CORE_EXPORT Descriptor {
    * @brief parse output descriptor.
    * @param[in] output_descriptor   output descriptor
    * @param[in] network_parameters  network parameter
+   * @param[in] network_type        network type
    * @return Descriptor object
    */
   static Descriptor Parse(
       const std::string& output_descriptor,
-      const std::vector<AddressFormatData>* network_parameters = nullptr);
+      const std::vector<AddressFormatData>* network_parameters = nullptr,
+      NetType network_type = NetType::kMainnet);
 
 #ifndef CFD_DISABLE_ELEMENTS
   /**
