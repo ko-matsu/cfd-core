@@ -73,6 +73,11 @@ class CFD_CORE_EXPORT ConfidentialNonce {
    */
   ByteData GetData() const;
   /**
+   * @brief Get serialize byte data.
+   * @return byte array data.
+   */
+  ByteData GetSerializeData() const;
+  /**
    * @brief Get the HEX string.
    * @return hex string
    */
@@ -143,6 +148,11 @@ class CFD_CORE_EXPORT ConfidentialAssetId {
    * @return byte array data.
    */
   ByteData GetData() const;
+  /**
+   * @brief Get serialize byte data.
+   * @return byte array data.
+   */
+  ByteData GetSerializeData() const;
   /**
    * @brief Get the HEX string.
    * @return hex string (reverse data)
@@ -234,6 +244,11 @@ class CFD_CORE_EXPORT ConfidentialValue {
    * @return byte array data.
    */
   ByteData GetData() const;
+  /**
+   * @brief Get serialize byte data.
+   * @return byte array data.
+   */
+  ByteData GetSerializeData() const;
   /**
    * @brief Get the HEX string.
    * @return hex string
@@ -563,6 +578,12 @@ class CFD_CORE_EXPORT ConfidentialTxIn : public AbstractTxIn {
    * @return witness hash
    */
   ByteData256 GetWitnessHash() const;
+
+  /**
+   * @brief Get the outpoint flag.
+   * @return outpoint flag
+   */
+  uint8_t GetOutPointFlag() const;
 
  private:
   ByteData256 blinding_nonce_;           //!< nonce for blind
@@ -1554,6 +1575,23 @@ class CFD_CORE_EXPORT ConfidentialTransaction : public AbstractTransaction {
       SigHashType sighash_type,
       const ConfidentialValue& value = ConfidentialValue(),
       WitnessVersion version = WitnessVersion::kVersionNone) const;
+
+  /**
+   * @brief Get signature hash by schnorr.
+   * @param[in] txin_index    TxIn's index
+   * @param[in] sighash_type  SigHashType(@see cfdcore_util.h)
+   * @param[in] genesis_block_hash  genesis block hash
+   * @param[in] utxo_list     utxo list (for amount & scriptPubkey)
+   * @param[in] script_data   tap script data
+   * @param[in] annex         annex data
+   * @return signature hash
+   */
+  ByteData256 GetElementsSchnorrSignatureHash(
+      uint32_t txin_index, SigHashType sighash_type,
+      const BlockHash& genesis_block_hash,
+      const std::vector<ConfidentialTxOut>& utxo_list,
+      const TapScriptData* script_data = nullptr,
+      const ByteData& annex = ByteData()) const;
 
   /**
    * @brief Randomly sort the order of TxOut.

@@ -99,7 +99,8 @@ std::string DescriptorKeyInfo::GetExtPubkeyInformation(
   return result;
 }
 
-DescriptorKeyInfo::DescriptorKeyInfo() {
+DescriptorKeyInfo::DescriptorKeyInfo()
+    : key_type_(DescriptorKeyType::kDescriptorKeyNull) {
   // do nothing
 }
 
@@ -391,6 +392,10 @@ SchnorrPubkey DescriptorKeyReference::GetSchnorrPubkey() const {
   return schnorr_pubkey_;
 }
 
+bool DescriptorKeyReference::HasSchnorrPubkey() const {
+  return key_type_ == DescriptorKeyType::kDescriptorKeySchnorr;
+}
+
 std::string DescriptorKeyReference::GetArgument() const { return argument_; }
 
 bool DescriptorKeyReference::HasExtPubkey() const {
@@ -443,6 +448,7 @@ DescriptorKeyType DescriptorKeyReference::GetKeyType() const {
 DescriptorScriptReference::DescriptorScriptReference()
     : script_type_(DescriptorScriptType::kDescriptorScriptNull),
       is_script_(false),
+      req_num_(0),
       is_tapbranch_(false) {
   // do nothing
 }
@@ -453,6 +459,7 @@ DescriptorScriptReference::DescriptorScriptReference(
     : script_type_(script_type),
       locking_script_(locking_script),
       is_script_(false),
+      req_num_(0),
       is_tapbranch_(false),
       addr_prefixes_(address_prefixes) {
   if ((script_type != DescriptorScriptType::kDescriptorScriptRaw) &&
@@ -472,6 +479,7 @@ DescriptorScriptReference::DescriptorScriptReference(
     : script_type_(script_type),
       locking_script_(locking_script),
       is_script_(true),
+      req_num_(0),
       is_tapbranch_(false),
       addr_prefixes_(address_prefixes) {
   redeem_script_ = child_script.locking_script_;
@@ -500,6 +508,7 @@ DescriptorScriptReference::DescriptorScriptReference(
       locking_script_(address_script.GetLockingScript()),
       is_script_(false),
       address_script_(address_script),
+      req_num_(0),
       is_tapbranch_(false),
       addr_prefixes_(address_prefixes) {
   // do nothing
@@ -513,6 +522,7 @@ DescriptorScriptReference::DescriptorScriptReference(
     : script_type_(script_type),
       locking_script_(locking_script),
       is_script_(false),
+      req_num_(0),
       tapbranch_(tapbranch),
       is_tapbranch_(true),
       keys_(key_list),
@@ -528,6 +538,7 @@ DescriptorScriptReference::DescriptorScriptReference(
     : script_type_(script_type),
       locking_script_(locking_script),
       is_script_(false),
+      req_num_(0),
       is_tapbranch_(false),
       script_tree_(script_tree),
       keys_(key_list),
@@ -823,11 +834,14 @@ DescriptorNode::DescriptorNode()
       script_type_(DescriptorScriptType::kDescriptorScriptNull),
       key_type_(DescriptorKeyType::kDescriptorKeyNull) {
   addr_prefixes_ = GetBitcoinAddressFormatList();
+  network_type_ = NetType::kMainnet;
 }
 
 DescriptorNode::DescriptorNode(
-    const std::vector<AddressFormatData>& network_parameters) {
+    const std::vector<AddressFormatData>& network_parameters,
+    NetType network_type) {
   addr_prefixes_ = network_parameters;
+  network_type_ = network_type;
 }
 
 DescriptorNode::DescriptorNode(const DescriptorNode& object) {
@@ -848,6 +862,7 @@ DescriptorNode::DescriptorNode(const DescriptorNode& object) {
   key_type_ = object.key_type_;
   addr_prefixes_ = object.addr_prefixes_;
   parent_kind_ = object.parent_kind_;
+  network_type_ = object.network_type_;
 }
 
 DescriptorNode& DescriptorNode::operator=(const DescriptorNode& object) {
@@ -869,14 +884,16 @@ DescriptorNode& DescriptorNode::operator=(const DescriptorNode& object) {
     key_type_ = object.key_type_;
     addr_prefixes_ = object.addr_prefixes_;
     parent_kind_ = object.parent_kind_;
+    network_type_ = object.network_type_;
   }
   return *this;
 }
 
 DescriptorNode DescriptorNode::Parse(
     const std::string& output_descriptor,
-    const std::vector<AddressFormatData>& network_parameters) {
-  DescriptorNode node(network_parameters);
+    const std::vector<AddressFormatData>& network_parameters,
+    NetType network_type) {
+  DescriptorNode node(network_parameters, network_type);
   node.node_type_ = DescriptorNodeType::kDescriptorTypeScript;
   node.AnalyzeChild(output_descriptor, 0);
   node.AnalyzeAll("");
@@ -920,7 +937,7 @@ void DescriptorNode::AnalyzeChild(
       if (exist_child_node) {
         // through by child node
       } else if ((name_ == "multi") || (name_ == "sortedmulti")) {
-        DescriptorNode node(addr_prefixes_);
+        DescriptorNode node(addr_prefixes_, network_type_);
         node.value_ = descriptor.substr(offset, idx - offset);
         info(CFD_LOG_SOURCE, "multisig, node.value_ = {}", node.value_);
         if (child_node_.empty()) {
@@ -935,7 +952,7 @@ void DescriptorNode::AnalyzeChild(
         offset = idx + 1;
       } else if (name_ == "tr") {
         if (child_node_.empty()) {
-          DescriptorNode node(addr_prefixes_);
+          DescriptorNode node(addr_prefixes_, network_type_);
           node.value_ = descriptor.substr(offset, idx - offset);
           node.node_type_ = DescriptorNodeType::kDescriptorTypeKey;
           node.depth_ = depth + 1;
@@ -972,7 +989,7 @@ void DescriptorNode::AnalyzeChild(
         if ((name_ == "addr") || (name_ == "raw")) {
           // do nothing
         } else {
-          DescriptorNode node(addr_prefixes_);
+          DescriptorNode node(addr_prefixes_, network_type_);
           if (name_ == "tr") {
             node.node_type_ = DescriptorNodeType::kDescriptorTypeScript;
             node.value_ = value_;
@@ -1498,7 +1515,7 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
 }
 
 void DescriptorNode::AnalyzeScriptTree() {
-  auto desc = value_;
+  const auto& desc = value_;
 
   uint32_t script_depth = 0;
   size_t offset = 0;
@@ -1514,7 +1531,7 @@ void DescriptorNode::AnalyzeScriptTree() {
         tapscript = desc.substr(offset, idx - offset);
         if (tapscript.length() >= (kByteData256Length * 2)) {
           offset = idx + 1;
-          DescriptorNode node(addr_prefixes_);
+          DescriptorNode node(addr_prefixes_, network_type_);
           node.name_ = temp_name;
           node.node_type_ = DescriptorNodeType::kDescriptorTypeKey;
           node.value_ = tapscript;
@@ -1551,7 +1568,7 @@ void DescriptorNode::AnalyzeScriptTree() {
       if (script_depth == 0) {
         tapscript = desc.substr(offset, idx - offset + 1);
         offset = idx + 1;
-        DescriptorNode node(addr_prefixes_);
+        DescriptorNode node(addr_prefixes_, network_type_);
         node.name_ = temp_name;
         node.node_type_ = DescriptorNodeType::kDescriptorTypeScript;
         node.value_ = tapscript;
@@ -1575,7 +1592,7 @@ void DescriptorNode::AnalyzeScriptTree() {
   if (tree_node_.empty()) {
     if (value_.length() >= (kByteData256Length * 2)) {
       tapscript = value_;
-      DescriptorNode node(addr_prefixes_);
+      DescriptorNode node(addr_prefixes_, network_type_);
       node.name_ = temp_name;
       node.node_type_ = DescriptorNodeType::kDescriptorTypeKey;
       node.value_ = tapscript;
@@ -1728,7 +1745,7 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
           child_node_[0].GetKeyReferences(array_argument);
       SchnorrPubkey pubkey = ref.GetSchnorrPubkey();
       keys.push_back(ref);
-      TapBranch branch;
+      TapBranch branch(network_type_);
       if (child_node_.size() >= 2) {
         branch = child_node_[1].GetTapBranch(array_argument);
       }
@@ -1739,6 +1756,8 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
         result.emplace_back(
             locking_script, script_type_, keys, tree, addr_prefixes_);
       } else {
+        // see: https://github.com/bitcoin/bips/blob/master/bip-0086.mediawiki
+        // see: https://github.com/bitcoin/bips/blob/master/bip-0341.mediawiki#cite_note-22 // NOLINT
         TaprootUtil::CreateTapScriptControl(
             pubkey, branch, nullptr, &locking_script);
         result.emplace_back(
@@ -1843,11 +1862,11 @@ TapBranch DescriptorNode::GetTapBranch(
     }
   }
 
-  TapBranch tree;
+  TapBranch tree(network_type_);
   if (desc.empty() || (desc == "{}")) {
     // do nothing
   } else {
-    tree = TapBranch::FromString(desc);
+    tree = TapBranch::FromString(desc, network_type_);
     if ((!tree.HasTapLeaf()) && (!first_script.IsEmpty())) {
       tree = tree.ChangeTapLeaf(first_script);
     }
@@ -2016,7 +2035,8 @@ Descriptor& Descriptor::operator=(const Descriptor& object) {
 
 Descriptor Descriptor::Parse(
     const std::string& output_descriptor,
-    const std::vector<AddressFormatData>* network_parameters) {
+    const std::vector<AddressFormatData>* network_parameters,
+    NetType network_type) {
   std::vector<AddressFormatData> network_pefixes;
   if (network_parameters) {
     network_pefixes = *network_parameters;
@@ -2024,7 +2044,8 @@ Descriptor Descriptor::Parse(
     network_pefixes = GetBitcoinAddressFormatList();
   }
   Descriptor desc;
-  desc.root_node_ = DescriptorNode::Parse(output_descriptor, network_pefixes);
+  desc.root_node_ =
+      DescriptorNode::Parse(output_descriptor, network_pefixes, network_type);
   return desc;
 }
 
@@ -2032,7 +2053,7 @@ Descriptor Descriptor::Parse(
 Descriptor Descriptor::ParseElements(const std::string& output_descriptor) {
   std::vector<AddressFormatData> network_pefixes =
       GetElementsAddressFormatList();
-  return Parse(output_descriptor, &network_pefixes);
+  return Parse(output_descriptor, &network_pefixes, NetType::kLiquidV1);
 }
 #endif  // CFD_DISABLE_ELEMENTS
 
@@ -2098,7 +2119,8 @@ Descriptor Descriptor::CreateDescriptor(
               CfdError::kCfdIllegalArgumentError,
               "Failed to createDescriptor. key list is empty.");
         }
-        if ((!p_data->multisig) && (key_info_list.size() > 1)) {
+        if ((p_data != nullptr) && (!p_data->multisig) &&
+            (key_info_list.size() > 1)) {
           warn(CFD_LOG_SOURCE, "multiple key is multisig only.");
           throw CfdException(
               CfdError::kCfdIllegalArgumentError,
@@ -2114,6 +2136,8 @@ Descriptor Descriptor::CreateDescriptor(
               "Failed to script hash type. this type is unsupported of key.");
         }
         break;
+      case DescriptorScriptType::kDescriptorScriptTaproot:
+        // fall-through: unsupported yet.
       case DescriptorScriptType::kDescriptorScriptNull:
       case DescriptorScriptType::kDescriptorScriptAddr:
       case DescriptorScriptType::kDescriptorScriptRaw:
@@ -2125,7 +2149,12 @@ Descriptor Descriptor::CreateDescriptor(
         break;
     }
 
-    if (key_text.empty()) {
+    if (p_data == nullptr) {
+      warn(CFD_LOG_SOURCE, "Failed to script type.");
+      throw CfdException(
+          CfdError::kCfdIllegalArgumentError,
+          "Failed to script type. this type is unsupported.");
+    } else if (key_text.empty()) {
       output_descriptor = p_data->name + "(" + output_descriptor + ")";
     } else if (p_data->multisig) {
       output_descriptor = p_data->name + "(" + std::to_string(require_num) +
@@ -2236,7 +2265,7 @@ std::vector<KeyData> Descriptor::GetKeyDataAll(
   std::vector<KeyData> result;
 
   for (const auto& ref : ref_list) {
-    auto script_data = ref;
+    DescriptorScriptReference script_data = ref;
     do {
       if (script_data.HasKey()) {
         auto key_list = script_data.GetKeyList();

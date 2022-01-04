@@ -303,9 +303,7 @@ ByteData Secp256k1::AddTweakPubkeySecp256k1Ec(
           "Secp256k1 pubkey negate Error.");
     }
 
-    secp256k1_pubkey* pubkey_combined[2];
-    pubkey_combined[0] = &watchman;
-    pubkey_combined[1] = &tweaked;
+    secp256k1_pubkey* pubkey_combined[2] = {&watchman, &tweaked};
     secp256k1_pubkey maybe_tweaked2;
     ret = secp256k1_ec_pubkey_combine(
         context, &maybe_tweaked2, pubkey_combined, 2);

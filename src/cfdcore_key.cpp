@@ -61,7 +61,7 @@ void SetCustomKeyFormatList(const std::vector<KeyFormatData> &list) {
   if ((!list.empty()) && g_custom_key_format_list.empty()) {
     bool is_added_mainnet = false;
     bool is_added_testnet = false;
-    for (auto item : list) {
+    for (KeyFormatData item : list) {
       if (!item.LoadCache()) {
         // invalid data
       } else if (item.IsMainnet()) {

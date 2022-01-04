@@ -280,21 +280,25 @@ SchnorrPubkey operator-(const SchnorrPubkey &left, const ByteData256 &right) {
  * @brief A function that simply copies the data into the nonce.
  *
  * @param nonce32 the nonce
- * @param msg32 unused
+ * @param msg unused
+ * @param msglen unused
  * @param key32 unused
- * @param algo16 unused
  * @param xonly_pk32 unused
+ * @param algo unused
+ * @param algolen unused
  * @param data the data (actually the nonce to use)
  * @return int always returns 1
  */
 int ConstantNonceFunction(
-    unsigned char *nonce32, const unsigned char *msg32,
-    const unsigned char *key32, const unsigned char *algo16,
-    const unsigned char *xonly_pk32, void *data) {
-  (void)msg32;
+    unsigned char *nonce32, const unsigned char *msg, size_t msglen,
+    const unsigned char *key32, const unsigned char *xonly_pk32,
+    const unsigned char *algo, size_t algolen, void *data) {
+  (void)msg;
+  (void)msglen;
   (void)key32;
-  (void)algo16;
   (void)xonly_pk32;
+  (void)algo;
+  (void)algolen;
   std::memcpy(nonce32, (const unsigned char *)data, 32);
   return 1;
 }
@@ -334,9 +338,21 @@ SchnorrSignature SignCommon(
 
   std::vector<uint8_t> raw_sig(SchnorrSignature::kSchnorrSignatureSize);
 
-  ret = secp256k1_schnorrsig_sign(
-      ctx, raw_sig.data(), msg.GetBytes().data(), &keypair, nfn,
-      (ndata.IsEmpty()) ? nullptr : ndata.GetBytes().data());
+  if (nfn == nullptr) {
+    ret = secp256k1_schnorrsig_sign(
+        ctx, raw_sig.data(), msg.GetBytes().data(), &keypair,
+        ndata.GetBytes().data());
+  } else {
+    std::vector<uint8_t> data = ndata.GetBytes();
+    secp256k1_schnorrsig_extraparams extra_params = {
+        SECP256K1_SCHNORRSIG_EXTRAPARAMS_MAGIC,
+        nfn,
+        data.data(),
+    };
+    ret = secp256k1_schnorrsig_sign_custom(
+        ctx, raw_sig.data(), msg.GetBytes().data(), kByteData256Length,
+        &keypair, &extra_params);
+  }
 
   if (ret != 1) {
     throw CfdException(
@@ -371,7 +387,8 @@ Pubkey SchnorrUtil::ComputeSigPoint(
   secp256k1_pubkey secp_sigpoint;
 
   auto ret = secp256k1_schnorrsig_compute_sigpoint(
-      ctx, &secp_sigpoint, msg.GetBytes().data(), &secp_nonce, &xonly_pubkey);
+      ctx, &secp_sigpoint, msg.GetBytes().data(), kByteData256Length,
+      &secp_nonce, &xonly_pubkey);
   if (ret != 1) {
     throw CfdException(
         CfdError::kCfdInternalError, "Could not compute sigpoint");
@@ -431,7 +448,7 @@ bool SchnorrUtil::Verify(
   secp256k1_xonly_pubkey xonly_pubkey = ParseXOnlyPubkey(pubkey);
   return 1 == secp256k1_schnorrsig_verify(
                   ctx, signature.GetData().GetBytes().data(),
-                  msg.GetBytes().data(), &xonly_pubkey);
+                  msg.GetBytes().data(), kByteData256Length, &xonly_pubkey);
 }
 
 }  // namespace core

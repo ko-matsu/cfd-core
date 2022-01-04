@@ -55,6 +55,12 @@ class CFD_CORE_EXPORT ByteData {
    * @param[in] single_byte    1-Byte data
    */
   explicit ByteData(const uint8_t single_byte);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  ByteData& operator=(const ByteData& object);
 
   /**
    * @brief Get a hex string.
@@ -271,6 +277,12 @@ class CFD_CORE_EXPORT ByteData160 {
    * @param[in] byte_data   Byte data
    */
   explicit ByteData160(const ByteData& byte_data);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  ByteData160& operator=(const ByteData160& object);
 
   /**
    * @brief Get a hex string.
@@ -434,6 +446,12 @@ class CFD_CORE_EXPORT ByteData256 {
    * @param[in] byte_data   Byte data
    */
   explicit ByteData256(const ByteData& byte_data);
+  /**
+   * @brief copy constructor.
+   * @param[in] object    object
+   * @return object
+   */
+  ByteData256& operator=(const ByteData256& object);
 
   /**
    * @brief Get a hex string.
