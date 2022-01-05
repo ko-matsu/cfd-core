@@ -461,7 +461,7 @@ ByteData ConfidentialAssetId::GetSerializeData() const {
   if (version_ == 0) {
     return ByteData(0);
   }
-  return data_;
+  return GetData();
 }
 
 std::string ConfidentialAssetId::GetHex() const {
