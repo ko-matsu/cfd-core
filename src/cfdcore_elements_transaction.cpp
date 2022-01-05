@@ -3255,8 +3255,7 @@ ByteData256 ConfidentialTransaction::GetElementsSchnorrSignatureHash(
     builder.AddDirectByte(vin_[txin_index].GetOutPointFlag());
     builder.AddDirectBytes(vin_[txin_index].GetTxid().GetData());
     builder.AddDirectNumber(vin_[txin_index].GetVout());
-    builder.AddDirectBytes(
-        utxo_list[txin_index].GetAsset().GetData());
+    builder.AddDirectBytes(utxo_list[txin_index].GetAsset().GetData());
     builder.AddDirectBytes(
         utxo_list[txin_index].GetConfidentialValue().GetSerializeData());
     builder.AddVariableBuffer(
@@ -3289,8 +3288,7 @@ ByteData256 ConfidentialTransaction::GetElementsSchnorrSignatureHash(
   if (sighash_type.GetSigHashAlgorithm() == SigHashAlgorithm::kSigHashSingle) {
     CheckTxOutIndex(txin_index, __LINE__, __FUNCTION__);
     Serializer outputs_buf;
-    outputs_buf.AddDirectBytes(
-        vout_[txin_index].GetAsset().GetData());
+    outputs_buf.AddDirectBytes(vout_[txin_index].GetAsset().GetData());
     outputs_buf.AddDirectBytes(
         vout_[txin_index].GetConfidentialValue().GetSerializeData());
     outputs_buf.AddDirectBytes(
