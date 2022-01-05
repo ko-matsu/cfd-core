@@ -3252,7 +3252,6 @@ ExtPubkey ConfidentialTransaction::GenerateExtPubkeyFromDescriptor(
     const std::string &bitcoin_descriptor, uint32_t bip32_counter,
     const ByteData &prefix, NetType net_type, NetType elements_net_type,
     ExtPubkey *base_ext_pubkey, Address *descriptor_derive_address) {
-  bool is_liquidv1 = false;
   switch (elements_net_type) {
     case NetType::kMainnet:
     case NetType::kTestnet:
@@ -3260,8 +3259,6 @@ ExtPubkey ConfidentialTransaction::GenerateExtPubkeyFromDescriptor(
       throw CfdException(
           kCfdIllegalArgumentError, "Illegal elements network type error.");
     case NetType::kLiquidV1:
-      is_liquidv1 = true;
-      break;
     case NetType::kElementsRegtest:
     case NetType::kCustomChain:
     default:
@@ -3292,17 +3289,10 @@ ExtPubkey ConfidentialTransaction::GenerateExtPubkeyFromDescriptor(
   DescriptorScriptReference script_ref = desc.GetReference(&arg_list_base);
   switch (script_ref.GetAddressType()) {
     case AddressType::kP2pkhAddress:
-      break;
+      // fall-through
     case AddressType::kP2wpkhAddress:
+      // fall-through
     case AddressType::kP2shP2wpkhAddress:
-      if (is_liquidv1) {
-        warn(
-            CFD_LOG_SOURCE, "liquidv1 not supported address type[{}].",
-            script_ref.GetAddressType());
-        throw CfdException(
-            kCfdIllegalArgumentError,
-            "bitcoin_descriptor is not of any type supported: pkh(<xpub>)");
-      }
       break;
     default:
       warn(CFD_LOG_SOURCE, "bitcoin_descriptor invalid type.");
