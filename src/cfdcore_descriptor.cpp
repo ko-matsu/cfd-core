@@ -1384,7 +1384,7 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
     }
     if (parent_name == "sh") {
       script_type_ = p_data->type;
-      DescriptorScriptReference ref = GetReference(nullptr);
+      DescriptorScriptReference ref = GetReference(nullptr, this);
       Script script = ref.GetLockingScript();
       if ((script.GetData().GetDataSize() + 3) >
           Script::kMaxRedeemScriptSize) {
@@ -1768,40 +1768,74 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
       DescriptorKeyReference ref =
           child_node_[0].GetKeyReferences(array_argument);
       keys.push_back(ref);
+      Bip32FormatType bip32_type = Bip32FormatType::kNormal;
+      if (ref.HasExtPubkey()) {
+        bip32_type = ref.GetExtPubkey().GetFormatType();
+      }
       Pubkey pubkey = ref.GetPubkey();
       if (script_type_ == DescriptorScriptType::kDescriptorScriptCombo) {
         if (pubkey.IsCompress()) {
-          // p2wpkh
-          locking_script = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
+          if (bip32_type != Bip32FormatType::kBip49) {
+            // p2wpkh
+            locking_script = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
+            result.emplace_back(
+                locking_script, script_type_, keys, addr_prefixes_);
+          }
+
+          if (bip32_type != Bip32FormatType::kBip84) {
+            // p2sh-p2wpkh
+            DescriptorScriptReference child_script(
+                locking_script, DescriptorScriptType::kDescriptorScriptWpkh,
+                keys, addr_prefixes_);
+            locking_script =
+                ScriptUtil::CreateP2shLockingScript(locking_script);
+            result.emplace_back(
+                locking_script, script_type_, child_script, addr_prefixes_);
+          }
+        }
+
+        if (bip32_type == Bip32FormatType::kNormal) {
+          // p2pkh
+          locking_script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
           result.emplace_back(
               locking_script, script_type_, keys, addr_prefixes_);
 
-          // p2sh-p2wpkh
-          DescriptorScriptReference child_script(
-              locking_script, DescriptorScriptType::kDescriptorScriptWpkh,
-              keys, addr_prefixes_);
-          locking_script = ScriptUtil::CreateP2shLockingScript(locking_script);
+          // p2pk
+          build << pubkey << ScriptOperator::OP_CHECKSIG;
+          locking_script = build.Build();
           result.emplace_back(
-              locking_script, script_type_, child_script, addr_prefixes_);
+              locking_script, script_type_, keys, addr_prefixes_);
         }
-
-        // p2pkh
-        locking_script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
-        result.emplace_back(
-            locking_script, script_type_, keys, addr_prefixes_);
-
-        // p2pk
-        build << pubkey << ScriptOperator::OP_CHECKSIG;
-        locking_script = build.Build();
-        result.emplace_back(
-            locking_script, script_type_, keys, addr_prefixes_);
       } else {
         if (script_type_ == DescriptorScriptType::kDescriptorScriptPkh) {
+          if (bip32_type != Bip32FormatType::kNormal) {
+            throw CfdException(
+                CfdError::kCfdIllegalArgumentError,
+                "invalid bip32 format. pkh is not using bip49 or bip84.");
+          }
           locking_script = ScriptUtil::CreateP2pkhLockingScript(pubkey);
         } else if (
             script_type_ == DescriptorScriptType::kDescriptorScriptWpkh) {
+          if ((bip32_type == Bip32FormatType::kBip49) &&
+              ((parent == nullptr) ||
+               (parent->GetScriptType() !=
+                DescriptorScriptType::kDescriptorScriptSh))) {
+            throw CfdException(
+                CfdError::kCfdIllegalArgumentError,
+                "invalid bip32 format. bip49 is using sh-wpkh only.");
+          } else if (
+              (bip32_type == Bip32FormatType::kBip84) && (parent != nullptr)) {
+            throw CfdException(
+                CfdError::kCfdIllegalArgumentError,
+                "invalid bip32 format. bip84 is using wpkh only.");
+          }
           locking_script = ScriptUtil::CreateP2wpkhLockingScript(pubkey);
         } else if (script_type_ == DescriptorScriptType::kDescriptorScriptPk) {
+          if (bip32_type != Bip32FormatType::kNormal) {
+            throw CfdException(
+                CfdError::kCfdIllegalArgumentError,
+                "invalid bip32 format. pk is not using bip49 or bip84.");
+          }
           if (parent_kind_ == "tr") {
             build << SchnorrPubkey::FromPubkey(pubkey).GetData()
                   << ScriptOperator::OP_CHECKSIG;
