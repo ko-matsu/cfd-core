@@ -1989,23 +1989,24 @@ TEST(ConfidentialTransaction, GetPegoutPubkeyDataPkhNoCounterTest) {
   // liquid_pak_privkey
   Privkey master_online_key = Privkey::FromWif(
       "cPoefvB147bYpWCf9JqRBVMXENt4isSBAn91RYeiBh1jUp3ThhKN", NetType::kTestnet, true);
-  std::string bitcoin_descriptor = "tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz";
   ByteData whitelist("020061b08c4c80dc04aaa0b44018d2c4bcdb0d9c0992fb4fddf9d2fb096a5164c002a71e193ce21075d0966be16724e41fff666366d7ac13e3616a329005da4024da");
   NetType net_type = NetType::kTestnet;
   ByteData pubkey_prefix = ByteData("043587cf");
-  uint32_t bip32_counter = 0;
   PegoutKeyData key_data;
 
   Address addr;
   // 20200625: Although the logic is the same, a problem occurred due to the processing position.
   GetPegoutPubkeyDataTestVector testdata = {
+    "tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz",
     "031edbc17e3c1e67bb7d4aaceede0b78e5b4bd69d1b38b1a7048f605d96f572ef1",
     "01cac9aebddceb0cc8e869f43d080ab00895ce89c3127c85ffd221152c52d912134d7d3da862e36b66c63f39bb4e1920bcd74013ec9a97e3374678113251f6a12d",
-    "mx7egZtzUWR8aVviQnpKJCoaT4ytSiQjxL"
+    "mx7egZtzUWR8aVviQnpKJCoaT4ytSiQjxL",
+    0,
   };
   EXPECT_NO_THROW(
     (key_data = ConfidentialTransaction::GetPegoutPubkeyData(
-        online_pubkey, master_online_key, bitcoin_descriptor, bip32_counter,
+        online_pubkey, master_online_key,
+        testdata.bitcoin_descriptor, testdata.bip32_counter,
         whitelist, net_type, pubkey_prefix, NetType::kElementsRegtest, &addr)));
   EXPECT_STREQ(
       key_data.btc_pubkey_bytes.GetHex().c_str(),
