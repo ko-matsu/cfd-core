@@ -3392,10 +3392,10 @@ PegoutKeyData ConfidentialTransaction::GetPegoutPubkeyData(
   }
 
   ByteData prefix = pubkey_prefix;
-  if ((net_type == NetType::kTestnet) || ((net_type == NetType::kRegtest))) {
-    prefix = ByteData("043587cf");
-  } else if (net_type == NetType::kMainnet) {
-    prefix = ByteData("0488b21e");
+  if (pubkey_prefix.IsEmpty() &&
+      ((net_type == NetType::kTestnet) || (net_type == NetType::kRegtest) ||
+       (net_type == NetType::kMainnet))) {
+    // do nothing
   } else if (prefix.GetDataSize() != 4) {
     throw CfdException(
         kCfdIllegalArgumentError, "Illegal prefix and nettype.");
@@ -3404,8 +3404,8 @@ PegoutKeyData ConfidentialTransaction::GetPegoutPubkeyData(
   // check descriptor
   ExtPubkey xpub;
   ExtPubkey child_xpub = GenerateExtPubkeyFromDescriptor(
-      bitcoin_descriptor, bip32_counter, prefix, net_type, elements_net_type,
-      &xpub, descriptor_derive_address);
+      bitcoin_descriptor, bip32_counter, pubkey_prefix, net_type,
+      elements_net_type, &xpub, descriptor_derive_address);
   // FlatSigningProvider provider;
   // const auto descriptor = Parse(desc_str, provider);
   // if (!descriptor) desc_str = "pkh(" + xpub.GetBase58String() + "/0/*)";
@@ -3451,13 +3451,11 @@ PegoutKeyData ConfidentialTransaction::GetPegoutPubkeyData(
 Address ConfidentialTransaction::GetPegoutAddressFromDescriptor(
     const std::string &bitcoin_descriptor, uint32_t bip32_counter,
     NetType net_type, NetType elements_net_type) {
-  ByteData prefix = (net_type == NetType::kMainnet) ? ByteData("0488b21e")
-                                                    : ByteData("043587cf");
   ExtPubkey base_ext_pubkey;
   Address result;
   GenerateExtPubkeyFromDescriptor(
-      bitcoin_descriptor, bip32_counter, prefix, net_type, elements_net_type,
-      &base_ext_pubkey, &result);
+      bitcoin_descriptor, bip32_counter, ByteData(), net_type,
+      elements_net_type, &base_ext_pubkey, &result);
   return result;
 }
 
@@ -3465,6 +3463,19 @@ ExtPubkey ConfidentialTransaction::GenerateExtPubkeyFromDescriptor(
     const std::string &bitcoin_descriptor, uint32_t bip32_counter,
     const ByteData &prefix, NetType net_type, NetType elements_net_type,
     ExtPubkey *base_ext_pubkey, Address *descriptor_derive_address) {
+  bool is_mainnet = false;
+  switch (net_type) {
+    case NetType::kMainnet:
+      is_mainnet = true;
+      break;
+    case NetType::kTestnet:
+      // fall-through
+    case NetType::kRegtest:
+      break;
+    default:
+      throw CfdException(
+          kCfdIllegalArgumentError, "Illegal bitcoin network type error.");
+  }
   switch (elements_net_type) {
     case NetType::kMainnet:
     case NetType::kTestnet:
@@ -3484,8 +3495,20 @@ ExtPubkey ConfidentialTransaction::GenerateExtPubkeyFromDescriptor(
   try {
     // check extkey (not output descriptor)
     ExtPubkey check_key(bitcoin_descriptor);
-    if (check_key.GetVersionData().Equals(prefix)) {
+    bool is_mainnet_key = check_key.GetNetworkType() == kMainnet;
+    if ((!prefix.IsEmpty()) && check_key.GetVersionData().Equals(prefix)) {
       desc_str = "pkh(" + bitcoin_descriptor + ")";  // create pkh descriptor
+    } else if (is_mainnet == is_mainnet_key) {
+      switch (check_key.GetFormatType()) {
+        case kBip49:
+          desc_str = "sh(wpkh(" + bitcoin_descriptor + "))";
+          break;
+        case kBip84:
+          desc_str = "wpkh(" + bitcoin_descriptor + ")";
+          break;
+        default:
+          desc_str = "pkh(" + bitcoin_descriptor + ")";
+      }
     }
   } catch (const CfdException &except) {
     info(
@@ -3525,7 +3548,7 @@ ExtPubkey ConfidentialTransaction::GenerateExtPubkeyFromDescriptor(
         kCfdIllegalArgumentError, "BitcoinDescriptor invalid extkey format.");
   }
   *base_ext_pubkey = key_ref.GetExtPubkey();
-  if (!base_ext_pubkey->GetVersionData().Equals(prefix)) {
+  if (!prefix.IsEmpty() && !base_ext_pubkey->GetVersionData().Equals(prefix)) {
     warn(
         CFD_LOG_SOURCE, "bitcoin_descriptor illegal prefix[{}].",
         xpub.GetVersionData().GetHex());

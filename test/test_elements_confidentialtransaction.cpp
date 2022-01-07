@@ -1869,43 +1869,78 @@ TEST(ConfidentialTransaction, GetIssuanceBlindingKeyTest) {
 }
 
 struct GetPegoutPubkeyDataTestVector {
+  std::string bitcoin_descriptor;
   std::string btc_pubkey_bytes;
   std::string whitelist_proof;
   std::string address;
+  uint32_t bip32_counter;
 };
 
 // bip32_counter: 0 - 5
 static const std::vector<GetPegoutPubkeyDataTestVector> kGetPegoutPubkeyDataTestVector = {
   {
+    "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))",
     "031edbc17e3c1e67bb7d4aaceede0b78e5b4bd69d1b38b1a7048f605d96f572ef1",
     "01cac9aebddceb0cc8e869f43d080ab00895ce89c3127c85ffd221152c52d912134d7d3da862e36b66c63f39bb4e1920bcd74013ec9a97e3374678113251f6a12d",
-    "2MtzmJDwuaD7RTnf6qQtpcTcjnHpS2h2P4i"
+    "2MtzmJDwuaD7RTnf6qQtpcTcjnHpS2h2P4i",
+    0,
   },
   {
+    "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))",
     "03b7b84f99dd7cb06da46f6153e1941f833e21ca8996e6b60b617d5b64f49f4fda",
     "018c9474fce171fa9da1f850d45885a5693a29714dde563bb59324c34309f1d662bb2afcb05d6cc6e2f757c4992c254e4e7af6150fd09b2683cf002658edb5e9dc",
-    "2MspyB1f1DTTFE26aFAz1eAdbRsgk8H3vNr"
+    "2MspyB1f1DTTFE26aFAz1eAdbRsgk8H3vNr",
+    1,
   },
   {
+    "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))",
     "02e291a761061b948de9c28025ad26bf2dc308a34230a3bd32fae2abc0afac2a64",
     "01d508e9231475f40b5d48c8c26f7ee29d67cfc796ca9add9d28af572638e70dd158ed852a227c088683a28c9157964864895fc1dc7889758f4868f92d09ed6a05",
-    "2MsNAQ9UZjtrfJqcKn6fiKyidZsdx5zCsih"
+    "2MsNAQ9UZjtrfJqcKn6fiKyidZsdx5zCsih",
+    2,
   },
   {
+    "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))",
     "0257fbcaa2078b6e99d4c66643224fd7418b148e17b64d6063353bc0b1201e7c0c",
     "0168dbb3902e6a43bf740d9ae92396e8975e5958b3c42b7d38960741388bf5bad2a3995df93712c488682253b44b39935758d800b5e2e1e4256540b3d457d14adb",
-    "2MyMsCP6wcPYsnWwg4EJSSDPje3GyG9ZLgL"
+    "2MyMsCP6wcPYsnWwg4EJSSDPje3GyG9ZLgL",
+    3,
   },
   {
+    "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))",
     "03205749a6df5ef4ea4566fe1ebb001c3c59c69ba6f05f02e7dc985b7cc19d6c15",
     "01aa16442b00148e25bfe7dd4c84273be1879a23a5607f5b7f26e0fbc3374aaf464e1341935df03bc13a9485b709d3b6b8e1cc9f5fdfd3f7a2f8eb69eec6b5cab9",
-    "2NB7GRdYwyQ5r15uC2Jh7Xb49CKfGP3mFJJ"
+    "2NB7GRdYwyQ5r15uC2Jh7Xb49CKfGP3mFJJ",
+    4,
   },
   {
+    "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))",
     "03604f35e4918430282431f7b98a564b639ed5ee02f04d1e09052722455b32b0ff",
     "01eedfbefb3f1d71f781cbdebba92ad97faa5b57977ec180771cbce6a3c9358c05f4e880a31fc33f97e72b164c05720de88d6ec9e96409980a11185fc8064e3e42",
-    "2NBp8wTHaUZ7ttSdsn1GnphwjFFAtYniwKE"
-  }
+    "2NBp8wTHaUZ7ttSdsn1GnphwjFFAtYniwKE",
+    5,
+  },
+  {  // ypub
+    "upub5D59Adgg2hBB4yXkLAuE6kHi2opyB7St5Nw2CRnBcpH8HaLmrTM9rFdPVJoJ9dDwvbgPDcr7PCe8t5twuViQBP7xHt7TqD9GkPqLCtcu5iU",
+    "03604f35e4918430282431f7b98a564b639ed5ee02f04d1e09052722455b32b0ff",
+    "01eedfbefb3f1d71f781cbdebba92ad97faa5b57977ec180771cbce6a3c9358c05f4e880a31fc33f97e72b164c05720de88d6ec9e96409980a11185fc8064e3e42",
+    "2NBp8wTHaUZ7ttSdsn1GnphwjFFAtYniwKE",
+    5,
+  },
+  {
+    "wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*)",
+    "02f8f0825e6bc569e8c380ef903937050cc5f39aa3b45020ba3a19b587b6dd8fd6",
+    "01617247c4bdfe6bd0d7fefdaa83e49f0e23803856e728de5308e6cce527e72fe3b01d51ddfd07d667a60ca7ff94964c374cba4e488b703b30b43179d4c69075b0",
+    "tb1q3mnueyevcxth223pmgkv4gcptye6hkzgps0syc",
+    6,
+  },
+  {  // zpub
+    "vpub5XuQUJMbBNievGisAXgrJqPDCmyR7jSNzVTEypg4zpf1LgA177WiUKHXWWkt9XssLEoBy6SfqrzgmNWWdC8QycoZADotR7xm27tybQjZo8g",
+    "02f8f0825e6bc569e8c380ef903937050cc5f39aa3b45020ba3a19b587b6dd8fd6",
+    "01617247c4bdfe6bd0d7fefdaa83e49f0e23803856e728de5308e6cce527e72fe3b01d51ddfd07d667a60ca7ff94964c374cba4e488b703b30b43179d4c69075b0",
+    "tb1q3mnueyevcxth223pmgkv4gcptye6hkzgps0syc",
+    6,
+  },
 };
 
 TEST(ConfidentialTransaction, GetPegoutPubkeyDataTest) {
@@ -1914,19 +1949,21 @@ TEST(ConfidentialTransaction, GetPegoutPubkeyDataTest) {
   // liquid_pak_privkey
   Privkey master_online_key = Privkey::FromWif(
       "cPoefvB147bYpWCf9JqRBVMXENt4isSBAn91RYeiBh1jUp3ThhKN", NetType::kTestnet, true);
-  std::string bitcoin_descriptor = "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))";
   ByteData whitelist("020061b08c4c80dc04aaa0b44018d2c4bcdb0d9c0992fb4fddf9d2fb096a5164c002a71e193ce21075d0966be16724e41fff666366d7ac13e3616a329005da4024da");
   NetType net_type = NetType::kTestnet;
-  ByteData pubkey_prefix = ByteData("043587cf");
-  uint32_t bip32_counter = 0;
+  ByteData pubkey_prefix = ByteData("");
   PegoutKeyData key_data;
 
   Address addr;
   for (const auto& testdata : kGetPegoutPubkeyDataTestVector) {
-    EXPECT_NO_THROW(
-      (key_data = ConfidentialTransaction::GetPegoutPubkeyData(
-          online_pubkey, master_online_key, bitcoin_descriptor, bip32_counter,
-          whitelist, net_type, pubkey_prefix, NetType::kElementsRegtest, &addr)));
+    try {
+      key_data = ConfidentialTransaction::GetPegoutPubkeyData(
+        online_pubkey, master_online_key, testdata.bitcoin_descriptor,
+        testdata.bip32_counter,
+        whitelist, net_type, pubkey_prefix, NetType::kElementsRegtest, &addr);
+    } catch (const CfdException& except) {
+      EXPECT_STREQ("", except.what());
+    }
     EXPECT_STREQ(
         key_data.btc_pubkey_bytes.GetHex().c_str(),
         testdata.btc_pubkey_bytes.c_str());
@@ -1938,12 +1975,11 @@ TEST(ConfidentialTransaction, GetPegoutPubkeyDataTest) {
         testdata.address.c_str());
 
     auto pegout_addr = ConfidentialTransaction::GetPegoutAddressFromDescriptor(
-        bitcoin_descriptor, bip32_counter, net_type,
+        testdata.bitcoin_descriptor, testdata.bip32_counter, net_type,
         NetType::kElementsRegtest);
     EXPECT_STREQ(
         pegout_addr.GetAddress().c_str(),
         testdata.address.c_str());
-    ++bip32_counter;
   }
 }
 
