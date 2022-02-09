@@ -350,6 +350,30 @@ TEST(Privkey, TweakTest) {
   EXPECT_EQ(exp_sk_m2, sk_m4.GetHex());
 }
 
+TEST(Privkey, SignBitcoinMessageWithBase64Test) {
+  Privkey privkey = Privkey::FromWif(
+      "cUUuHBXPzhaFnny2gCBzZZzYtFyps9B1sDJbtJMC8ssjUhNMq9xk");
+  std::string message = "This is just a test message";
+  std::string expected_signature_b64 = "H9Dk+Y13ybD+hH7okYJemWs0N9cIJ23Zn5T+lDFo+ZO3G9QSb6Qla2TATXFji29uip6vKsi8TJRZQHbCTu85/74=";
+
+  std::string sig_b64 = privkey.SignBitcoinMessageWithBase64(message);
+  EXPECT_EQ(expected_signature_b64, sig_b64);
+
+  Pubkey pk = privkey.GetPubkey();
+  Pubkey recovery_pk;
+  EXPECT_TRUE(pk.VerifyBitcoinMessageWithBase64(sig_b64, message, &recovery_pk));
+  EXPECT_TRUE(recovery_pk.IsValid());
+  EXPECT_EQ(pk.GetHex(), recovery_pk.GetHex());
+
+  Privkey privkey2(
+      "305e293b010d29bf3c888b617763a438fee9054c8cab66eb12ad078f819d9f27");
+  Pubkey pk2 = privkey2.GetPubkey();
+  EXPECT_FALSE(pk2.VerifyBitcoinMessageWithBase64(sig_b64, message));
+
+  std::string message2 = "This is just a test message2";
+  EXPECT_FALSE(pk.VerifyBitcoinMessageWithBase64(sig_b64, message2));
+}
+
 TEST(KeyFormatData, CustomKeyFormatList) {
   std::string custom_json = "[{"
       "\"IsMainnet\":\"\",\"wif\":\"40\","
