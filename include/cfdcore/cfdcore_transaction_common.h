@@ -731,14 +731,15 @@ class CFD_CORE_EXPORT SignatureUtil {
  public:
   /**
    * @brief Calculate the signature from the private key using elliptic curve cryptography.
-   * @param[in] signature_hash  signature hash
-   * @param[in] private_key     private key
-   * @param[in] has_grind_r     EC_FLAG_GRIND_R flag
+   * @param[in] signature_hash    signature hash
+   * @param[in] private_key       private key
+   * @param[in] has_grind_r       EC_FLAG_GRIND_R flag
+   * @param[in] has_recoverable   EC_FLAG_RECOVERABLE flag
    * @return signature
    */
   static ByteData CalculateEcSignature(
       const ByteData256& signature_hash, const Privkey& private_key,
-      bool has_grind_r = true);
+      bool has_grind_r = true, bool has_recoverable = false);
 
   /**
    * @brief Verify if a signature with respect to a public key and a message.

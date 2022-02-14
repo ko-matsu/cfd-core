@@ -25,6 +25,27 @@ namespace core {
 using logger::warn;
 
 // ----------------------------------------------------------------------------
+// Internal file functions
+// ----------------------------------------------------------------------------
+/**
+ * @brief Get hashed message.
+ * @param[in] message         message
+ * @param[in] message_magic   magic word
+ * @return hashed message
+ */
+ByteData256 HashMessage(
+    const std::string &message, const std::string &message_magic) {
+  ByteData msg_magic_data(
+      reinterpret_cast<const uint8_t *>(message_magic.data()),
+      static_cast<uint32_t>(message_magic.size()));
+  ByteData msg_data(
+      reinterpret_cast<const uint8_t *>(message.data()),
+      static_cast<uint32_t>(message.size()));
+  ByteData buf = msg_magic_data.Serialize().Concat(msg_data.Serialize());
+  return HashUtil::Sha256D(buf);
+}
+
+// ----------------------------------------------------------------------------
 // Global API
 // ----------------------------------------------------------------------------
 //! key format list
@@ -505,6 +526,48 @@ bool Pubkey::VerifyEcSignature(
   return SignatureUtil::VerifyEcSignature(signature_hash, *this, signature);
 }
 
+bool Pubkey::VerifyBitcoinMessage(
+    const ByteData &signature, const std::string &message,
+    Pubkey *pubkey) const {
+  return VerifyMessage(
+      signature, message, std::string(kBitcoinMessageMagic), pubkey);
+}
+
+bool Pubkey::VerifyBitcoinMessageWithBase64(
+    const std::string &base64_signature, const std::string &message,
+    Pubkey *pubkey) const {
+  return VerifyBitcoinMessage(
+      CryptoUtil::DecodeBase64(base64_signature), message, pubkey);
+}
+
+bool Pubkey::VerifyMessage(
+    const ByteData &signature, const std::string &message,
+    const std::string &message_magic, Pubkey *pubkey) const {
+  try {
+    ByteData256 hash = HashMessage(message, message_magic);
+
+    // recovery pubkey from ecSig.
+    std::vector<uint8_t> hash_bytes = hash.GetBytes();
+    std::vector<uint8_t> sig_bytes = signature.GetBytes();
+    std::vector<uint8_t> pubkey_bytes(EC_PUBLIC_KEY_LEN);
+    int ret = wally_ec_sig_to_public_key(
+        hash_bytes.data(), hash_bytes.size(), sig_bytes.data(),
+        sig_bytes.size(), pubkey_bytes.data(), pubkey_bytes.size());
+    if (ret != WALLY_OK) {
+      warn(CFD_LOG_SOURCE, "wally_ec_sig_to_public_key NG[{}] ", ret);
+      return false;
+    }
+    Pubkey key(pubkey_bytes);
+    if (pubkey != nullptr) {
+      *pubkey = key;
+    }
+    return Equals(key);
+  } catch (const CfdException &except) {
+    warn(CFD_LOG_SOURCE, "verify error: {}", except.what());
+  }
+  return false;
+}
+
 Pubkey Pubkey::operator+=(const Pubkey &right) {
   Pubkey key = Pubkey::CombinePubkey(*this, right);
   *this = key;
@@ -836,6 +899,21 @@ ByteData Privkey::CalculateEcSignature(
     const ByteData256 &signature_hash, bool has_grind_r) const {
   return SignatureUtil::CalculateEcSignature(
       signature_hash, *this, has_grind_r);
+}
+
+ByteData Privkey::SignBitcoinMessage(const std::string &message) const {
+  return SignMessage(message, std::string(kBitcoinMessageMagic));
+}
+
+std::string Privkey::SignBitcoinMessageWithBase64(
+    const std::string &message) const {
+  return CryptoUtil::EncodeBase64(SignBitcoinMessage(message));
+}
+
+ByteData Privkey::SignMessage(
+    const std::string &message, const std::string &message_magic) const {
+  ByteData256 hash = HashMessage(message, message_magic);
+  return SignatureUtil::CalculateEcSignature(hash, *this, false, true);
 }
 
 void Privkey::SetPubkeyCompressed(bool is_compressed) {

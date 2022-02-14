@@ -4,19 +4,27 @@
 
 #include "cfdcore/cfdcore_address.h"
 #include "cfdcore/cfdcore_common.h"
+#include "cfdcore/cfdcore_block.h"
+#include "cfdcore/cfdcore_descriptor.h"
 #include "cfdcore/cfdcore_elements_transaction.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_key.h"
+#include "cfdcore/cfdcore_schnorrsig.h"
+#include "cfdcore/cfdcore_taproot.h"
 #include "cfdcore/cfdcore_util.h"
 
 using cfd::core::Address;
 using cfd::core::CfdException;
+using cfd::core::BlockHash;
 using cfd::core::ByteData;
 using cfd::core::ByteData160;
 using cfd::core::ByteData256;
 using cfd::core::BlindData;
 using cfd::core::BlindFactor;
 using cfd::core::Amount;
+using cfd::core::CryptoUtil;
+using cfd::core::Descriptor;
+using cfd::core::GetElementsAddressFormatList;
 using cfd::core::Txid;
 using cfd::core::Pubkey;
 using cfd::core::Privkey;
@@ -43,6 +51,10 @@ using cfd::core::BlindParameter;
 using cfd::core::UnblindParameter;
 using cfd::core::WitnessVersion;
 using cfd::core::PegoutKeyData;
+using cfd::core::SchnorrPubkey;
+using cfd::core::SchnorrSignature;
+using cfd::core::SchnorrUtil;
+using cfd::core::TapBranch;
 
 static const std::string exp_tx_hex =
     "020000000001319bff5f4311e6255ecf4dd472650a6ef85fde7d11cd10d3e6ba5974174aeb560100000000ffffffff0201f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f0100000bd2cc1584c002deb65cc52301e1622f482a2f588b9800d2b8386ffabf74d6b2d73d17503a2f921976a9146a98a3f2935718df72518c00768ec67c589e0b2888ac01f38611eb688e6fcd06f25e2faf52b9f98364dc14c379ab085f1b57d56b4b1a6f0100000000004c4b40000000000000";
@@ -1869,43 +1881,78 @@ TEST(ConfidentialTransaction, GetIssuanceBlindingKeyTest) {
 }
 
 struct GetPegoutPubkeyDataTestVector {
+  std::string bitcoin_descriptor;
   std::string btc_pubkey_bytes;
   std::string whitelist_proof;
   std::string address;
+  uint32_t bip32_counter;
 };
 
 // bip32_counter: 0 - 5
 static const std::vector<GetPegoutPubkeyDataTestVector> kGetPegoutPubkeyDataTestVector = {
   {
+    "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))",
     "031edbc17e3c1e67bb7d4aaceede0b78e5b4bd69d1b38b1a7048f605d96f572ef1",
     "01cac9aebddceb0cc8e869f43d080ab00895ce89c3127c85ffd221152c52d912134d7d3da862e36b66c63f39bb4e1920bcd74013ec9a97e3374678113251f6a12d",
-    "2MtzmJDwuaD7RTnf6qQtpcTcjnHpS2h2P4i"
+    "2MtzmJDwuaD7RTnf6qQtpcTcjnHpS2h2P4i",
+    0,
   },
   {
+    "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))",
     "03b7b84f99dd7cb06da46f6153e1941f833e21ca8996e6b60b617d5b64f49f4fda",
     "018c9474fce171fa9da1f850d45885a5693a29714dde563bb59324c34309f1d662bb2afcb05d6cc6e2f757c4992c254e4e7af6150fd09b2683cf002658edb5e9dc",
-    "2MspyB1f1DTTFE26aFAz1eAdbRsgk8H3vNr"
+    "2MspyB1f1DTTFE26aFAz1eAdbRsgk8H3vNr",
+    1,
   },
   {
+    "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))",
     "02e291a761061b948de9c28025ad26bf2dc308a34230a3bd32fae2abc0afac2a64",
     "01d508e9231475f40b5d48c8c26f7ee29d67cfc796ca9add9d28af572638e70dd158ed852a227c088683a28c9157964864895fc1dc7889758f4868f92d09ed6a05",
-    "2MsNAQ9UZjtrfJqcKn6fiKyidZsdx5zCsih"
+    "2MsNAQ9UZjtrfJqcKn6fiKyidZsdx5zCsih",
+    2,
   },
   {
+    "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))",
     "0257fbcaa2078b6e99d4c66643224fd7418b148e17b64d6063353bc0b1201e7c0c",
     "0168dbb3902e6a43bf740d9ae92396e8975e5958b3c42b7d38960741388bf5bad2a3995df93712c488682253b44b39935758d800b5e2e1e4256540b3d457d14adb",
-    "2MyMsCP6wcPYsnWwg4EJSSDPje3GyG9ZLgL"
+    "2MyMsCP6wcPYsnWwg4EJSSDPje3GyG9ZLgL",
+    3,
   },
   {
+    "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))",
     "03205749a6df5ef4ea4566fe1ebb001c3c59c69ba6f05f02e7dc985b7cc19d6c15",
     "01aa16442b00148e25bfe7dd4c84273be1879a23a5607f5b7f26e0fbc3374aaf464e1341935df03bc13a9485b709d3b6b8e1cc9f5fdfd3f7a2f8eb69eec6b5cab9",
-    "2NB7GRdYwyQ5r15uC2Jh7Xb49CKfGP3mFJJ"
+    "2NB7GRdYwyQ5r15uC2Jh7Xb49CKfGP3mFJJ",
+    4,
   },
   {
+    "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))",
     "03604f35e4918430282431f7b98a564b639ed5ee02f04d1e09052722455b32b0ff",
     "01eedfbefb3f1d71f781cbdebba92ad97faa5b57977ec180771cbce6a3c9358c05f4e880a31fc33f97e72b164c05720de88d6ec9e96409980a11185fc8064e3e42",
-    "2NBp8wTHaUZ7ttSdsn1GnphwjFFAtYniwKE"
-  }
+    "2NBp8wTHaUZ7ttSdsn1GnphwjFFAtYniwKE",
+    5,
+  },
+  {  // ypub
+    "upub5D59Adgg2hBB4yXkLAuE6kHi2opyB7St5Nw2CRnBcpH8HaLmrTM9rFdPVJoJ9dDwvbgPDcr7PCe8t5twuViQBP7xHt7TqD9GkPqLCtcu5iU",
+    "03604f35e4918430282431f7b98a564b639ed5ee02f04d1e09052722455b32b0ff",
+    "01eedfbefb3f1d71f781cbdebba92ad97faa5b57977ec180771cbce6a3c9358c05f4e880a31fc33f97e72b164c05720de88d6ec9e96409980a11185fc8064e3e42",
+    "2NBp8wTHaUZ7ttSdsn1GnphwjFFAtYniwKE",
+    5,
+  },
+  {
+    "wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*)",
+    "02f8f0825e6bc569e8c380ef903937050cc5f39aa3b45020ba3a19b587b6dd8fd6",
+    "01617247c4bdfe6bd0d7fefdaa83e49f0e23803856e728de5308e6cce527e72fe3b01d51ddfd07d667a60ca7ff94964c374cba4e488b703b30b43179d4c69075b0",
+    "tb1q3mnueyevcxth223pmgkv4gcptye6hkzgps0syc",
+    6,
+  },
+  {  // zpub
+    "vpub5XuQUJMbBNievGisAXgrJqPDCmyR7jSNzVTEypg4zpf1LgA177WiUKHXWWkt9XssLEoBy6SfqrzgmNWWdC8QycoZADotR7xm27tybQjZo8g",
+    "02f8f0825e6bc569e8c380ef903937050cc5f39aa3b45020ba3a19b587b6dd8fd6",
+    "01617247c4bdfe6bd0d7fefdaa83e49f0e23803856e728de5308e6cce527e72fe3b01d51ddfd07d667a60ca7ff94964c374cba4e488b703b30b43179d4c69075b0",
+    "tb1q3mnueyevcxth223pmgkv4gcptye6hkzgps0syc",
+    6,
+  },
 };
 
 TEST(ConfidentialTransaction, GetPegoutPubkeyDataTest) {
@@ -1914,19 +1961,21 @@ TEST(ConfidentialTransaction, GetPegoutPubkeyDataTest) {
   // liquid_pak_privkey
   Privkey master_online_key = Privkey::FromWif(
       "cPoefvB147bYpWCf9JqRBVMXENt4isSBAn91RYeiBh1jUp3ThhKN", NetType::kTestnet, true);
-  std::string bitcoin_descriptor = "sh(wpkh(tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz/0/*))";
   ByteData whitelist("020061b08c4c80dc04aaa0b44018d2c4bcdb0d9c0992fb4fddf9d2fb096a5164c002a71e193ce21075d0966be16724e41fff666366d7ac13e3616a329005da4024da");
   NetType net_type = NetType::kTestnet;
-  ByteData pubkey_prefix = ByteData("043587cf");
-  uint32_t bip32_counter = 0;
+  ByteData pubkey_prefix = ByteData("");
   PegoutKeyData key_data;
 
   Address addr;
   for (const auto& testdata : kGetPegoutPubkeyDataTestVector) {
-    EXPECT_NO_THROW(
-      (key_data = ConfidentialTransaction::GetPegoutPubkeyData(
-          online_pubkey, master_online_key, bitcoin_descriptor, bip32_counter,
-          whitelist, net_type, pubkey_prefix, NetType::kElementsRegtest, &addr)));
+    try {
+      key_data = ConfidentialTransaction::GetPegoutPubkeyData(
+        online_pubkey, master_online_key, testdata.bitcoin_descriptor,
+        testdata.bip32_counter,
+        whitelist, net_type, pubkey_prefix, NetType::kElementsRegtest, &addr);
+    } catch (const CfdException& except) {
+      EXPECT_STREQ("", except.what());
+    }
     EXPECT_STREQ(
         key_data.btc_pubkey_bytes.GetHex().c_str(),
         testdata.btc_pubkey_bytes.c_str());
@@ -1938,12 +1987,11 @@ TEST(ConfidentialTransaction, GetPegoutPubkeyDataTest) {
         testdata.address.c_str());
 
     auto pegout_addr = ConfidentialTransaction::GetPegoutAddressFromDescriptor(
-        bitcoin_descriptor, bip32_counter, net_type,
+        testdata.bitcoin_descriptor, testdata.bip32_counter, net_type,
         NetType::kElementsRegtest);
     EXPECT_STREQ(
         pegout_addr.GetAddress().c_str(),
         testdata.address.c_str());
-    ++bip32_counter;
   }
 }
 
@@ -1953,23 +2001,24 @@ TEST(ConfidentialTransaction, GetPegoutPubkeyDataPkhNoCounterTest) {
   // liquid_pak_privkey
   Privkey master_online_key = Privkey::FromWif(
       "cPoefvB147bYpWCf9JqRBVMXENt4isSBAn91RYeiBh1jUp3ThhKN", NetType::kTestnet, true);
-  std::string bitcoin_descriptor = "tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz";
   ByteData whitelist("020061b08c4c80dc04aaa0b44018d2c4bcdb0d9c0992fb4fddf9d2fb096a5164c002a71e193ce21075d0966be16724e41fff666366d7ac13e3616a329005da4024da");
   NetType net_type = NetType::kTestnet;
   ByteData pubkey_prefix = ByteData("043587cf");
-  uint32_t bip32_counter = 0;
   PegoutKeyData key_data;
 
   Address addr;
   // 20200625: Although the logic is the same, a problem occurred due to the processing position.
   GetPegoutPubkeyDataTestVector testdata = {
+    "tpubDBwZbsX7C1m4tfHxHSFBvvuasqMxzMvSNM5yuAWz6kAfCATAgegvrtGdnxkqfr8wwRZi5d9fJHXqE8EFTSogTXd3xVx3GUFy9Xcg8dufREz",
     "031edbc17e3c1e67bb7d4aaceede0b78e5b4bd69d1b38b1a7048f605d96f572ef1",
     "01cac9aebddceb0cc8e869f43d080ab00895ce89c3127c85ffd221152c52d912134d7d3da862e36b66c63f39bb4e1920bcd74013ec9a97e3374678113251f6a12d",
-    "mx7egZtzUWR8aVviQnpKJCoaT4ytSiQjxL"
+    "mx7egZtzUWR8aVviQnpKJCoaT4ytSiQjxL",
+    0,
   };
   EXPECT_NO_THROW(
     (key_data = ConfidentialTransaction::GetPegoutPubkeyData(
-        online_pubkey, master_online_key, bitcoin_descriptor, bip32_counter,
+        online_pubkey, master_online_key,
+        testdata.bitcoin_descriptor, testdata.bip32_counter,
         whitelist, net_type, pubkey_prefix, NetType::kElementsRegtest, &addr)));
   EXPECT_STREQ(
       key_data.btc_pubkey_bytes.GetHex().c_str(),
@@ -1991,4 +2040,78 @@ TEST(ConfidentialTransaction, SetTxInSequence) {
       tx.GetHex());
 }
 
+TEST(ConfidentialTransaction, GetElementsSchnorrSignatureHash_TrDescriptor) {
+  Privkey internal_key("305e293b010d29bf3c888b617763a438fee9054c8cab66eb12ad078f819d9f27");
+  Pubkey internal_pk = internal_key.GeneratePubkey();
+  bool is_parity = false;
+  SchnorrPubkey internal_pubkey = SchnorrPubkey::FromPubkey(internal_pk, &is_parity);
+  EXPECT_EQ("1777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb",
+      internal_pubkey.GetHex());
+  EXPECT_TRUE(is_parity);
+
+  Descriptor desc = Descriptor::ParseElements("tr(" + internal_pubkey.GetHex() + ")");
+  auto desc_ref = desc.GetReference();
+
+  NetType net_type = NetType::kElementsRegtest;
+  Script locking_script = desc_ref.GetLockingScript();
+  Address addr01 = desc_ref.GenerateAddress(net_type);
+  EXPECT_EQ("ert1p6km65suafgmc4nldcpxl6hdppff8qa4hzmt5a68qmjrztlzcmjzqak63nh", addr01.GetAddress());
+  EXPECT_EQ(locking_script.GetHex(), addr01.GetLockingScript().GetHex());
+  EXPECT_EQ("5120d5b7aa439d4a378acfedc04dfd5da10a527076b716d74ee8e0dc8625fc58dc84", addr01.GetLockingScript().GetHex());
+
+  EXPECT_TRUE(desc_ref.HasTapBranch());
+  const TapBranch& branch = desc_ref.GetTapBranch();  // single tr is not tapscriptTree.
+  auto tweaked_key = branch.GetTweakedPrivkey(internal_key, nullptr);
+  auto tweaked_pubkey = branch.GetTweakedPubkey(internal_pubkey, nullptr);
+  EXPECT_EQ("8001c27b1d528df2e94f43698fa4a6cbe234f875c2d8e2d2cde15c0d2f38f546", tweaked_key.GetHex());
+
+  ConfidentialTransaction tx1(2, 0);
+  ConfidentialAssetId asset("5ac9f65c0efcc4775e0baec4ec03abdde22473cd3cf33c0419ca290e0751b225");
+  tx1.AddTxIn(
+      Txid("cd6adc252632eb0768ac6407e586cc74bfed739d6c8b9efa55305eb37cbd76dd"),
+      0, 0xffffffff);  // ert1qze8fshg0eykfy7nxcr96778xagufv2w4j3mct0
+  Amount amt0(int64_t{2500000000});
+  ConfidentialValue val0(amt0);
+  Amount amt1(int64_t{2499999000});
+  ConfidentialValue val1(amt1);
+  tx1.AddTxOut(amt1, asset, locking_script);
+  Amount fee1(int64_t{1000});
+  tx1.AddTxOutFee(fee1, asset);
+  EXPECT_EQ("020000000001dd76bd7cb35e3055fa9e8b6c9d73edbf74cc86e50764ac6807eb322625dc6acd0000000000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f51800225120d5b7aa439d4a378acfedc04dfd5da10a527076b716d74ee8e0dc8625fc58dc840125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000003e8000000000000", tx1.GetHex());
+  Privkey key1 = Privkey::FromWif("cNveTchXQTFjtsMmR7B7MZmebXnU69S7PmDfgrUX6KbT9kyDLH57");
+  Pubkey pk1("023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44");
+  auto pkh_script1 = ScriptUtil::CreateP2pkhLockingScript(pk1);
+  SigHashType sighash_type;
+  auto sighash = tx1.GetElementsSignatureHash(0, pkh_script1.GetData(),
+        sighash_type, val0, WitnessVersion::kVersion0);
+  auto sig = key1.CalculateEcSignature(sighash);
+  auto der_sig = CryptoUtil::ConvertSignatureToDer(sig, sighash_type);
+  tx1.AddScriptWitnessStack(0, der_sig);
+  tx1.AddScriptWitnessStack(0, pk1.GetData());
+  EXPECT_EQ("020000000101dd76bd7cb35e3055fa9e8b6c9d73edbf74cc86e50764ac6807eb322625dc6acd0000000000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f51800225120d5b7aa439d4a378acfedc04dfd5da10a527076b716d74ee8e0dc8625fc58dc840125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000003e8000000000000000002473044022049d6a9dc2d4ae84d9efe023120304225c72d37bf5e3eae950945ff95c1f44da302201b037a548f539697b3aec80438a458310a4b448af93ea7949ebe62fcb6d97a2e0121023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c440000000000", tx1.GetHex());
+
+  BlockHash genesis_block_hash("cc2641af46f536fba45aab6016f63e12a80e4c98bbb2686dafb22b9451cfe338");
+  ConfidentialTransaction tx2(2, 0);
+  tx2.AddTxIn(tx1.GetTxid(), 0, 0xffffffff);  // taproot
+  Address addr2("ert1qze8fshg0eykfy7nxcr96778xagufv2w4j3mct0", GetElementsAddressFormatList());
+  Amount amt2(int64_t{2499998000});
+  ConfidentialValue val2(amt2);
+  tx2.AddTxOut(amt2, asset, addr2.GetLockingScript());
+  Amount fee2(int64_t{1000});
+  tx1.AddTxOutFee(fee2, asset);
+  std::vector<ConfidentialTxOut> utxo_list(1);
+  utxo_list[0] = ConfidentialTxOut(locking_script, asset, val1);
+  SigHashType sighash_type2 = SigHashType(SigHashAlgorithm::kSigHashDefault);
+  auto sighash2 = tx2.GetElementsSchnorrSignatureHash(
+    0, sighash_type2, genesis_block_hash, utxo_list, nullptr);
+  EXPECT_EQ("7e18acaf2be6d98b8ad81bcc8a36742287d3b5c6c178346b5863484bb45750b4", sighash2.GetHex());
+  auto sig2 = SchnorrUtil::Sign(sighash2, tweaked_key);
+  EXPECT_EQ("e1987c3db834836a42ea72d94bd5417b9e99a66260af67f210e01c8edfe241fec0f0ee0c3140403911ae5285564ea6caa35d64c1133e01aed9ea96ee515e3be9", sig2.GetHex());
+  SchnorrSignature schnorr_sig(sig2);
+  schnorr_sig.SetSigHashType(sighash_type2);
+  tx2.AddScriptWitnessStack(0, schnorr_sig.GetData(true));
+  EXPECT_EQ("0200000001018adb0a57d51faeef073fec9833e6a4a583db2752b3580ded41e039662dd24f3f0000000000ffffffff010125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f13000160014164e985d0fc92c927a66c0cbaf78e6ea389629d50000000000000140e1987c3db834836a42ea72d94bd5417b9e99a66260af67f210e01c8edfe241fec0f0ee0c3140403911ae5285564ea6caa35d64c1133e01aed9ea96ee515e3be9000000", tx2.GetHex());
+
+  EXPECT_TRUE(tweaked_pubkey.Verify(schnorr_sig, sighash2));
+}
 #endif  // CFD_DISABLE_ELEMENTS

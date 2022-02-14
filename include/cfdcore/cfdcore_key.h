@@ -17,6 +17,9 @@
 namespace cfd {
 namespace core {
 
+//! Bitcoin message magic string.
+constexpr const char *const kBitcoinMessageMagic = "Bitcoin Signed Message:\n";
+
 /**
  * @typedef NetType
  * @brief definition for Bitcoin/Liquid network.
@@ -380,6 +383,38 @@ class CFD_CORE_EXPORT Pubkey {
       const ByteData256 &signature_hash, const ByteData &signature) const;
 
   /**
+   * @brief Verify bitcoin message's signature.
+   * @param[in] signature   message signature
+   * @param[in] message     message
+   * @param[out] pubkey     recovery pubkey
+   * @return true if the signature is valid, false if not.
+   */
+  bool VerifyBitcoinMessage(
+      const ByteData &signature, const std::string &message,
+      Pubkey *pubkey = nullptr) const;
+  /**
+   * @brief Verify bitcoin message's signature.
+   * @param[in] base64_signature  message signature with base64.
+   * @param[in] message           message
+   * @param[out] pubkey           recovery pubkey
+   * @return true if the signature is valid, false if not.
+   */
+  bool VerifyBitcoinMessageWithBase64(
+      const std::string &base64_signature, const std::string &message,
+      Pubkey *pubkey = nullptr) const;
+  /**
+   * @brief Verify message's signature.
+   * @param[in] signature       message signature
+   * @param[in] message         message
+   * @param[in] message_magic   magic string
+   * @param[out] pubkey         recovery pubkey
+   * @return true if the signature is valid, false if not.
+   */
+  bool VerifyMessage(
+      const ByteData &signature, const std::string &message,
+      const std::string &message_magic, Pubkey *pubkey = nullptr) const;
+
+  /**
    * @brief Verify that the public key is in the correct format.
    * @param[in] byte_data pubkey bytedata
    * @retval true   valid format
@@ -583,6 +618,27 @@ class CFD_CORE_EXPORT Privkey {
    */
   ByteData CalculateEcSignature(
       const ByteData256 &signature_hash, bool has_grind_r = true) const;
+
+  /**
+   * @brief Sign bitcoin message.
+   * @param[in] message message
+   * @return signature
+   */
+  ByteData SignBitcoinMessage(const std::string &message) const;
+  /**
+   * @brief Sign bitcoin message and output base64 encoding string.
+   * @param[in] message message
+   * @return base64 encoding signature
+   */
+  std::string SignBitcoinMessageWithBase64(const std::string &message) const;
+  /**
+   * @brief Sign message.
+   * @param[in] message message
+   * @param[in] message_magic   magic string
+   * @return signature
+   */
+  ByteData SignMessage(
+      const std::string &message, const std::string &message_magic) const;
 
   /**
    * @brief set pubkey compressed flag.

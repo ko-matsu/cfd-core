@@ -160,8 +160,12 @@ std::string TapBranch::ToString() const {
   std::string buf;
   if (has_leaf_) {
     std::string ver_str;
-    if ((!is_elements_ && (leaf_version_ != TaprootScriptTree::kTapScriptLeafVersion)) || // NOLINT
-        (is_elements_ && (leaf_version_ != TaprootScriptTree::kElementsTapScriptLeafVersion))) { // NOLINT
+    if ((!is_elements_ &&
+         (leaf_version_ !=
+          TaprootScriptTree::kTapScriptLeafVersion)) ||  // NOLINT
+        (is_elements_ &&
+         (leaf_version_ !=
+          TaprootScriptTree::kElementsTapScriptLeafVersion))) {  // NOLINT
       ver_str = "," + ByteData(leaf_version_).GetHex();
     }
     buf = "tl(" + script_.GetHex() + ver_str + ")";
@@ -310,7 +314,7 @@ TapBranch TapBranch::FromString(
       size_t leaf_ver_offset = text.find(',');
       if (leaf_ver_offset == std::string::npos) {
         *branch = TaprootScriptTree(
-          Script(text.substr(3, text.length() - 4)), network_type);
+            Script(text.substr(3, text.length() - 4)), network_type);
       } else {
         auto script_str = text.substr(3, leaf_ver_offset - 3);
         auto leaf_ver_str = text.substr(leaf_ver_offset + 1, 2);

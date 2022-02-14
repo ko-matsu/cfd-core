@@ -173,7 +173,9 @@ TEST(TaprootUtil, CreateTapScriptControl_Elements) {
   Amount amt1(int64_t{2499999000});
   ConfidentialValue val1(amt1);
   tx1.AddTxOut(amt1, asset, locking_script);
-  EXPECT_EQ("020000000001dd76bd7cb35e3055fa9e8b6c9d73edbf74cc86e50764ac6807eb322625dc6acd0000000000ffffffff010125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f51800225120e20d53da6b6357ba33e32ebd0a3bb74678f39ca27191fcbc53d2ed12a42f789c00000000", tx1.GetHex());
+  Amount fee1(int64_t{1000});
+  tx1.AddTxOutFee(fee1, asset);
+  EXPECT_EQ("020000000001dd76bd7cb35e3055fa9e8b6c9d73edbf74cc86e50764ac6807eb322625dc6acd0000000000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f51800225120e20d53da6b6357ba33e32ebd0a3bb74678f39ca27191fcbc53d2ed12a42f789c0125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000003e8000000000000", tx1.GetHex());
   Privkey key1 = Privkey::FromWif("cNveTchXQTFjtsMmR7B7MZmebXnU69S7PmDfgrUX6KbT9kyDLH57");
   Pubkey pk1("023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44");
   auto pkh_script1 = ScriptUtil::CreateP2pkhLockingScript(pk1);
@@ -184,30 +186,32 @@ TEST(TaprootUtil, CreateTapScriptControl_Elements) {
   auto der_sig = CryptoUtil::ConvertSignatureToDer(sig, sighash_type);
   tx1.AddScriptWitnessStack(0, der_sig);
   tx1.AddScriptWitnessStack(0, pk1.GetData());
-  EXPECT_EQ("020000000101dd76bd7cb35e3055fa9e8b6c9d73edbf74cc86e50764ac6807eb322625dc6acd0000000000ffffffff010125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f51800225120e20d53da6b6357ba33e32ebd0a3bb74678f39ca27191fcbc53d2ed12a42f789c00000000000002473044022052ea59e316a35a0e5281e1be83bc5fa93d5675b9208a13542a55813fee2b164e022005c344d99bd2dddec16c8351dee05abff2a0324f16fe3d0193b20daf3d80453f0121023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c44000000", tx1.GetHex());
+  EXPECT_EQ("020000000101dd76bd7cb35e3055fa9e8b6c9d73edbf74cc86e50764ac6807eb322625dc6acd0000000000ffffffff020125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f51800225120e20d53da6b6357ba33e32ebd0a3bb74678f39ca27191fcbc53d2ed12a42f789c0125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a0100000000000003e800000000000000000247304402204846079d356c76f5c59312b911d4096777aa40c06ffd77dc6836f85b42c1816702201f0df4a850234c82b1fb9c068a96a620d2038419e100eec9b6cff3f377a786130121023179b32721d07deb06cade59f56dedefdc932e89fde56e998f7a0e93a3e30c440000000000", tx1.GetHex());
   
-  BlockHash genesis_block_hash;
+  BlockHash genesis_block_hash("cc2641af46f536fba45aab6016f63e12a80e4c98bbb2686dafb22b9451cfe338");
   ConfidentialTransaction tx2(2, 0);
   tx2.AddTxIn(tx1.GetTxid(), 0, 0xffffffff);  // taproot
   Address addr2("ert1qze8fshg0eykfy7nxcr96778xagufv2w4j3mct0", GetElementsAddressFormatList());
   Amount amt2(int64_t{2499998000});
   ConfidentialValue val2(amt2);
   tx2.AddTxOut(amt2, asset, addr2.GetLockingScript());
+  Amount fee2(int64_t{1000});
+  tx1.AddTxOutFee(fee2, asset);
   std::vector<ConfidentialTxOut> utxo_list(1);
   utxo_list[0] = ConfidentialTxOut(locking_script, asset, val1);
   TapScriptData script_data;
   script_data.tap_leaf_hash = tree.GetTapLeafHash();
   auto sighash2 = tx2.GetElementsSchnorrSignatureHash(
     0, sighash_type, genesis_block_hash, utxo_list, &script_data);
-  EXPECT_EQ("b46460b976fbdc36d28970038d83e6ecf362b5ba11d6b71abf6bde6cdb88d5f7", sighash2.GetHex());
+  EXPECT_EQ("10ea5c82c50a85cce83931825bf181c99638e3412e7a0e0f438a4b11485174e8", sighash2.GetHex());
   auto sig2 = SchnorrUtil::Sign(sighash2, key);
-  EXPECT_EQ("f73262f59c46047dc1f83369da326810a7174c626610fce39f0b3c8d6e30a7aeb41c068987e8d42070b724a74406deb6d7cc24fe8d911ae28461155ccecc515c", sig2.GetHex());
+  EXPECT_EQ("b216f1a52cacdd604568997ad5165d2a58cda57448fa1f1b0672cc0e6ba10b2accbc70a90baec517ee3df635de652aeefb5c11ac3873c58bdd00ea24d9cd9e06", sig2.GetHex());
   SchnorrSignature schnorr_sig(sig2);
   schnorr_sig.SetSigHashType(sighash_type);
   tx2.AddScriptWitnessStack(0, schnorr_sig.GetData(true));
   tx2.AddScriptWitnessStack(0, redeem_script.GetData());
   tx2.AddScriptWitnessStack(0, taproot_control);
-  EXPECT_EQ("020000000101542630dc7f66a6226b09518b8196f05bd71e5947feb55c8b48cab71c7a2bdca90000000000ffffffff010125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f13000160014164e985d0fc92c927a66c0cbaf78e6ea389629d50000000000000341f73262f59c46047dc1f83369da326810a7174c626610fce39f0b3c8d6e30a7aeb41c068987e8d42070b724a74406deb6d7cc24fe8d911ae28461155ccecc515c0122201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfbac61c51777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6ddc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54000000", tx2.GetHex());
+  EXPECT_EQ("0200000001019923e6194a15c93658fb458cd38a4fe5326e45298b6dcf9184a022e352bc1c4b0000000000ffffffff010125b251070e29ca19043cf33ccd7324e2ddab03ecc4ae0b5e77c4fc0e5cf6c95a01000000009502f13000160014164e985d0fc92c927a66c0cbaf78e6ea389629d50000000000000341b216f1a52cacdd604568997ad5165d2a58cda57448fa1f1b0672cc0e6ba10b2accbc70a90baec517ee3df635de652aeefb5c11ac3873c58bdd00ea24d9cd9e060122201777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfbac61c51777701648fa4dd93c74edd9d58cfcc7bdc2fa30a2f6fa908b6fd70c92833cfb4d18084bb47027f47d428b2ed67e1ccace5520fdc36f308e272394e288d53b6ddc82121e4ff8d23745f3859e8939ecb0a38af63e6ddea2fff97a7fd61a1d2d54000000", tx2.GetHex());
 
   EXPECT_TRUE(schnorr_pubkey.Verify(schnorr_sig, sighash2));
 }

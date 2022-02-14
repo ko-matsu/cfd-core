@@ -207,14 +207,19 @@ uint32_t AbstractTxOutReference::GetSerializeVsize() const {
 // -----------------------------------------------------------------------------
 ByteData SignatureUtil::CalculateEcSignature(
     const ByteData256 &signature_hash, const Privkey &private_key,
-    bool has_grind_r) {
-  std::vector<uint8_t> buffer(EC_SIGNATURE_LEN);
-  std::vector<uint8_t> privkey_data = private_key.GetData().GetBytes();
-  std::vector<uint8_t> sighash = signature_hash.GetBytes();
+    bool has_grind_r, bool has_recoverable) {
   uint32_t flag = EC_FLAG_ECDSA;
+  size_t sig_len = EC_SIGNATURE_LEN;
   if (has_grind_r) {
     flag |= EC_FLAG_GRIND_R;
   }
+  if (has_recoverable) {
+    flag |= EC_FLAG_RECOVERABLE;
+    sig_len = EC_SIGNATURE_RECOVERABLE_LEN;
+  }
+  std::vector<uint8_t> buffer(sig_len);
+  std::vector<uint8_t> privkey_data = private_key.GetData().GetBytes();
+  std::vector<uint8_t> sighash = signature_hash.GetBytes();
   int ret = wally_ec_sig_from_bytes(
       privkey_data.data(), privkey_data.size(), sighash.data(), sighash.size(),
       flag, buffer.data(), buffer.size());
