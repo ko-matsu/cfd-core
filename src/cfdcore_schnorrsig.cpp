@@ -339,7 +339,7 @@ SchnorrSignature SignCommon(
   std::vector<uint8_t> raw_sig(SchnorrSignature::kSchnorrSignatureSize);
 
   if (nfn == nullptr) {
-    ret = secp256k1_schnorrsig_sign(
+    ret = secp256k1_schnorrsig_sign32(
         ctx, raw_sig.data(), msg.GetBytes().data(), &keypair,
         ndata.GetBytes().data());
   } else {

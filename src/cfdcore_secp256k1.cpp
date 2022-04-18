@@ -578,7 +578,7 @@ ByteData Secp256k1::SignWhitelistSecp256k1Ec(
       context, &signature, online_pubkeys.data(), offline_pubkeys.data(),
       online_pubkeys.size(), &offline_pubkey_secp,
       online_privkey.GetBytes().data(), tweak_sum.GetBytes().data(),
-      whitelist_index, nullptr, nullptr);
+      whitelist_index);
   if (ret != 1) {
     warn(CFD_LOG_SOURCE, "secp256k1_whitelist_sign Error.({})", ret);
     throw CfdException(
