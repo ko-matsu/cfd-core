@@ -510,11 +510,11 @@ TEST(Transaction, GetSchnorrSignatureHash) {
   auto sighash2 = tx2.GetSchnorrSignatureHash(0, sighash_type, utxo_list);
   EXPECT_EQ("e5b11ddceab1e4fc49a8132ae589a39b07acf49cabb2b0fbf6104bc31da12c02", sighash2.GetHex());
   auto sig2 = SchnorrUtil::Sign(sighash2, key);
-  EXPECT_EQ("61f75636003a870b7a1685abae84eedf8c9527227ac70183c376f7b3a35b07ebcbea14749e58ce1a87565b035b2f3963baa5ae3ede95e89fd607ab7849f20872", sig2.GetHex());
+  EXPECT_EQ("42ec41bf6c27451b785da1f4e8d50ffa0d9360e3265b55e3b044ed4b96f32d1b13c61987ffd13da2a444d495856a9c97d91b72b61d105921285271bac30ff7c7", sig2.GetHex());
   SchnorrSignature schnorr_sig(sig2);
   schnorr_sig.SetSigHashType(sighash_type);
   tx2.AddScriptWitnessStack(0, schnorr_sig.GetData(true));
-  EXPECT_EQ("0200000000010116d975e4c2cea30f72f4f5fe528f5a0727d9ea149892a50c030d44423088ea2f0000000000ffffffff0130f1029500000000160014164e985d0fc92c927a66c0cbaf78e6ea389629d5014161f75636003a870b7a1685abae84eedf8c9527227ac70183c376f7b3a35b07ebcbea14749e58ce1a87565b035b2f3963baa5ae3ede95e89fd607ab7849f208720100000000", tx2.GetHex());
+  EXPECT_EQ("0200000000010116d975e4c2cea30f72f4f5fe528f5a0727d9ea149892a50c030d44423088ea2f0000000000ffffffff0130f1029500000000160014164e985d0fc92c927a66c0cbaf78e6ea389629d5014142ec41bf6c27451b785da1f4e8d50ffa0d9360e3265b55e3b044ed4b96f32d1b13c61987ffd13da2a444d495856a9c97d91b72b61d105921285271bac30ff7c70100000000", tx2.GetHex());
 
   EXPECT_TRUE(schnorr_pubkey.Verify(schnorr_sig, sighash2));
 }
