@@ -24,10 +24,16 @@ jobs:
         shared: [on, off]
         include:
           - os: windows-2019
-            shared: [on, off]
+            shared: on
+            generator: 'Visual Studio 16 2019'
+          - os: windows-2019
+            shared: off
             generator: 'Visual Studio 16 2019'
           - os: windows-2022
-            shared: [on, off]
+            shared: on
+            generator: 'Visual Studio 17 2022'
+          - os: windows-2022
+            shared: off
             generator: 'Visual Studio 17 2022'
 
     steps:
