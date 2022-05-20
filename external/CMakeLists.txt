@@ -116,7 +116,7 @@ if(GTEST_TARGET_VERSION)
 set(GTEST_TARGET_TAG  ${GTEST_TARGET_VERSION})
 message(STATUS "[external project local] google-test target=${GTEST_TARGET_VERSION}")
 else()
-set(GTEST_TARGET_TAG  cg-release-1.8.1.1)
+set(GTEST_TARGET_TAG  cg-release-1.8.1.2)
 endif()
 
 if(${USE_GIT_SSH})
