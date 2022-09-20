@@ -29,7 +29,13 @@ jobs:
             generator: 'Visual Studio 17 2022'
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+    - name: setup python
+      # for libwally-core test
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+        architecture: x64
     - name: cmake_version
       run: cmake --version
     - name: cmake_generage msys
@@ -89,11 +95,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04]
+        os: [ubuntu-22.04, ubuntu-20.04]
         shared: [on, off]
-        elements: [on, off]
-        exclude:
-          - os: ubuntu-18.04
+        elements: [on]
+        include:
+          - os: ubuntu-22.04
             elements: off
 
     steps:
@@ -116,7 +122,7 @@ jobs:
 
   doxygen-ubuntu:
     name: doxygen-check
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v2
