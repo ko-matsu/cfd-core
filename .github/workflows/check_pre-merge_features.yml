@@ -29,7 +29,13 @@ jobs:
             generator: 'Visual Studio 17 2022'
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+    - name: setup python
+      # for libwally-core test
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+        architecture: x64
     - name: cmake_version
       run: cmake --version
     - name: cmake_generage msys
@@ -87,9 +93,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04]
-        shared: [on]
-        elements: [on, off]
+        os: [ubuntu-22.04, ubuntu-20.04]
+        shared: [on, off]
+        elements: [on]
+        include:
+          - os: ubuntu-22.04
+            elements: off
 
     steps:
     - uses: actions/checkout@v2
@@ -128,36 +137,48 @@ jobs:
         name: output-lcov-cfdcore-${{ matrix.os }}
         path: ./build/lcov_cfdcore_output.zip
 
-  cmake-cpp-support-test:
-    name: cmake build-ubuntu C++ support test
-    runs-on: ubuntu-20.04
+  cmake-cpp-version-test:
+    name: cmake cpp version check
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        cppversion: [11, 14, 17, 20]
+        os: [windows-2022, ubuntu-22.04]
+        cppver: [11, 14, 17, 20]
+        include:
+          - os: windows-2022
+            generator: 'Visual Studio 17 2022'
 
     steps:
     - uses: actions/checkout@v2
+    - name: setup python
+      # for libwally-core test
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+        architecture: x64
     - name: dump version
       run: |
         cmake --version
         gcc --version
-    - name: cmake-build
-      run: |
-        cmake --version
-        cmake -S . -B build -G "Unix Makefiles" -DENABLE_SHARED=on -DENABLE_ELEMENTS=on -DCMAKE_BUILD_TYPE=Release -DSTD_CPP_VERSION=${{ matrix.cppversion }} -DTARGET_RPATH=./build/Release
-        cmake --build build --config Debug --parallel 4
+    - name: cmake_configure
+      if: matrix.os != 'windows-2022'
+      run: cmake -S . -B build -G "Unix Makefiles" -DENABLE_SHARED=on -DENABLE_ELEMENTS=on -DENABLE_TESTS=on -DSTD_CPP_VERSION=${{ matrix.cppver }} -DTARGET_RPATH=./build/Release
+    - name: cmake_generage vs
+      if: matrix.os == 'windows-2022'
+      run: cmake -S . -B build -G "${{ matrix.generator }}" -A x64 -DENABLE_SHARED=on -DENABLE_TESTS=on -DSTD_CPP_VERSION=${{ matrix.cppver }}
+    - name: cmake_build
+      run: cmake --build build --config Release --parallel 4
     - name: test
       run: |
         cd build
         ctest -C Release --output-on-failure
-        cd ..
 
   ubuntu-valgrind:
     name: valgrind-ubuntu
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-18.04]
+        os: [ubuntu-20.04]
         shared: [on]
 
     steps:
@@ -188,7 +209,7 @@ jobs:
 
   doxygen-ubuntu:
     name: doxygen-check
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v2
