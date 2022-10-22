@@ -7,7 +7,6 @@
 
 #include "quill/Fmt.h"                    // for memory_buffer
 #include "quill/detail/misc/Attributes.h" // for QUILL_ATTRIBUTE_HOT, QUILL...
-#include "quill/detail/misc/Common.h"     // for filename_t
 #include "quill/handlers/Handler.h"       // for Handler
 #include <chrono>                         // for nanoseconds
 #include <cstdio>                         // for FILE
@@ -30,17 +29,17 @@ public:
    * @param stream only stdout or stderr
    * @throws on invalid param
    */
-  explicit StreamHandler(filename_t stream, FILE* file = nullptr);
+  explicit StreamHandler(fs::path stream, FILE* file = nullptr);
 
   ~StreamHandler() override = default;
 
   /**
-   * Write a formatted log record to the stream
-   * @param formatted_log_record input log record to write
-   * @param log_record_timestamp log record timestamp
+   * Write a formatted log message to the stream
+   * @param formatted_log_message input log message to write
+   * @param log_message_timestamp log message timestamp
    */
-  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_record,
-                                 std::chrono::nanoseconds log_record_timestamp,
+  QUILL_ATTRIBUTE_HOT void write(fmt::memory_buffer const& formatted_log_message,
+                                 std::chrono::nanoseconds log_message_timestamp,
                                  LogLevel log_message_severity) override;
 
   /**
@@ -51,7 +50,7 @@ public:
   /**
    * @return return the name of the file
    */
-  QUILL_NODISCARD virtual filename_t const& filename() const noexcept;
+  QUILL_NODISCARD virtual fs::path const& filename() const noexcept;
 
   /**
    * @return stdout, stderr or file based on FILE*
@@ -59,7 +58,7 @@ public:
   QUILL_NODISCARD StreamHandlerType stream_handler_type() const noexcept;
 
 protected:
-  filename_t _filename;
+  fs::path _filename;
   FILE* _file{nullptr};
 };
 } // namespace quill

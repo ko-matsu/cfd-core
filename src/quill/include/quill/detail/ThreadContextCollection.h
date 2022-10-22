@@ -8,20 +8,21 @@
 #include "quill/detail/misc/AlignedAllocator.h" // for CacheAlignedAllocator
 #include "quill/detail/misc/Attributes.h"       // for QUILL_ATTRIBUTE_HOT
 #include "quill/detail/misc/Common.h"           // for CACHELINE_SIZE
-#include "quill/detail/misc/Spinlock.h"         // for Spinlock
 #include <atomic>                               // for atomic
 #include <cassert>                              // for assert
 #include <cstdint>                              // for uint8_t
 #include <memory>                               // for shared_ptr
-#include <vector>                               // for vector
+#include <mutex>
+#include <vector> // for vector
 
 namespace quill
 {
+/** forward declarations **/
+struct Config;
+
 namespace detail
 {
 
-/** forward declarations **/
-class Config;
 class ThreadContext;
 
 /**
@@ -93,7 +94,7 @@ public:
   /**
    * Constructor
    */
-  explicit ThreadContextCollection(Config const& config) : _config(config){};
+  ThreadContextCollection() = default;
 
   /**
    * Destructor
@@ -188,9 +189,7 @@ private:
   void _find_and_remove_invalidated_thread_contexts();
 
 private:
-  Config const& _config; /**< reference to config */
-
-  Spinlock _spinlock; /**< Protect access when register contexts or removing contexts */
+  std::mutex _mutex; /**< Protect access when register contexts or removing contexts */
   std::vector<std::shared_ptr<ThreadContext>> _thread_contexts; /**< The registered contexts */
 
   /**<
@@ -207,7 +206,7 @@ private:
 
   /**<
    * Indicator of how many thread contexts are removed, if this number is not zero we will search for invalidated and empty
-   * queue context until we find it to remove it.
+   * queue context until we find it to remove_file it.
    * Incremented by any thread on thread local destruction, decremented by the backend thread
    */
   alignas(CACHELINE_SIZE) std::atomic<uint8_t> _invalid_thread_context{0};
