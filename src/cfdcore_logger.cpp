@@ -151,7 +151,7 @@ cfd::core::CfdError cfd::core::logger::CfdLogger::Initialize(void) {
           quill::stdout_handler("stdout_colours", console_colours);
       handler->set_pattern(
           std::string("%(ascii_time) [%(process):%(thread)] %(level_name) "
-                       "%(logger_name) - %(message)"),  // NOLINT
+                      "%(logger_name) - %(message)"),  // NOLINT
           "%D %H:%M:%S.%Qms", quill::Timezone::LocalTime);
       quill::set_default_logger_handler(handler);
       quill::start();
@@ -162,7 +162,7 @@ cfd::core::CfdError cfd::core::logger::CfdLogger::Initialize(void) {
           quill::rotating_file_handler(filepath, "w", kRotateFileSize, 3);
       handler->set_pattern(
           std::string("%(ascii_time) [%(process):%(thread)] %(level_name) "
-                       "%(logger_name) - %(message)"),  // NOLINT
+                      "%(logger_name) - %(message)"),  // NOLINT
           "%D %H:%M:%S.%Qms", quill::Timezone::LocalTime);
       quill::Logger* logger = quill::create_logger("cfd", handler);
 #endif

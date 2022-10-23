@@ -1296,8 +1296,8 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
       uint32_t flags = WALLY_MINISCRIPT_WITNESS_SCRIPT;
       if (parent_name == "tr") flags = WALLY_MINISCRIPT_TAPSCRIPT;
       int ret = wally_descriptor_parse_miniscript(
-          miniscript.c_str(), nullptr, 0, flags, script.data(),
-          script.size(), &written);
+          miniscript.c_str(), nullptr, 0, flags, script.data(), script.size(),
+          &written);
       if (ret == WALLY_OK) {
         script_type_ = DescriptorScriptType::kDescriptorScriptMiniscript;
         value_ = miniscript;

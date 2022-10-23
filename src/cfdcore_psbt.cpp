@@ -8,8 +8,8 @@
 
 #include <algorithm>
 #include <limits>
-#include <string>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "cfdcore/cfdcore_address.h"
@@ -55,7 +55,8 @@ static void SetKeyPathMap(
   //     key_list.size(), wally_keypath_public_key_verify, &pk_map);
   ret = wally_map_keypath_public_key_init_alloc(key_list.size(), &pk_map);
   if (ret != WALLY_OK) {
-    warn(CFD_LOG_SOURCE, "wally_map_keypath_public_key_init_alloc NG[{}]", ret);
+    warn(
+        CFD_LOG_SOURCE, "wally_map_keypath_public_key_init_alloc NG[{}]", ret);
     throw CfdException(kCfdMemoryFullError, "psbt map init error.");
   }
   try {
@@ -393,7 +394,8 @@ void MergeWallyMap(
             src_item->value, src_item->value_len, dst_item->value,
             dst_item->value_len, item_name, key.GetHex(),
             ignore_duplicate_error);
-      } else if ((src_item->key_len == dst_item->key_len) &&
+      } else if (
+          (src_item->key_len == dst_item->key_len) &&
           (memcmp(src_item->key, dst_item->key, src_item->key_len) == 0)) {
         is_find = true;
         ByteData key(src_item->key, static_cast<uint32_t>(src_item->key_len));
@@ -525,9 +527,8 @@ void MergePsbtInputItem(
         (psbt->witness_utxo->satoshi == psbt_ref->witness_utxo->satoshi) &&
         ComparePsbtData(
             psbt->witness_utxo->script, psbt->witness_utxo->script_len,
-            psbt_ref->witness_utxo->script,
-            psbt_ref->witness_utxo->script_len, item_name, "scriptPubkey",
-            ignore_duplicate_error)) {
+            psbt_ref->witness_utxo->script, psbt_ref->witness_utxo->script_len,
+            item_name, "scriptPubkey", ignore_duplicate_error)) {
       // match
     } else if (ignore_duplicate_error) {
       // do nothing
@@ -908,7 +909,7 @@ static uint8_t SetPsbtGlobal(
         kCfdIllegalArgumentError,
         "psbt setting global version is not supported error.");
   } else if (key[0] == Psbt::kPsbtGlobalXpub) {
-    ByteData key_bytes(key.data()+1, static_cast<uint32_t>(key.size()) - 1);
+    ByteData key_bytes(key.data() + 1, static_cast<uint32_t>(key.size()) - 1);
     ExtPubkey ext_pubkey(key_bytes);
     auto pk_bytes = ext_pubkey.GetData().GetBytes();
     FindPsbtMap(&psbt->global_xpubs, pk_bytes, "global xpub");
@@ -982,7 +983,7 @@ static ByteData GetPsbtGlobal(
     builder.AddDirectNumber(psbt->version);
     return builder.Output();
   } else if (key[0] == Psbt::kPsbtGlobalXpub) {
-    ByteData key_bytes(key.data()+1, static_cast<uint32_t>(key.size()) - 1);
+    ByteData key_bytes(key.data() + 1, static_cast<uint32_t>(key.size()) - 1);
     ExtPubkey ext_pubkey(key_bytes);
     auto pk_bytes = ext_pubkey.GetData().GetBytes();
     size_t index = 0;
@@ -1618,7 +1619,8 @@ static void ParsePsbtInput(
       key = parser->ReadVariableBuffer();
       if (!key.empty()) {
         if (keys.find(key) != keys.end()) {
-          warn(CFD_LOG_SOURCE, "already exist key: {}", ByteData(key).GetHex());
+          warn(
+              CFD_LOG_SOURCE, "already exist key: {}", ByteData(key).GetHex());
           throw CfdException(kCfdIllegalArgumentError, "duplicate key error");
         }
         keys.insert(key);
@@ -1652,7 +1654,8 @@ static void ParsePsbtInput(
   ret = wally_map_sort(&input->psbt_fields, 0);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
-    throw CfdException(kCfdInternalError, "psbt input sort psbt_fields error.");
+    throw CfdException(
+        kCfdInternalError, "psbt input sort psbt_fields error.");
   }
 }
 
@@ -1671,7 +1674,8 @@ static void ParsePsbtOutput(
       key = parser->ReadVariableBuffer();
       if (!key.empty()) {
         if (keys.find(key) != keys.end()) {
-          warn(CFD_LOG_SOURCE, "already exist key: {}", ByteData(key).GetHex());
+          warn(
+              CFD_LOG_SOURCE, "already exist key: {}", ByteData(key).GetHex());
           throw CfdException(kCfdIllegalArgumentError, "duplicate key error");
         }
         keys.insert(key);
@@ -1699,7 +1703,8 @@ static void ParsePsbtOutput(
   ret = wally_map_sort(&output->psbt_fields, 0);
   if (ret != WALLY_OK) {
     warn(CFD_LOG_SOURCE, "wally_map_sort NG[{}]", ret);
-    throw CfdException(kCfdInternalError, "psbt output sort psbt_fields error.");
+    throw CfdException(
+        kCfdInternalError, "psbt output sort psbt_fields error.");
   }
 }
 
@@ -1738,8 +1743,9 @@ struct wally_psbt *ParsePsbtData(const ByteData &data) {
   memset(magic, 0, sizeof(magic));
   if (bytes.size() > 5) parser.ReadArray(magic, sizeof(magic));
   if (memcmp(magic, kPsbtMagic, sizeof(magic)) != 0) {
-    warn(CFD_LOG_SOURCE, "psbt unmatch magic. [{},{},{},{},{}]",
-        magic[0], magic[1], magic[2], magic[3], magic[4]);
+    warn(
+        CFD_LOG_SOURCE, "psbt unmatch magic. [{},{},{},{},{}]", magic[0],
+        magic[1], magic[2], magic[3], magic[4]);
     throw CfdException(kCfdInternalError, "psbt unmatch magic error.");
   }
   ret = wally_psbt_init_alloc(0, 0, 0, 0, 0, &psbt);
@@ -2995,10 +3001,11 @@ void Psbt::ClearTxInSignData(uint32_t index) {
       remove_psbt_field_keys.push_back(key.GetBytes());
     }
   }
-  for (const auto & remove_key : remove_psbt_field_keys) {
-    wally_map_remove(&input->psbt_fields, remove_key.data(), remove_key.size());
+  for (const auto &remove_key : remove_psbt_field_keys) {
+    wally_map_remove(
+        &input->psbt_fields, remove_key.data(), remove_key.size());
   }
-  for (const auto & remove_key : remove_psbt_field_num_keys) {
+  for (const auto &remove_key : remove_psbt_field_num_keys) {
     wally_map_remove_integer(&input->psbt_fields, remove_key);
   }
 
@@ -3201,9 +3208,11 @@ Script Psbt::GetTxOutScript(
   psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
 
   const auto witness_script_item = wally_map_get_integer(
-      &psbt_pointer->outputs[index].psbt_fields, Psbt::kPsbtOutputWitnessScript);
+      &psbt_pointer->outputs[index].psbt_fields,
+      Psbt::kPsbtOutputWitnessScript);
   const auto redeem_script_item = wally_map_get_integer(
-      &psbt_pointer->outputs[index].psbt_fields, Psbt::kPsbtOutputRedeemScript);
+      &psbt_pointer->outputs[index].psbt_fields,
+      Psbt::kPsbtOutputRedeemScript);
   if (witness_script_item != nullptr) {
     if (is_witness != nullptr) *is_witness = true;
     return Script(ByteData(
