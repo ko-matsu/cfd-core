@@ -42,8 +42,10 @@ static const uint8_t kPsbtSeparator = 0;  //!< psbt map separator
 // -----------------------------------------------------------------------------
 /**
  * @brief set psbt bip32 key map
- * @param[in] key_list  bip32 key path list
- * @param[in] map_obj   map object.
+ * @param[in] key_list      bip32 key path list
+ * @param[in] psbt_obj      psbt object.
+ * @param[in] array_index   array index.
+ * @param[in] has_input     input flag. (false: output)
  */
 static void SetKeyPathMap(
     const std::vector<KeyData> &key_list, struct wally_psbt *psbt_obj,
@@ -260,7 +262,8 @@ bool ValidatePsbtUtxo(
 
 /**
  * @brief set input script and key list.
- * @param[in,out] input       psbt input
+ * @param[in,out] psbt_obj    psbt object
+ * @param[in] index           target index
  * @param[in] is_witness      witness flag
  * @param[in] redeem_script   redeem script
  * @param[in] key_list        bip32 key list.
