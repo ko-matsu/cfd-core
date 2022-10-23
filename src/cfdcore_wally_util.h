@@ -23,6 +23,7 @@
 #include "wally_crypto.h"       // NOLINT
 #include "wally_descriptor.h"   // NOLINT
 #include "wally_psbt.h"         // NOLINT
+#include "wally_psbt_members.h" // NOLINT
 #include "wally_script.h"       // NOLINT
 #include "wally_transaction.h"  // NOLINT
 
