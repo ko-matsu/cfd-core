@@ -15,7 +15,7 @@
 #include "cfdcore/cfdcore_common.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_logger_interface.h"
-#include "fmt/core.h"
+#include "quill/bundled/fmt/core.h"
 
 namespace cfd {
 namespace core {

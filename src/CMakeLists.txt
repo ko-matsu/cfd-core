@@ -128,7 +128,6 @@ target_compile_options(${PROJECT_NAME}
 )
 target_compile_definitions(${PROJECT_NAME}
   PRIVATE
-    QUILL_FMT_EXTERNAL=1
     FMT_EXPORT=1
     CFD_CORE_BUILD=1
     WALLY_DISABLE_OP_CODE=1
@@ -149,7 +148,6 @@ target_include_directories(${PROJECT_NAME}
     .
     include
     univalue/include
-    quill/include
 )
 target_link_directories(${PROJECT_NAME}
   PRIVATE
@@ -165,7 +163,6 @@ target_include_directories(${PROJECT_NAME}
     .
     include
     univalue/include
-    quill/include
     ${wally_DIR}/../include
 )
 target_link_directories(${PROJECT_NAME}
