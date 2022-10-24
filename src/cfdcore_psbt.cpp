@@ -93,7 +93,6 @@ static void SetKeyPathMap(
       throw CfdException(kCfdMemoryFullError, "psbt set keypath error.");
     }
     wally_map_free(pk_map);
-
   } catch (const CfdException &except) {
     wally_map_free(pk_map);
     throw except;
@@ -2080,7 +2079,7 @@ Transaction Psbt::RebuildTransaction(const void *wally_psbt_pointer) {
   return tx;
 }
 
-// TODO: currently, PSBTv0 only
+// TODO(k-matsuzawa): currently, PSBTv0 only
 uint32_t Psbt::GetDefaultVersion() { return WALLY_PSBT_VERSION_0; }
 
 ByteData Psbt::CreateRecordKey(uint8_t type) { return ByteData(type); }

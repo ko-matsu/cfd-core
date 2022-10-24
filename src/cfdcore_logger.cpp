@@ -183,13 +183,14 @@ void cfd::core::logger::CfdLogger::Finalize(bool is_finish_process) {
     if (is_use_default_logger_) {
 #ifdef CFDCORE_LOGGING
       quill::flush();
-#ifdef CFDCORE_LOG_CONSOLE
+#endif  // CFDCORE_LOGGING
       if (is_finish_process) {
+#if defined(CFDCORE_LOGGING) && defined(CFDCORE_LOG_CONSOLE)
+        // io-wait before shutdown
         std::cout << "cfd::core::Finalize sleep for 1sec" << std::endl;
         std::this_thread::sleep_for(std::chrono::microseconds{1000000});
+#endif  // CFDCORE_LOGGING && CFDCORE_LOG_CONSOLE
       }
-#endif  // CFDCORE_LOG_CONSOLE
-#endif  // CFDCORE_LOGGING
     }
   }
 }
