@@ -5,8 +5,7 @@
  */
 #ifndef CFD_CORE_SRC_INCLUDE_CFDCORE_CFDCORE_LOGGER_H_
 #define CFD_CORE_SRC_INCLUDE_CFDCORE_CFDCORE_LOGGER_H_
-#if defined(CFD_CORE_SHARED) && !defined(FMT_SHARED) && \
-    !defined(CFD_CORE_BUILD)
+#if defined(CFD_CORE_SHARED) && !defined(FMT_SHARED)
 #define FMT_SHARED
 #endif
 
@@ -16,7 +15,7 @@
 #include "cfdcore/cfdcore_common.h"
 #include "cfdcore/cfdcore_exception.h"
 #include "cfdcore/cfdcore_logger_interface.h"
-#include "quill/bundled/fmt/core.h"
+#include "fmt/core.h"
 
 namespace cfd {
 namespace core {

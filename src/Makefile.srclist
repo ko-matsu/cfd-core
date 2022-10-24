@@ -34,9 +34,11 @@ CFDCORE_SOURCES = \
   include/cfdcore/cfdcore_logger.h \
   ${CFDCORE_ELEMENTS_SOURCES}
 
+FMT_SOURCES = \
+  fmt/src/format.cc \
+  fmt/src/os.cc
+
 QUILL_SOURCES = \
-  quill/src/bundled/fmt/format.cc \
-  quill/src/bundled/fmt/os.cc \
   quill/src/detail/backend/BackendWorker.cpp \
   quill/src/detail/backend/BacktraceStorage.cpp \
   quill/src/detail/backend/FreeListAllocator.cpp \
