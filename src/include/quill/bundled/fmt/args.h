@@ -12,7 +12,7 @@
 #include <memory>      // std::unique_ptr
 #include <vector>
 
-#include "core.h"
+#include "quill/bundled/fmt/core.h"
 
 FMT_BEGIN_NAMESPACE
 

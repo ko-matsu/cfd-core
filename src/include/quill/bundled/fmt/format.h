@@ -45,7 +45,7 @@
 #  include <bit>  // std::bitcast
 #endif
 
-#include "core.h"
+#include "quill/bundled/fmt/core.h"
 
 #if FMT_GCC_VERSION
 #  define FMT_GCC_VISIBILITY_HIDDEN __attribute__((visibility("hidden")))

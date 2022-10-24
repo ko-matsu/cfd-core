@@ -26,7 +26,7 @@
 #  include <io.h>  // _isatty
 #endif
 
-#include "format.h"
+#include "quill/bundled/fmt/format.h"
 
 FMT_BEGIN_NAMESPACE
 namespace detail {

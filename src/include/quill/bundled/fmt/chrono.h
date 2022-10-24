@@ -18,7 +18,7 @@
 #include <ostream>
 #include <type_traits>
 
-#include "format.h"
+#include "quill/bundled/fmt/format.h"
 
 FMT_BEGIN_NAMESPACE
 

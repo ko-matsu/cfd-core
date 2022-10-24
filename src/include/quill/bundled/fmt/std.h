@@ -12,7 +12,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "ostream.h"
+#include "quill/bundled/fmt/ostream.h"
 
 #if FMT_HAS_INCLUDE(<version>)
 #  include <version>

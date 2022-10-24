@@ -5,7 +5,8 @@
  */
 #ifndef CFD_CORE_SRC_INCLUDE_CFDCORE_CFDCORE_LOGGER_H_
 #define CFD_CORE_SRC_INCLUDE_CFDCORE_CFDCORE_LOGGER_H_
-#if defined(CFD_CORE_SHARED) && !defined(FMT_SHARED)
+#if defined(CFD_CORE_SHARED) && !defined(FMT_SHARED) && \
+    !defined(CFD_CORE_BUILD)
 #define FMT_SHARED
 #endif
 
