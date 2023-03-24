@@ -263,6 +263,16 @@ uint32_t OutPoint::GetVout() const { return vout_; }
 
 bool OutPoint::IsValid() const { return txid_.IsValid(); }
 
+bool OutPoint::IsCoinBase() const {
+  bool is_coinbase = false;
+  std::vector<uint8_t> empty_txid(kByteData256Length);
+  if ((vout_ == std::numeric_limits<uint32_t>::max()) &&
+      (txid_.GetData().GetBytes() == empty_txid)) {
+    is_coinbase = true;
+  }
+  return is_coinbase;
+}
+
 bool OutPoint::operator==(const OutPoint &object) const {
   if ((vout_ == object.vout_) && (txid_.Equals(object.txid_))) {
     return true;

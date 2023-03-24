@@ -143,6 +143,13 @@ class CFD_CORE_EXPORT OutPoint {
   bool IsValid() const;
 
   /**
+   * @brief Determine coinbase by txid / vout.
+   * @retval true  coinbase
+   * @retval false other
+   */
+  bool IsCoinBase() const;
+
+  /**
    * @brief Equals operator.
    * @param[in] object     compare target.
    * @retval true   equals

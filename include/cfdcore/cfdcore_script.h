@@ -950,6 +950,12 @@ class CFD_CORE_EXPORT Script {
    */
   explicit Script(const ByteData &bytedata);
   /**
+   * @brief constructor for TxIn.
+   * @param[in] bytedata            byte data.
+   * @param[in] ignore_size_check   ignore script size check.
+   */
+  explicit Script(const ByteData &bytedata, bool ignore_size_check);
+  /**
    * @brief destructor.
    */
   virtual ~Script() {
@@ -1102,9 +1108,10 @@ class CFD_CORE_EXPORT Script {
 
   /**
    * @brief set stack data.
-   * @param[in] bytedata    script byte array.
+   * @param[in] bytedata            script byte array.
+   * @param[in] ignore_size_check   ignore script size check.
    */
-  void SetStackData(const ByteData &bytedata);
+  void SetStackData(const ByteData &bytedata, bool ignore_size_check = false);
 
   /**
    * @brief Convert byte array to number.
