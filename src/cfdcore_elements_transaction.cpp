@@ -1345,7 +1345,11 @@ void ConfidentialTransaction::SetFromHex(const std::string &hex_string) {
           txin_item->txhash, txin_item->txhash + sizeof(txin_item->txhash));
       std::vector<uint8_t> script_buf(
           txin_item->script, txin_item->script + txin_item->script_len);
-      Script unlocking_script = Script(ByteData(script_buf));
+      Txid txid = Txid(ByteData256(txid_buf));
+      OutPoint out_point(txid, txin_item->index);
+      // TODO(k-matsuzawa): ignore size checks for coinbase scripts
+      Script unlocking_script =
+          Script(ByteData(script_buf), out_point.IsCoinBase());
       /* Temporarily comment out
       if (!unlocking_script.IsPushOnly()) {
         warn(CFD_LOG_SOURCE, "IsPushOnly() false.");
@@ -1360,7 +1364,7 @@ void ConfidentialTransaction::SetFromHex(const std::string &hex_string) {
       std::vector<uint8_t> entropy(
           txin_item->entropy, txin_item->entropy + sizeof(txin_item->entropy));
       ConfidentialTxIn txin(
-          Txid(ByteData256(txid_buf)), txin_item->index, txin_item->sequence,
+          txid, txin_item->index, txin_item->sequence,
           unlocking_script, ScriptWitness(), ByteData256(blinding_buf),
           ByteData256(entropy),
           ConfidentialValue(ConvertToByteData(
