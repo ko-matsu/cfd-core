@@ -845,6 +845,11 @@ Script::Script(const ByteData& bytedata)
   SetStackData(bytedata);
 }
 
+Script::Script(const ByteData& bytedata, bool ignore_size_check)
+    : script_data_(bytedata), script_stack_() {
+  SetStackData(bytedata, ignore_size_check);
+}
+
 Script::Script(const Script& object) {
   script_data_ = object.script_data_;
   script_stack_ = object.script_stack_;
@@ -927,7 +932,7 @@ static const std::set<ScriptType> kUseScriptNum3{
 #endif  // CFD_DISABLE_ELEMENTS
 };
 
-void Script::SetStackData(const ByteData& bytedata) {
+void Script::SetStackData(const ByteData& bytedata, bool ignore_size_check) {
   std::vector<uint8_t> buffer = bytedata.GetBytes();
 
   // create stack
@@ -1048,9 +1053,7 @@ void Script::SetStackData(const ByteData& bytedata) {
       collect_buffer.resize(collect_buffer_size);
       auto tmp_collect_buffer_size = collect_buffer_size;
       if ((offset + collect_buffer_size) > buffer.size()) {
-        if ((script_stack_.size() >= 2) &&
-            (top_collect_buffer[0].GetDataSize() == 3) &&
-            (top_collect_buffer[1].GetDataSize() == 4)) {
+        if (ignore_size_check) {
           // (push past end) If script is coinbase scriptsig, length is low.
           tmp_collect_buffer_size =
               static_cast<uint32_t>(buffer.size()) - offset;

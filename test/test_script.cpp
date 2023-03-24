@@ -535,7 +535,7 @@ TEST(Script, IsPegoutScriptTest) {
 
 TEST(Script, ParseCoinbaseScriptsigTest) {
   const std::string script = "03632b1e045352b260425443506f6f6cfabe6d6d4b081c2a3c7cb234c159b8e198294dfa79c04b54803e0e54c4a37d239445eb42020000007296cd100100000e8338000000000000";
-  Script obj(script);
+  Script obj(ByteData(script), true);  // ignore size check
   EXPECT_EQ(script, obj.GetHex());
   auto list = obj.GetElementList();
   EXPECT_EQ(3, list.size());
