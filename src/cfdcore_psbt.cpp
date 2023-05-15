@@ -2207,7 +2207,7 @@ void Psbt::Finalize() {
   if (!IsFinalized()) {
     struct wally_psbt *psbt_pointer;
     psbt_pointer = static_cast<struct wally_psbt *>(wally_psbt_pointer_);
-    int ret = wally_psbt_finalize(psbt_pointer);
+    int ret = wally_psbt_finalize(psbt_pointer, 0);
     if (ret != WALLY_OK) {
       warn(CFD_LOG_SOURCE, "wally_psbt_finalize NG[{}]", ret);
       throw CfdException(kCfdIllegalStateError, "psbt finalize error.");
