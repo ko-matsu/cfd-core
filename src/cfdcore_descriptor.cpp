@@ -60,6 +60,61 @@ static const DescriptorNodeScriptData kDescriptorNodeScriptTable[] = {
     {"tr", DescriptorScriptType::kDescriptorScriptTaproot, true, true, false},
 };
 
+/**
+ * @brief parse descriptor by libwally-core.
+ * 
+ * @param[in] miniscript      miniscript.
+ * @param[in] child_num       bip32 child number.
+ * @param[in] network_type    network type.
+ * @param[in] flags           flags.
+ * @param[in,out] script      bitcoin script from miniscript
+ * @param[out] written        output script size.
+ * @return libwally-core's error code.
+ */
+int parse_miniscript(
+    const char* miniscript, uint32_t child_num, NetType network_type,
+    uint32_t flags, std::vector<uint8_t>* script, size_t* written) {
+  uint32_t network = WALLY_NETWORK_BITCOIN_MAINNET;
+  switch (network_type) {
+    case NetType::kTestnet:
+      network = WALLY_NETWORK_BITCOIN_TESTNET;
+      break;
+    case NetType::kRegtest:
+      network = WALLY_NETWORK_BITCOIN_REGTEST;
+      break;
+#ifndef CFD_DISABLE_ELEMENTS
+    case NetType::kLiquidV1:
+      network = WALLY_NETWORK_LIQUID;
+      break;
+    case NetType::kElementsRegtest:
+      network = WALLY_NETWORK_LIQUID_REGTEST;
+      break;
+#endif  // CFD_DISABLE_ELEMENTS
+    // case NetType::kMainnet:
+    default:
+      break;
+  }
+
+  struct wally_descriptor* desc = nullptr;
+  uint32_t desc_flags = WALLY_MINISCRIPT_ONLY | flags;
+  int ret =
+      wally_descriptor_parse(miniscript, nullptr, network, desc_flags, &desc);
+  if (ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "Failed to call wally_descriptor_parse.");
+    return ret;
+  }
+
+  ret = wally_descriptor_to_script(
+      desc,
+      0,  // root
+      0, 0, 0, child_num, 0, script->data(), script->size(), written);
+  int tmp_ret = wally_descriptor_free(desc);
+  if (tmp_ret != WALLY_OK) {
+    warn(CFD_LOG_SOURCE, "Failed to call wally_descriptor_free.");
+  }
+  return ret;
+}
+
 // -----------------------------------------------------------------------------
 // DescriptorKeyInfo
 // -----------------------------------------------------------------------------
@@ -1293,10 +1348,10 @@ void DescriptorNode::AnalyzeAll(const std::string& parent_name) {
       std::string miniscript = name_ + "(" + value_ + ")";
       std::vector<unsigned char> script(max_size);
       size_t written = 0;
-      uint32_t flags = WALLY_MINISCRIPT_WITNESS_SCRIPT;
+      uint32_t flags = 0;
       if (parent_name == "tr") flags = WALLY_MINISCRIPT_TAPSCRIPT;
-      int ret = wally_descriptor_parse_miniscript(
-          miniscript.c_str(), nullptr, 0, flags, script.data(), script.size(),
+      int ret = parse_miniscript(
+          miniscript.c_str(), 0, this->network_type_, flags, &script,
           &written);
       if (ret == WALLY_OK) {
         script_type_ = DescriptorScriptType::kDescriptorScriptMiniscript;
@@ -1680,9 +1735,9 @@ std::vector<DescriptorScriptReference> DescriptorNode::GetReferences(
       size_t written = 0;
       uint32_t flags = 0;
       if (parent_kind_ == "tr") flags = WALLY_MINISCRIPT_TAPSCRIPT;
-      int ret = wally_descriptor_parse_miniscript(
-          value_.c_str(), nullptr, child_num, flags, script.data(),
-          script.size(), &written);
+      int ret = parse_miniscript(
+          value_.c_str(), child_num, this->network_type_, flags, &script,
+          &written);
       if ((ret == WALLY_OK) && (written <= script.size())) {
         locking_script = Script(script);
         result.emplace_back(locking_script, script_type_, addr_prefixes_);
