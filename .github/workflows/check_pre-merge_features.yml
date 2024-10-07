@@ -8,9 +8,6 @@ on:
     branches:
     - features/*
 
-env:
-  CMAKE_VERSION: 3.21.2
-
 jobs:
   cmake-win:
     name: cmake build-win
@@ -29,7 +26,7 @@ jobs:
             generator: 'Visual Studio 17 2022'
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: setup python
       # for libwally-core test
       uses: actions/setup-python@v4
@@ -51,28 +48,32 @@ jobs:
         cd build
         ctest -C Release --output-on-failure
 
-  cmake-mac:
+  cmake-mac-test:
     name: cmake build-mac
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-11, macos-12]
-        xcode_version: ['11.7']
+        os: [macos-12, macos-13, macos-14]
+        xcode_version: ['14.3.1']
         include:
-          - os: macos-11
-            xcode_version: '12.5.1'
-          - os: macos-11
-            xcode_version: '13.2.1'
-          - os: macos-12
-            xcode_version: '13.1'
           - os: macos-12
             xcode_version: '13.4.1'
+          - os: macos-12
+            xcode_version: '14.2'
+          - os: macos-13
+            xcode_version: '14.3.1'
+          - os: macos-13
+            xcode_version: '15.2'
+          - os: macos-14
+            xcode_version: '14.3.1'
+          - os: macos-14
+            xcode_version: '15.4'
         exclude:
           - os: macos-12
-            xcode_version: '11.7'
+            xcode_version: '14.3.1'
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: Select Xcode version
       run: sudo xcode-select -s '/Applications/Xcode_${{matrix.xcode_version}}.app/Contents/Developer'
     - name: Show Xcode version
@@ -93,7 +94,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, ubuntu-20.04]
+        os: [ubuntu-24.04, ubuntu-22.04, ubuntu-20.04]
         shared: [on, off]
         elements: [on]
         include:
@@ -101,7 +102,7 @@ jobs:
             elements: off
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: dump version
       run: |
         cmake --version
@@ -149,7 +150,7 @@ jobs:
             generator: 'Visual Studio 17 2022'
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: setup python
       # for libwally-core test
       uses: actions/setup-python@v4
@@ -178,11 +179,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         shared: [on]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: dump version
       run: |
         cmake --version
@@ -209,10 +210,10 @@ jobs:
 
   doxygen-ubuntu:
     name: doxygen-check
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install_doxygen
       run: sudo apt install doxygen graphviz
     - name: doxygen_check
